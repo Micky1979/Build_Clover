@@ -1,6 +1,6 @@
 <h1>Build_Clover</h1>
 <p>
-A script to build CloverV2 bootloader under macOS X and Ubuntu 16.04 +
+A script to build <a href="https://sourceforge.net/p/cloverefiboot/code/HEAD/tree/">CloverV2</a> bootloader under macOS X and Ubuntu 16.04 +
 </p>
 <h2>Author</h2>
 <p>
@@ -66,5 +66,5 @@ Please enter your choice:
 
 <h2>Other</h2>
 <p>
-Special thanks to the http://www.insanelymac.com baord and its members, who are testing the script and report issues.
+Special thanks to the <a href="http://www.insanelymac.com">Insanelymac baord</a> and its members, who are testing the script and report issues.
 </p>
