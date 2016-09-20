@@ -66,5 +66,5 @@ Please enter your choice:
 
 <h2>Other</h2>
 <p>
-Special thanks to the <a href="http://www.insanelymac.com">Insanelymac baord</a> and its members, who are testing the script and report issues.
+Special thanks to the <a href="http://www.insanelymac.com">InsanelyMac board</a> and its members, who are testing the script and report issues.
 </p>
