@@ -123,7 +123,7 @@ macros=(
         ENABLE_VBIOS_PATCH_CLOVEREFI
         ENABLE_PS2MOUSE_LEGACYBOOT
         DEBUG_ON_SERIAL_PORT
-#        DISABLE_LTO
+        DISABLE_LTO
         ENABLE_SECURE_BOOT
         USE_ION
         DISABLE_USB_MASS_STORAGE
@@ -1406,7 +1406,6 @@ build() {
     START_BUILD=$(date)
 
     set +e
-    LTO_FLAG="" # Slice has removed that flag entirely until new development will comes
     if [[ "$CUSTOM_BUILD" == NO ]]; then
         # using standard options
         case "$ARCH" in
