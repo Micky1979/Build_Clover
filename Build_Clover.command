@@ -29,7 +29,7 @@ GNU="GCC49"        # GCC49 GCC53
 BUILDTOOL="$XCODE" # XCODE or GNU?      (use $GNU to use GNU gcc, $XCODE to use the choosen Xcode version)
 # in Linux this get overrided and GCC53 used anyway!
 # --------------------------------------
-SCRIPTVER="v4.0.3"
+SCRIPTVER="v4.0.4"
 SYSNAME="$( uname )"
 
 BUILDER=$USER # don't touch!
@@ -123,7 +123,7 @@ macros=(
         ENABLE_VBIOS_PATCH_CLOVEREFI
         ENABLE_PS2MOUSE_LEGACYBOOT
         DEBUG_ON_SERIAL_PORT
-        DISABLE_LTO
+#        DISABLE_LTO
         ENABLE_SECURE_BOOT
         USE_ION
         DISABLE_USB_MASS_STORAGE
@@ -1404,6 +1404,8 @@ build() {
     cd "${DIR_MAIN}"/edk2/Clover
 
     START_BUILD=$(date)
+
+    LTO_FLAG="" # Slice has removed that flag entirely until new development will comes
 
     set +e
     if [[ "$CUSTOM_BUILD" == NO ]]; then
