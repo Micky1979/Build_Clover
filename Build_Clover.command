@@ -29,7 +29,7 @@ GNU="GCC49"        # GCC49 GCC53
 BUILDTOOL="$XCODE" # XCODE or GNU?      (use $GNU to use GNU gcc, $XCODE to use the choosen Xcode version)
 # in Linux this get overrided and GCC53 used anyway!
 # --------------------------------------
-SCRIPTVER="v4.0.4"
+SCRIPTVER="v4.0.5"
 SYSNAME="$( uname )"
 
 BUILDER=$USER # don't touch!
@@ -80,6 +80,78 @@ edk2array=(
                 UefiCpuPkg
             )
 # <----------------------------
+IsNumericOnly() {
+    if [[ "${1}" =~ ^-?[0-9]+$ ]]; then
+        return 0 # no, contains other or is empty
+    else
+        return 1 # yes is an integer (no matter for bash if there are zeroes at the beginning comparing it as integer)
+    fi
+}
+# ---------------------------->
+pressAnyKey(){
+    clear
+    printf "${1}\n"
+    read -rsp $'Press any key to continue...\n' -n1 key
+    clear
+}
+
+selfUpdate() {
+    printHeader "SELF UPDATE"
+    local SELF_PATH="${0}"
+    local GITHUB='https://raw.githubusercontent.com/Micky1979/Build_Clover/master/Build_Clover.command'
+    local cmd=""
+    local newScriptRev=""
+    local currScriptRev=$(echo $SCRIPTVER | tr -cd [:digit:]) # in case of beta suffix
+    local newScript=""
+
+    case $1 in
+    wget)
+        cmd='$1 $GITHUB -q -O -'
+    ;;
+    curl)
+        cmd='$1 -L $GITHUB'
+    ;;
+    *)
+        printError "selfUpdate(): invalid cmd!\n"
+        return
+    ;;
+    esac
+
+    newScript=$(eval $cmd)
+
+    # don't fail if no script is avail
+    if [ -n "${newScript}" ]; then
+        echo "${newScript}" > /tmp/Build_Clover.txt
+        newScript=$(cat /tmp/Build_Clover.txt)
+        newScriptRev=$(cat /tmp/Build_Clover.txt | grep 'SCRIPTVER=' | tr -cd [:digit:])
+
+        if IsNumericOnly $currScriptRev && IsNumericOnly $newScriptRev; then
+            if [ "$newScriptRev" -gt "$currScriptRev" ]; then
+                # we have a new script prompt the user
+                # (be aware of the $MODE, so we cannot relaunch the new script if user need R mode)
+                printf "\na new Build_Clover.command is available,\n"
+                echo "do you want to overwrite the script? (Y/n)\n"
+                read answer
+
+                case $answer in
+                Y | y)
+                    cat /tmp/Build_Clover.txt > "${SELF_PATH}"
+                    echo "done!"
+                    echo "re run the new script, and apply your changes (if any)"
+                    rm -f /tmp/Build_Clover.txt
+                    exit 0
+                ;;
+                esac
+            else
+                pressAnyKey 'your script is up to date,\n'
+            fi
+        fi
+    else
+        pressAnyKey 'was not possible to retrieve updates for Build_Clover.command,'
+    fi
+    rm -f /tmp/Build_Clover.txt
+}
+# <----------------------------
 # default paths (don't touch these vars)
 # first check for our path
 if [[ "$MODE" == "S" ]]; then
@@ -123,7 +195,6 @@ macros=(
         ENABLE_VBIOS_PATCH_CLOVEREFI
         ENABLE_PS2MOUSE_LEGACYBOOT
         DEBUG_ON_SERIAL_PORT
-#        DISABLE_LTO
         ENABLE_SECURE_BOOT
         USE_ION
         DISABLE_USB_MASS_STORAGE
@@ -132,6 +203,11 @@ macros=(
         REAL_NVRAM
         CHECK_FLAGS
         )
+
+# tools_def.txt provide lto flags for GCC53 in linux
+if [[ "$SYSNAME" == Linux ]]; then
+    macros+=('DISABLE_LTO')
+fi
 # <----------------------------
 # Separators lines
 ThickLine='==============================================================================='
@@ -157,7 +233,7 @@ printError() {
 }
 # --------------------------------------
 printWarning() {
-printf "\033[1;33m${1}\033[0m"
+    printf "\033[1;33m${1}\033[0m"
 }
 # --------------------------------------
 # don't use sudo!
@@ -677,14 +753,6 @@ IsLinkOnline() {
     fi
 }
 # --------------------------------------
-IsNumericOnly() {
-    if [[ "${1}" =~ ^-?[0-9]+$ ]]; then
-        return 0 # no, contains other or is empty
-    else
-        return 1 # yes is an integer (no matter for bash if there are zeroes at the beginning comparing it as integer)
-    fi
-}
-# --------------------------------------
 IsPathWritable() {
     local result=1
     # file/folder exists?
@@ -800,7 +868,7 @@ clover() {
         fi
     else
         printHeader 'Updating Clover'
-        cmd="svn update"
+        cmd="svn up --accept tf"
     fi
 
     cd "${DIR_MAIN}"/edk2/Clover
@@ -1186,10 +1254,11 @@ build() {
                 )
         else
             options=(
+                 "update Build_Clover.command"
                  "update Clover only (no building)"
                  "update & build Clover"
                  "run my script on the source"
-                 "build existing revision (no update, standard build)"
+                 "build existing revision (no update, for testing only)"
                  "build existing revision for release (no update, standard build)"
                  "build existing revision with custom macros enabled"
                  "info and limitations about this script"
@@ -1201,6 +1270,16 @@ build() {
         select opt in "${options[@]}"
         do
             case $opt in
+            "update Build_Clover.command")
+                if [ -n $(which curl) ]; then
+                    selfUpdate curl
+                elif [ -n $(which wget) ]; then
+                    selfUpdate wget
+                else
+                    printError "\nNor curl nor wget are installed! Install one of it and retry..\n" && exit 1
+                fi
+                build
+            ;;
             "enter Developers mode (only for devs)")
                 clear
                 if [[ -d "${DIR_MAIN}/edk2/Clover" ]] ; then
@@ -1221,7 +1300,7 @@ build() {
                 selectArch
                 break
             ;;
-            "build existing revision (no update, standard build)")
+            "build existing revision (no update, for testing only)")
                 UPDATE_FLAG="NO"
                 BUILD_FLAG="YES"
                 selectArch
@@ -1405,7 +1484,9 @@ build() {
 
     START_BUILD=$(date)
 
-    LTO_FLAG="" # Slice has removed that flag entirely until new development will comes
+    # Slice has removed that flag entirely until new development will comes,
+    # so the follow is just a momentarily patch for XCODE5
+    if [[ "$SYSNAME" == Darwin ]]; then LTO_FLAG=""; fi
 
     set +e
     if [[ "$CUSTOM_BUILD" == NO ]]; then

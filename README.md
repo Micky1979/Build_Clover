@@ -31,15 +31,16 @@ Supported OSes: macOS X, Ubuntu 16.04
 Remote revision: 3761 Local revision: 3760
                           <----------------------------------------------------
 Please enter your choice: 
-1) update Clover only (no building)
-2) update & build Clover
-3) run my script on the source
-4) build existing revision (no update, standard build)
-5) build existing revision for release (no update, standard build)
-6) build existing revision with custom macros enabled
-7) info and limitations about this script
-8) enter Developers mode (only for devs)
-9) Exit
+1) update Build_Clover.command
+2) update Clover only (no building)
+3) update & build Clover
+4) run my script on the source
+5) build existing revision (no update, for testing only)
+6) build existing revision for release (no update, standard build)
+7) build existing revision with custom macros enabled
+8) info and limitations about this script
+9) enter Developers mode (only for devs)
+10) Exit
 #? 
 </pre>
 </div>
