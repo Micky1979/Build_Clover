@@ -29,7 +29,8 @@ GNU="GCC49"        # GCC49 GCC53
 BUILDTOOL="$XCODE" # XCODE or GNU?      (use $GNU to use GNU gcc, $XCODE to use the choosen Xcode version)
 # in Linux this get overrided and GCC53 used anyway!
 # --------------------------------------
-SCRIPTVER="v4.0.6"
+SCRIPTVER="v4.0.7"
+export LC_ALL=C
 SYSNAME="$( uname )"
 
 BUILDER=$USER # don't touch!
@@ -67,17 +68,19 @@ START_BUILD=""
 TIMES=0
 
 edk2array=(
-                BaseTools
-                MdePkg
-                DuetPkg
-                EdkCompatibilityPkg
-                IntelFrameworkModulePkg
-                IntelFrameworkPkg
-                MdeModulePkg
-                OvmfPkg
-                PcAtChipsetPkg
-                ShellPkg
-                UefiCpuPkg
+            MdePkg
+            MdeModulePkg
+            CryptoPkg
+            DuetPkg
+            EdkCompatibilityPkg
+            IntelFrameworkModulePkg
+            IntelFrameworkPkg
+            OvmfPkg
+            OptionRomPkg
+            PcAtChipsetPkg
+            ShellPkg
+            UefiCpuPkg
+            BaseTools
             )
 # <----------------------------
 IsNumericOnly() {
@@ -127,19 +130,40 @@ selfUpdate() {
 
         if IsNumericOnly $currScriptRev && IsNumericOnly $newScriptRev; then
             if [ "$newScriptRev" -gt "$currScriptRev" ]; then
-                # we have a new script prompt the user
-                # (be aware of the $MODE, so we cannot relaunch the new script if user need R mode)
+                # we have a new script, prompt the user
                 printf "\na new Build_Clover.command is available,\n"
                 echo "do you want to overwrite the script? (Y/n)\n"
                 read answer
 
                 case $answer in
                 Y | y)
-                    cat /tmp/Build_Clover.txt > "${SELF_PATH}"
-                    echo "done!"
-                    echo "re run the new script, and apply your changes (if any)"
-                    rm -f /tmp/Build_Clover.txt
-                    exit 0
+                    # get the line containing MODE variable and replace with what is currently in old script:
+                    local lineVarNum=$(cat /tmp/Build_Clover.txt | grep -n '^MODE="' | awk -F ":" '{print $1}')
+
+                    if [[ "$MODE" == "R" ]]; then
+                        if IsNumericOnly $lineVarNum; then
+                            if [[ "$SYSNAME" == Linux ]]; then
+                                sed -i "${lineVarNum}s/.*/MODE=\"R\"/" /tmp/Build_Clover.txt
+                            else
+                                sed -i "" "${lineVarNum}s/.*/MODE=\"R\"/" /tmp/Build_Clover.txt
+                            fi
+                            cat /tmp/Build_Clover.txt > "${SELF_PATH}"
+                            echo "done!"
+                            rm -f /tmp/Build_Clover.txt
+                            exec "${SELF_PATH}"
+                        else
+                            cat /tmp/Build_Clover.txt > "${SELF_PATH}"
+                            echo "Warning: was not possible to ensure that MODE var was correctly set,"
+                            echo "so apply your changes (if any) and re run the new script"
+                            rm -f /tmp/Build_Clover.txt
+                            exit 0
+                        fi
+                    else
+                        cat /tmp/Build_Clover.txt > "${SELF_PATH}"
+                        echo "done!"
+                        rm -f /tmp/Build_Clover.txt
+                        exec "${SELF_PATH}"
+                    fi
                 ;;
                 esac
             else
@@ -320,65 +344,46 @@ clear
 printHeader "Build_Clover script $SCRIPTVER"
 printHeader "By Micky1979 based on Slice, Zenith432, STLVNUB, JrCs, cecekpawon, Needy,\ncvad, Rehabman, philip_petev\n\nSupported OSes: macOS X, Ubuntu 16.04"
 
-if [[ "$SYSNAME" == Linux ]]; then
-    restoreIFS
-    tasksARRAY=()
+aptInstall() {
+ 
+    if [[ -z "${1}" ]]; then 
+        return
+    fi
+    echo "Build_Clover need these $1 to be installed,"
+    echo "but it was not found."
+    echo "would you allow to install it? (Y/N)"
+	
+    read answer
 
+    case $answer in
+    Y | y)
+        if [[ "$USER" != root ]]; then echo "type your password to install:"; fi
+        sudo apt-get update 	
+        sudo apt-get install "${1}"
+    ;;
+    *)
+        printError "Build_Clover cannot go ahead without it/them, process aborted!\n"
+        exit 1
+    ;;
+    esac
+    sudo -k	
+}
+
+if [[ "$SYSNAME" == Linux ]]; then
     if [[ "$(uname -m)" != x86_64 ]]; then
         printError "\nBuild_Clover.command is tested only on x86_64 architecture, aborting..\n"
         exit 1
     fi
 
     # check if the Universally Unique ID library - headers are installed
-
-    if [[ "$(dpkg -s uuid-dev | grep Status)" =~ 'install ok installed' ]]; then
-        echo "uuid-dev found.." > /dev/null 2>&1
-    else
-        tasksARRAY+=('uuid-dev')
+    if [[ "$(apt-cache policy uuid-dev | grep 'Installed: (none)')" =~ 'Installed: (none)' ]]; then
+        aptInstall uuid-dev
     fi
-
+    # check if subversion is installed
     if [[ -z $(which svn) ]]; then 
-        tasksARRAY+=('subversion')
-    else
-        echo "subversion found.." > /dev/null 2>&1
-    fi
-
-    if [ "${#tasksARRAY[@]}" -ge "1" ]; then
-        echo "Build_Clover need these things to be installed:"
-        echo "${tasksARRAY[@]}"
-        echo "but they were not found."
-        echo "would you allow to install it/them? (Y/N)"
-	
-        read answer
-
-        case $answer in
-        Y | y)
-            if [[ "$USER" != root ]]; then echo "type your password to install:" && sudo -s; fi
-            apt-get update
-            for stuff in "${tasksARRAY[@]}"
-            do
-                apt-get install $stuff
-    		done
-            sudo -k
-    	;;
-    	*)
-            printError "Build_Clover cannot go ahead without it/them, process aborted!\n"
-            exit 1
-        ;;
-        esac
+        aptInstall subversion
     fi
 fi
-# ---------------------------->
-# Upgrade the working copy
-svnUpgrade(){
-    # error proof
-    if [ ! ${1} ]; then
-        return 1;
-    fi
-
-    # Upgrade the working copy for the indicated path
-    svn upgrade ${1}
-}
 # ---------------------------->
 # Remote and local revisions
 getRev() {
@@ -394,28 +399,30 @@ getRev() {
     # convert to lowercase
     Arg=$(echo "$1" | tr '[:upper:]' '[:lower:]')
 
-    local dir=("${DIR_MAIN}/edk2/" "${DIR_MAIN}/edk2/Clover/")
-
-    dir_len=${#dir[*]}
-
-    for (( i = 0; i < $(( $dir_len )); i++ )); do
-        if [[ -d "${dir[$i]}".svn ]]; then
-            svn info "${dir[$i]}" $1 $2 2>&1 | grep 'svn upgrade'
-            if [[ $? -eq 0 ]]; then
-                printError "Error: You need to upgrade the working copy first.\n"
-                printWarning "Would you like to upgrade the working copy in the ${dir[$i]}?\n"
-                read input
-                local answer=$(echo "$input" | tr '[:upper:]' '[:lower:]')
-                if [[ ${answer} == *"y"* ]]; then
-                    svnUpgrade "${dir[$i]}"
-                    getRev "${1}"
-                elif [[ ${answer} == *"n"* ]]; then
-                    printWarning "You may encounter errors!\n"
-                    return 2;
-                fi
-            fi
+    # shold we upgrade the working copy??
+    if [[ -d "${DIR_MAIN}/edk2/Clover/.svn" ]]; then
+        svn info "${DIR_MAIN}/edk2/Clover" 2>&1 | grep 'svn upgrade'
+        if [[ $? -eq 0 ]]; then
+            printError "Error: You need to upgrade the working copy first.\n"
+            printWarning "Would you like to upgrade the working copy? (Y/n)\n"
+            read input
+            case $input in
+            Y | y)
+                for workingCopy in `find "${DIR_MAIN}/edk2" -name "*.svn"`
+                do
+                    if [[ -d "$(dirname $workingCopy)" ]]; then
+                        printWarning "upgrading $(dirname $workingCopy)\n"
+                        svn upgrade "$(dirname $workingCopy)"
+                    fi
+                done
+            ;;
+            *)
+                printWarning "You may encounter errors!\n"
+                return 2;
+            ;;
+            esac
         fi
-    done
+    fi
 
     # universal
     if [[ ${Arg} == *"remote"* ]]; then
@@ -819,6 +826,53 @@ edk2() {
         fi
     fi
 
+    # update only relevant pkgs of edk2 needed by Clover
+    # keep them from update.sh used by Slice..
+    local cmd=""
+    local updatelink="https://sourceforge.net/p/cloverefiboot/code/HEAD/tree/update.sh?format=raw"
+    if [ -n $(which curl) ]; then
+        cmd="curl -L $updatelink"
+    elif [ -n $(which wget) ]; then
+        cmd="wget $updatelink -q -O -"
+    else
+        printError "\nNor curl nor wget are installed! Install one of it and retry..\n" && exit 1
+    fi
+
+    local edk2ArrayOnline=(
+                            $( eval "${cmd}" | grep 'cd ..' | sed -e 's/^cd ..\///' | sed -e 's/\/$//' | sed -e '/Clover/d' \
+                                                                                    | sed -e 's:BaseTools/Conf:BaseTools:g' )
+                           )
+
+    # use only if populated, otherwise use the static "edk2array"
+    if [ "${#edk2ArrayOnline[@]}" -ge "1" ]; then
+        edk2array="${edk2ArrayOnline}"
+    fi
+
+
+    # check if we have all already there and updated at the specified revision..
+    # 'Scripts' and 'Source' are not present in edk2. maybe are Slice's stuff
+    local numCheck=0
+    for d in "${edk2array[@]}"
+    do
+        if [[ "$d" != Source ]] && [[ "$d" != Scripts ]]; then
+            if [[ ! -d "${DIR_MAIN}/edk2/${d}/.svn" ]] || \
+               [ "$(svn info "${DIR_MAIN}/edk2/${d}" | grep '^Revision:' | tr -cd [:digit:])" -ne "$EDK2_REV" ]; then
+                ((numCheck+=1))
+            fi
+        fi
+    done
+
+    # check also edk2/.svn
+    if [[ ! -d "${DIR_MAIN}/edk2/.svn" ]] || \
+       [ "$(svn info "${DIR_MAIN}/edk2" | grep '^Revision:' | tr -cd [:digit:])" -ne "$EDK2_REV" ]; then
+        ((numCheck+=1))
+    fi
+
+    if [ "$numCheck" -eq "0" ];then
+        printWarning "edk2 appear to be up to date, skipping ...\n"
+        return
+    fi
+
     TIMES=0
     cd "${DIR_MAIN}"/edk2
     IsLinkOnline $EDK2_REP
@@ -832,18 +886,19 @@ edk2() {
 
     for d in "${edk2array[@]}"
     do
-        printf "\033[1;34m${d}:\033[0m\n"
-        TIMES=0
-        IsLinkOnline "$EDK2_REP/${d}"
-        cd "${DIR_MAIN}"/edk2
-        if [[ -d "${DIR_MAIN}/edk2/${d}" ]] ; then
-            cd "${DIR_MAIN}/edk2/${d}"
-            svnWithErrorCheck "svn update --accept tf --non-interactive --trust-server-cert $revision"
-        else
+        if [[ "$d" != "Source" ]] && [[ "$d" != "Scripts" ]]; then
+            printf "\033[1;34m${d}:\033[0m\n"
+            TIMES=0
+            IsLinkOnline "$EDK2_REP/${d}"
             cd "${DIR_MAIN}"/edk2
-            svnWithErrorCheck "svn co $revision --non-interactive --trust-server-cert $EDK2_REP/${d}"
+            if [[ -d "${DIR_MAIN}/edk2/${d}" ]] ; then
+                cd "${DIR_MAIN}/edk2/${d}"
+                svnWithErrorCheck "svn update --accept tf --non-interactive --trust-server-cert $revision"
+            else
+                cd "${DIR_MAIN}"/edk2
+                svnWithErrorCheck "svn co $revision --non-interactive --trust-server-cert $EDK2_REP/${d}"
+            fi
         fi
-
     done
 
     cleanAllTools $BaseToolsRev
@@ -997,11 +1052,14 @@ isNASMGood() {
 # --------------------------------------
 ebuildBorg () {
 
-    if [[ "$MOD_PKG_FLAG" != YES ]] || [[ "$SYSNAME" != Darwin ]]; then
+    if [[ "$MOD_PKG_FLAG" != YES ]]; then
         return
     fi
     local NR=0
-    printHeader 'Modding package resources'
+    if [[ "$SYSNAME" == Darwin ]]; then
+        printHeader 'Modding package resources'
+    fi
+    
     case "$ARCH" in
     IA32_X64 | X64)
         local oldTitle='cloverEFI.64.blockio_title'
@@ -1026,6 +1084,9 @@ ebuildBorg () {
     ;;
     esac
 
+    if [[ "$SYSNAME" != Darwin ]]; then
+        return
+    fi
 
     # modding po files
     cp -R "${LOCALIZABLE_FILE}" /tmp/
@@ -1442,7 +1503,7 @@ build() {
         printHeader "$( gcc -v )"
     fi
 
-    if [[ "$SYSNAME" == Darwin ]]; then restoreClover; fi
+    if [[ "$BUILDER" != 'slice' ]]; then restoreClover; fi
 
     if [[ "$UPDATE_FLAG" == YES ]] && [[ "$BUILDER" != 'slice' ]]; then
         edk2
@@ -1477,7 +1538,7 @@ build() {
 
     if [[ "$BUILDER" != 'slice' ]]; then
         buildEssentials
-        if [[ "$SYSNAME" == Darwin ]]; then cleanCloverV2; fi
+        cleanCloverV2
     fi
 
     cd "${DIR_MAIN}"/edk2/Clover
@@ -1553,10 +1614,14 @@ build() {
             make iso
         fi
     else
-        doSomething --run-script "${PATCHES}/Linux/distribution" # under study (.deb)
+	 if [[ "$USER" == 'Micky1979' ]]; then
+            doSomething --run-script "${PATCHES}/Linux/distribution" # under study (.deb)
+	else
+            nautilus "${CLOVERV2_PATH}" > /dev/null
+        fi
     fi
 
-    if [[ "$BUILDER" != 'slice' ]] && [[ "$SYSNAME" == Darwin ]]; then restoreClover; fi
+    if [[ "$BUILDER" != 'slice' ]]; then restoreClover; fi
     echo "${ThickLine}"
     printf "build started at:\n${START_BUILD}\nfinished at\n$(date)\n\nDone!\n"
     echo "${Line}"
