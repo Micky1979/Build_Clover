@@ -1,18 +1,22 @@
 #!/bin/bash
 
-# made by Micky1979 on 07/05/2016 based on Slice, Zenith432, STLVNUB, JrCs, cvad and Rehabman works
+# made by Micky1979 on 07/05/2016 based on Slice, Zenith432, STLVNUB, JrCs, cvad, Rehabman, and ErmaC works
 
-# Tested in OSX using both GNU gcc and clang (Xcode 6.4, 7.2.1, 7.3.1 and Xcode 8). Preferred 
-# OS is El Capitan with Xcode >= 7.3.1 and Sierra with Xcode >= 8.
+# Tested in OSX using both GNU gcc and clang (Xcode 6.4, 7.2.1, 7.3.1 and Xcode 8).
+# Preferred OS is El Capitan with Xcode >= 7.3.1 and Sierra with Xcode >= 8.
 # I older version of OS X is better to use GNU gcc.
 
-# Tested in linux Ubuntu 16.04 amb64 (x86_64). This script install all missing dependencies in the iso images you
+# Tested in linux Ubuntu 16.04/Debian 8.6 amb64 (x86_64).
+# This script install all missing dependencies in the iso images you
 # can download at the official download page here: http://releases.ubuntu.com/16.04/ubuntu-16.04.1-desktop-amd64.iso
-# where nasm, subversion, uuid-dev headers are missing.
+# where nasm, subversion, curl (wget if installed is used as replacement) and or uuid-dev headers are missing.
 # gcc 5.4 coming with Ubuntu 16.04 is well compiled for Clover, so no need to make a "cross" compilation of it, and 
-# I hope will be the same for future version installed here.
-# May you have apported changes to your installation, but this is not my fault!
-# New incoming release of Ubuntu should be compatible as well..
+# I hope will be the same for future version installed here. Debian 8.6 instead use gcc 4.9.2 and is already good.
+# Note that Debian comes without "sudo" installed (you well know this), but this script require dependecies
+# described above so that you have install them by your self, or install sudo and enable it for your account.
+#
+# May you have apported radical and incompatible changes to your installation, but this is not my fault!
+# New incoming release of Ubuntu/Debian should be compatible as well..
 
 #
 # Big thanks to the following testers:
@@ -29,7 +33,7 @@ GNU="GCC49"        # GCC49 GCC53
 BUILDTOOL="$XCODE" # XCODE or GNU?      (use $GNU to use GNU gcc, $XCODE to use the choosen Xcode version)
 # in Linux this get overrided and GCC53 used anyway!
 # --------------------------------------
-SCRIPTVER="v4.0.8"
+SCRIPTVER="v4.0.9"
 export LC_ALL=C
 SYSNAME="$( uname )"
 
@@ -324,12 +328,12 @@ donwloader(){
     suggestedFilename="${2}"
     downloadLocation="${3}"
 
-    if [ -n $(which curl) ]; then
-        cmd="curl -o ${downloadLocation}/${suggestedFilename} -LOk ${downloadlink}"
-    elif [ -n $(which wget) ]; then
+    if [[ -x $(which wget) ]]; then
         cmd="wget -O ${downloadLocation}/${suggestedFilename} ${downloadlink}"
+    elif [[ -x $(which curl) ]]; then
+        cmd="curl -o ${downloadLocation}/${suggestedFilename} -LOk ${downloadlink}"
     else
-        printError "\nNor curl nor wget are installed! Install one of it and retry..\n" && exit 1
+        printError "\nNo curl nor wget are installed! Install one of them and retry..\n" && exit 1
     fi
 
     # default behavior = replace existing download!
@@ -340,18 +344,15 @@ donwloader(){
     eval "${cmd}"
 }
 # --------------------------------------
-clear
-printHeader "Build_Clover script $SCRIPTVER"
-printHeader "By Micky1979 based on Slice, Zenith432, STLVNUB, JrCs, cecekpawon, Needy,\ncvad, Rehabman, philip_petev\n\nSupported OSes: macOS X, Ubuntu 16.04"
-
 aptInstall() {
  
     if [[ -z "${1}" ]]; then 
         return
     fi
-    echo "Build_Clover need these $1 to be installed,"
-    echo "but it was not found."
-    echo "would you allow to install it? (Y/N)"
+    printWarning "Build_Clover need this:\n"
+    printError "${1}\n"
+    printWarning "..to be installed, but was not found.\n"
+    printWarning "would you allow to install it? (Y/N)\n"
 	
     read answer
 
@@ -368,6 +369,10 @@ aptInstall() {
     esac
     sudo -k	
 }
+# --------------------------------------
+clear
+printHeader "Build_Clover script $SCRIPTVER"
+printHeader "By Micky1979 based on Slice, Zenith432, STLVNUB, JrCs, cecekpawon, Needy,\ncvad, Rehabman, philip_petev, ErmaC\n\nSupported OSes: macOS X, Ubuntu 16.04, Debian Jessie 8.6"
 
 if [[ "$SYSNAME" == Linux ]]; then
     if [[ "$(uname -m)" != x86_64 ]]; then
@@ -380,8 +385,14 @@ if [[ "$SYSNAME" == Linux ]]; then
         aptInstall uuid-dev
     fi
     # check if subversion is installed
-    if [[ -z $(which svn) ]]; then 
+    if [[ ! -x $(which svn) ]]; then
         aptInstall subversion
+    fi
+
+    # check whether at least one of curl or wget are installed
+    if [[ ! -x $(which wget) ]] && [[ ! -x $(which curl) ]]; then
+        # ok both of them are no currently installed, we prefear wget
+        aptInstall wget
     fi
 fi
 # ---------------------------->
@@ -521,7 +532,7 @@ showInfo () {
     printHeader "INFO"
 
     printf "This script was originally created to be run in newer OSes like El Capitan\n"
-    printf "+ using Xcode 7.3 +, but should works fine using gcc 4,9 (GCC49)\n"
+    printf "using Xcode 7.3 +, but should works fine using gcc 4,9 (GCC49)\n"
     printf "in older ones. Also gcc 5,3 can be used but not actually advised.\n"
     echo
     printf "Don't be surprised if this does not work in Snow Leopard (because can't).\n"
@@ -531,12 +542,18 @@ showInfo () {
     printf "LTO as suggested by devs. The result will be binaries increased in size.\n"
     printf "Off course that is automatic only for standard compilations, but consider to\n"
     printf "switch back to gcc 4,9 (GCC49).\n"
+    printf "UPDATE: actually using XCODE5 LTO is disabled anyway due to problems coming with\n"
+    printf "Xcode 8 and new version of clang.\n"
     echo
     printf "Since v3.5 Build_Clover.command is able to build Clover in Ubuntu 16.04\n"
-    printf "using the built-in gcc and installing some dependecies like nasm, subversion and\n"
-    printf "the uuid-dev headers if not installed. Off course using only the\n"
-    printf "amd64 release (x86_64).\n"
+    printf "using the built-in gcc and installing some dependecies like nasm, subversion,\n"
+    printf "curl (wget is good if found), the uuid-dev headers if not installed.\n"
+    printf "Off course using only the amd64 release (x86_64).\n"
     printf "May work on new releases of Ubuntu as well, but not on older ones.\n"
+    printf "UPDATE: since v4.0.9 this script is tested in Debian Jessie 8.5 using gcc 4.9.2,\n"
+    printf "but be aware that usually Debian comes without sudo installed:\n"
+    printf "in this case you have to manage to install it manually and enable\n"
+    printf "your account as sudo user (or just install all dependencies manually).\n"
     echo
     printf "This script conform to Slice's will as the main Clover's developer:\n"
     printf "edk2 is actually set to r${EDK2_REV} and nasm should not be older\n"
@@ -551,7 +568,7 @@ showInfo () {
     echo
     printf "By default the script no longer build the iso image but if you need it,\n"
     printf "just edit BUILD_ISO=\"NO\" to BUILD_ISO=\"YES\" at the \"Preferences\"\n"
-    printf "section. Or enter the Developers mode.\n"
+    printf "section. Or enter the Developers mode. *(macOS only)\n"
     echo
     printf "You can build both 32/64 bit, only 32bit or only 64 bit packages!\n"
     echo
@@ -570,7 +587,7 @@ showInfo () {
     echo
     printf "Warning using the \"R\" mode of this script to create the src folder\n"
     printf "outside the Home folder:\n"
-    printf "Blanck spaces in the path are not allowed because it will fail!\n"
+    printf "Blank spaces in the path are not allowed because it will auto-fail!\n"
     echo "${Line}"
     exit 0
 }
@@ -641,25 +658,36 @@ fi
 # --------------------------------------
 doSomething() {
 # $1 = option
-# $2 = first argument
-# $3 = second argument
-# $4 = ... and so on
+# $2 = cmd
+# $3 = first argument
+# $4 = second argument
+# $5 = ... and so on
+    restoreIFS
+    local cmd=""
 
     case "$1" in
-            --run-script)
-                if [[ -x "${2}" ]]; then
-                    "${2}"
-                else
-                    echo
-                    echo "doSomething: \"--run-script\" option require you to add a \"${2}\" script.."
-                    echo
-                fi
-            ;;
-            *)
-                printError "doSomething: invalid \"$1\" option\n"
-                exit 1
-            ;;
-        esac
+        --run-script)
+            if [[ -x "${2}" ]]; then
+                # rebuild the cmd + all args
+                cmd=$(echo "$@" | sed -e 's:--run-script ::g' | sed -e 's/[[:space:]]*$//')
+            else
+                echo
+                echo "doSomething: \"--run-script\" option require you to add a script somewhere.."
+                echo
+            fi
+        ;;
+        *)
+            printError "doSomething: invalid \"--run-script\" long option not specified\n"
+            exit 1
+        ;;
+    esac
+
+    eval "${cmd}"
+
+    if [[ $? -ne 0 ]] ; then
+        printError "\no_Ops, $2 exited with error(s), aborting..\n"
+        exit 1
+    fi
 }
 # --------------------------------------
 exportPaths() {
@@ -732,7 +760,7 @@ svnWithErrorCheck() {
 # --------------------------------------
 IsLinkOnline() {
     if [[ $FAST_UPDATE != NO ]]; then
-        return 1 # exit success anyway (script is fast)
+        return 1 # exit success anyway (script is faster)
     fi
 
     if [ -z "${1}" ]; then
@@ -830,12 +858,12 @@ edk2() {
     # keep them from update.sh used by Slice..
     local cmd=""
     local updatelink="https://sourceforge.net/p/cloverefiboot/code/HEAD/tree/update.sh?format=raw"
-    if [ -n $(which curl) ]; then
-        cmd="curl -L $updatelink"
-    elif [ -n $(which wget) ]; then
+    if [[ -x $(which wget) ]]; then
         cmd="wget $updatelink -q -O -"
+    elif [[ -x $(which curl) ]]; then
+        cmd="curl -L $updatelink"
     else
-        printError "\nNor curl nor wget are installed! Install one of it and retry..\n" && exit 1
+        printError "\nNo curl nor wget are installed! Install one of them and retry..\n" && exit 1
     fi
 
     local edk2ArrayOnline=(
@@ -1332,12 +1360,12 @@ build() {
         do
             case $opt in
             "update Build_Clover.command")
-                if [ -n $(which curl) ]; then
-                    selfUpdate curl
-                elif [ -n $(which wget) ]; then
+                if [[ -x $(which wget) ]]; then
                     selfUpdate wget
+                elif [[ -x $(which curl) ]]; then
+                    selfUpdate curl
                 else
-                    printError "\nNor curl nor wget are installed! Install one of it and retry..\n" && exit 1
+                    printError "\nNo curl nor wget are installed! Install one of them and retry..\n" && exit 1
                 fi
                 build
             ;;
@@ -1465,12 +1493,13 @@ build() {
                 break
             ;;
             "run my script on the source")
-                if [[ "$USER" == 'Micky1979' ]]; then
+                if [[ $(echo $USER | tr "[:upper:]" "[:lower:]" ) =~ ^micky1979 ]]; then
                     printHeader Pandora
                     mydir="$(cd "$(dirname "$BASH_SOURCE")"; pwd)"
                     cd "${mydir}"
                     ./CloverPandora.sh Clover $BUILDTOOL
                     printHeader Done
+                    build
                 else
                     printHeader "add the script you want to run here.."
                     exit 0
@@ -1495,13 +1524,20 @@ build() {
 
     if [[ "$BUILDER" == 'slice' ]]; then clear && build; fi
 
+    # show info about the running OS and its gcc
     if [[ "$SYSNAME" == Darwin ]]; then
         printHeader "Running from: $( sw_vers -productVersion )"
         printHeader "$( /usr/bin/xcodebuild -version)"
+    elif [[ "$SYSNAME" == Linux ]]; then
+        if [[ -x "/usr/bin/lsb_release" ]]; then
+            printHeader "Running from: $(lsb_release -sir | sed -e ':a;N;$!ba;s/\n/ /g')"
+        else
+            printHeader "Running from: Linux"
+        fi
     else
-        printHeader "Running from: $SYSNAME"
-        printHeader "$( gcc -v )"
+        printHeader "Running from: Unknown OS"
     fi
+    printHeader "$( gcc -v )"
 
     if [[ "$BUILDER" != 'slice' ]]; then restoreClover; fi
 
@@ -1550,26 +1586,28 @@ build() {
     if [[ "$SYSNAME" == Darwin ]]; then LTO_FLAG=""; fi
 
     set +e
+
+
     if [[ "$CUSTOM_BUILD" == NO ]]; then
         # using standard options
         case "$ARCH" in
         IA32_X64)
             printHeader 'boot6'
-            ./ebuild.sh $FORCEREBUILD -x64 $DEFAULT_MACROS $LTO_FLAG -t $BUILDTOOL
+            doSomething --run-script ./ebuild.sh $FORCEREBUILD -x64 $DEFAULT_MACROS $LTO_FLAG -t $BUILDTOOL
             printHeader 'boot7'
-            ./ebuild.sh $FORCEREBUILD -mc --no-usb $DEFAULT_MACROS $LTO_FLAG -t $BUILDTOOL
+            doSomething --run-script ./ebuild.sh $FORCEREBUILD -mc --no-usb $DEFAULT_MACROS $LTO_FLAG -t $BUILDTOOL
             printHeader 'boot3'
-            ./ebuild.sh $FORCEREBUILD -ia32 $DEFAULT_MACROS $LTO_FLAG -t $BUILDTOOL
+            doSomething --run-script ./ebuild.sh $FORCEREBUILD -ia32 $DEFAULT_MACROS $LTO_FLAG -t $BUILDTOOL
         ;;
         X64)
             printHeader 'boot6'
             backupBoot7MCP79
-            ./ebuild.sh $FORCEREBUILD -x64 $DEFAULT_MACROS $LTO_FLAG -t $BUILDTOOL
+            doSomething --run-script ./ebuild.sh $FORCEREBUILD -x64 $DEFAULT_MACROS $LTO_FLAG -t $BUILDTOOL
         ;;
         IA32)
             printHeader 'boot3'
             backupBoot7MCP79
-            ./ebuild.sh $FORCEREBUILD -ia32 $DEFAULT_MACROS $LTO_FLAG -t $BUILDTOOL
+            doSomething --run-script ./ebuild.sh $FORCEREBUILD -ia32 $DEFAULT_MACROS $LTO_FLAG -t $BUILDTOOL
         ;;
         esac
     else
@@ -1577,24 +1615,24 @@ build() {
         case "$ARCH" in
         IA32_X64)
             printHeader 'boot6'
-            ./ebuild.sh -x64 -fr $LTO_FLAG -t $BUILDTOOL # boot6 is always standard here
+            doSomething --run-script ./ebuild.sh -x64 -fr $LTO_FLAG -t $BUILDTOOL # boot6 is always standard here
             printHeader 'Custom boot7'
             ebuildBorg
-            ./ebuildBorg.sh -x64 -fr ${DEFINED_MACRO} $LTO_FLAG -t $BUILDTOOL
+            doSomething --run-script ./ebuildBorg.sh -x64 -fr ${DEFINED_MACRO} $LTO_FLAG -t $BUILDTOOL
             printHeader 'boot3'
-            ./ebuild.sh -ia32 -fr ${DEFINED_MACRO} $LTO_FLAG -t $BUILDTOOL
+            doSomething --run-script ./ebuild.sh -ia32 -fr ${DEFINED_MACRO} $LTO_FLAG -t $BUILDTOOL
         ;;
         X64)
             printHeader 'Custom boot7' # boot7 is the only target here
             backupBoot7MCP79
             ebuildBorg
-            ./ebuildBorg.sh -x64 -fr $LTO_FLAG ${DEFINED_MACRO} -t $BUILDTOOL
+            doSomething --run-script ./ebuildBorg.sh -x64 -fr $LTO_FLAG ${DEFINED_MACRO} -t $BUILDTOOL
         ;;
         IA32)
             printHeader 'Custom boot3'
             backupBoot7MCP79
             ebuildBorg
-            ./ebuild.sh -ia32 -fr ${DEFINED_MACRO} $LTO_FLAG -t $BUILDTOOL
+            doSomething --run-script ./ebuild.sh -ia32 -fr ${DEFINED_MACRO} $LTO_FLAG -t $BUILDTOOL
         ;;
         esac
     fi
@@ -1614,18 +1652,15 @@ build() {
             make iso
         fi
     else
-	 if [[ "$USER" == 'Micky1979' ]]; then
+        if [[ $(echo $USER | tr "[:upper:]" "[:lower:]" ) =~ ^micky1979 ]]; then
             doSomething --run-script "${PATCHES}/Linux/distribution" # under study (.deb)
-	else
+        else
             nautilus "${CLOVERV2_PATH}" > /dev/null
         fi
     fi
 
     if [[ "$BUILDER" != 'slice' ]]; then restoreClover; fi
-    echo "${ThickLine}"
-    printf "build started at:\n${START_BUILD}\nfinished at\n$(date)\n\nDone!\n"
-    echo "${Line}"
-
+    printHeader "build started at:\n${START_BUILD}\nfinished at\n$(date)\n\nDone!\n"
     exit 0
 }
 
