@@ -550,7 +550,7 @@ showInfo () {
     printf "curl (wget is good if found), the uuid-dev headers if not installed.\n"
     printf "Off course using only the amd64 release (x86_64).\n"
     printf "May work on new releases of Ubuntu as well, but not on older ones.\n"
-    printf "UPDATE: since v4.0.9 this script is tested in Debian Jessie 8.5 using gcc 4.9.2,\n"
+    printf "UPDATE: since v4.0.9 this script is tested in Debian Jessie 8.6 using gcc 4.9.2,\n"
     printf "but be aware that usually Debian comes without sudo installed:\n"
     printf "in this case you have to manage to install it manually and enable\n"
     printf "your account as sudo user (or just install all dependencies manually).\n"
