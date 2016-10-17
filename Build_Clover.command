@@ -33,13 +33,13 @@ GNU="GCC49"        # GCC49 GCC53
 BUILDTOOL="$XCODE" # XCODE or GNU?      (use $GNU to use GNU gcc, $XCODE to use the choosen Xcode version)
 # in Linux this get overrided and GCC53 used anyway!
 # --------------------------------------
-SCRIPTVER="v4.0.9"
+SCRIPTVER="v4.1.0"
 export LC_ALL=C
 SYSNAME="$( uname )"
 
 BUILDER=$USER # don't touch!
 
-EDK2_REV="22731"   # or any revision supported by Slice (otherwise no claim please)
+EDK2_REV="22793"   # or any revision supported by Slice (otherwise no claim please)
 # <----------------------------
 # Preferences:
 
@@ -70,6 +70,10 @@ DEFINED_MACRO=""
 CUSTOM_BUILD="NO"
 START_BUILD=""
 TIMES=0
+
+RCRIPTVER="" # we define a global variable to store remote script version
+GITHUB='https://raw.githubusercontent.com/Micky1979/Build_Clover/master/Build_Clover.command'
+SELF_UPDATE_OPT="NO" # show hide selfUpdate option
 
 edk2array=(
             MdePkg
@@ -105,7 +109,6 @@ pressAnyKey(){
 selfUpdate() {
     printHeader "SELF UPDATE"
     local SELF_PATH="${0}"
-    local GITHUB='https://raw.githubusercontent.com/Micky1979/Build_Clover/master/Build_Clover.command'
     local cmd=""
     local newScriptRev=""
     local currScriptRev=$(echo $SCRIPTVER | tr -cd [:digit:]) # in case of beta suffix
@@ -271,6 +274,34 @@ if [[ $EUID -eq 0 ]]; then
     exit 1
 fi
 # --------------------------------------
+printCloverScriptRev() {
+
+    local LVALUE
+    local RVALUE
+
+    # Retrive and filter remote script version 
+    RSCRIPTVER='v'$(curl -v --silent $GITHUB 2>&1 | grep 'SCRIPTVER="v' | tr -cd '.0-9')
+
+    LVALUE=$(echo $SCRIPTVER | tr -cd [:digit:])
+    RVALUE=$(echo $RSCRIPTVER | tr -cd [:digit:])
+
+    # Compare local and remote script version
+    if [ $LVALUE -eq $RVALUE ]; then
+        SELF_UPDATE_OPT="NO"
+        SVERSION="\033[1;32m${2}${SCRIPTVER}\033[0m\040 is the latest version avaiable"
+    elif [ $LVALUE -gt $RVALUE ]; then
+        SELF_UPDATE_OPT="NO"
+        SVERSION="${SCRIPTVER}"
+    else
+        SELF_UPDATE_OPT="YES"
+        SVERSION="${SCRIPTVER} a new version $RSCRIPTVER is available for download"
+    fi
+
+    printHeader "Build_Clover script $SVERSION" 
+    #printf "\n"
+    #echo "${Line}"
+}
+# --------------------------------------
 printCloverRev() {
     # get the revisions
     getRev "remote_local"
@@ -371,7 +402,8 @@ aptInstall() {
 }
 # --------------------------------------
 clear
-printHeader "Build_Clover script $SCRIPTVER"
+# print local Script revision with relative info
+printCloverScriptRev
 printHeader "By Micky1979 based on Slice, Zenith432, STLVNUB, JrCs, cecekpawon, Needy,\ncvad, Rehabman, philip_petev, ErmaC\n\nSupported OSes: macOS X, Ubuntu 16.04, Debian Jessie 8.6"
 
 if [[ "$SYSNAME" == Linux ]]; then
@@ -460,6 +492,7 @@ getRev() {
 }
 # print the remote and the local revision
 printCloverRev "Remote revision: " "Local revision: "
+# ---------------------------->
 # --------------------------------------
 selectArch () {
     restoreIFS
@@ -467,6 +500,8 @@ selectArch () {
             'Standard with both ia32 and x64'
             'x64 only'
             'ia32 only'
+            'Back to Main Menu'
+            'Exit'
           )
 
     clear
@@ -493,6 +528,12 @@ selectArch () {
     ;;
     3)
         ARCH="IA32"
+    ;;
+    4)
+        clear && BUILDER=$USER && build
+    ;;
+    5)
+        exit 0;
     ;;
     *)
         selectArch "invalid choice!"
@@ -550,6 +591,7 @@ showInfo () {
     printf "curl (wget is good if found), the uuid-dev headers if not installed.\n"
     printf "Off course using only the amd64 release (x86_64).\n"
     printf "May work on new releases of Ubuntu as well, but not on older ones.\n"
+    echo
     printf "UPDATE: since v4.0.9 this script is tested in Debian Jessie 8.6 using gcc 4.9.2,\n"
     printf "but be aware that usually Debian comes without sudo installed:\n"
     printf "in this case you have to manage to install it manually and enable\n"
@@ -1327,33 +1369,31 @@ build() {
     if [[ -d "${DIR_MAIN}/edk2/Clover" ]] ; then
         echo 'Please enter your choice: '
         local options=()
+        if [[ "$SELF_UPDATE_OPT" == YES ]]; then
+            options+=("update Build_Clover.command")
+        fi
         if [[ "$BUILDER" == 'slice' ]]; then
             set +e
-            options=(
-                 "build with ./ebuild.sh -nb"
-                 "build with ./ebuild.sh --module=rEFIt_UEFI/refit.inf"
-                 "build binaries (boot3, 6 and 7 also)"
-                 "build binaries with FORCEREBUILD (boot3, 6 and 7 also)"
-                 "build pkg"
-                 "build iso"
-                 "build pkg+iso"
-                 "build all for Release"
-                 "Back to Main Menu"
-                 "Exit"
-                )
+            options+=("build with ./ebuild.sh -nb")
+            options+=("build with ./ebuild.sh --module=rEFIt_UEFI/refit.inf")
+            options+=("build binaries (boot3, 6 and 7 also)")
+            options+=("build binaries with FORCEREBUILD (boot3, 6 and 7 also)")
+            options+=("build pkg")
+            options+=("build iso")
+            options+=("build pkg+iso")
+            options+=("build all for Release")
+            options+=("Back to Main Menu")
+            options+=("Exit")
         else
-            options=(
-                 "update Build_Clover.command"
-                 "update Clover only (no building)"
-                 "update & build Clover"
-                 "run my script on the source"
-                 "build existing revision (no update, for testing only)"
-                 "build existing revision for release (no update, standard build)"
-                 "build existing revision with custom macros enabled"
-                 "info and limitations about this script"
-                 "enter Developers mode (only for devs)"
-                 "Exit"
-                )
+            options+=("update Clover only (no building)")
+            options+=("update & build Clover")
+            options+=("run my script on the source")
+            options+=("build existing revision (no update, for testing only)")
+            options+=("build existing revision for release (no update, standard build)")
+            options+=("build existing revision with custom macros enabled")
+            options+=("info and limitations about this script")
+            options+=("enter Developers mode (only for devs)")
+            options+=("Exit")
         fi
 
         select opt in "${options[@]}"
