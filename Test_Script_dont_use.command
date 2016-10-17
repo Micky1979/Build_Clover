@@ -298,7 +298,7 @@ printCloverScriptRev() {
             SVERSION="${SCRIPTVER} a new version $RSCRIPTVER is available for download"
         fi
     else
-        printError "Build_Clover script ${SCRIPTVER}\n(remote version unavailable because\ngithub is unreachable, check your internet connection)"
+        printError "Build_Clover script ${SCRIPTVER}\n(remote version unavailable because\ngithub is unreachable, check your internet connection)\n"
     fi
     printHeader "Build_Clover script $SVERSION"
 }
