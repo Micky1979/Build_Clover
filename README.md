@@ -1,35 +1,30 @@
-<h1>Build_Clover</h1>
-<p>
-A script to build <a href="https://sourceforge.net/p/cloverefiboot/code/HEAD/tree/">CloverV2</a> bootloader under macOS X, Ubuntu 16.04+ and Debian Jessie 8.6+
-</p>
-<h2>Author</h2>
-<p>
+#Build_Clover
+
+A script to build [CloverV2](https://sourceforge.net/p/cloverefiboot/code/HEAD/tree) bootloader under macOS X, Ubuntu 16.04+ and Debian Jessie 8.6+
+##Author
 Micky1979
-</p>
-<h2>Contributors/Developers</h2>
-<p>
+##Contributors/Developers
 Slice, Zenith432, STLVNUB, JrCs, cecekpawon, Needy, cvad, Rehabman, philip_petev, ErmaC
-</p>
-<h2>Usage</h2>
-<p>
-Double click the Build_Clover.command or right click on the file, Build_Clover.command, and press open.
+
+---
+##Usage
+Double _click_ the **Build_Clover.command** or _right click_ on the file, **Build_Clover.command**, and press _open_.
 ...
-<h4>Example output</h4>
-<p>Menu for less comfortable users: </p>
-<p>
-<div class="highlight">
-<pre>
-===============================================================================
+###Example output
+>**Menu for less comfortable users:**
+
+```bash
+========================================================================
 Build_Clover script {VERSION}
-                          <----------------------------------------------------
-===============================================================================
+                          <---------------------------------------------
+========================================================================
 By Micky1979 based on Slice, Zenith432, STLVNUB, JrCs, cecekpawon, Needy,
 cvad, Rehabman, philip_petev, ErmaC
 
 Supported OSes: macOS X, Ubuntu 16.04, Debian Jessie 8.6
-                          <----------------------------------------------------
+                          <---------------------------------------------
 Remote revision: 3761 Local revision: 3760
-                          <----------------------------------------------------
+                          <---------------------------------------------
 Please enter your choice: 
 1) update Build_Clover.command
 2) update Clover only (no building)
@@ -42,12 +37,10 @@ Please enter your choice:
 9) enter Developers mode (only for devs)
 10) Exit
 #? 
-</pre>
-</div>
-<p>Menu for advanced users: </p>
-<p>
-<div class="highlight">
-<pre>
+```
+>**Menu for advanced users:**
+
+```bash
 Please enter your choice: 
  1) build with ./ebuild.sh -nb
  2) build with ./ebuild.sh --module=rEFIt_UEFI/refit.inf
@@ -60,12 +53,8 @@ Please enter your choice:
  9) Back to Main Menu
 10) Exit
 #? 
-</pre>
-</div>
-</p>
-</p>
+```
 
-<h2>Other</h2>
-<p>
-Special thanks to the <a href="http://www.insanelymac.com">InsanelyMac board</a> and its members, who are testing the script and report issues.
-</p>
+##Other
+**Special thanks to the [InsanelyMac board](http://www.insanelymac.com "www.insanelymac.com") and its members, who are testing the script and report issues.**
+
