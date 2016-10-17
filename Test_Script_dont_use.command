@@ -33,7 +33,7 @@ GNU="GCC49"        # GCC49 GCC53
 BUILDTOOL="$XCODE" # XCODE or GNU?      (use $GNU to use GNU gcc, $XCODE to use the choosen Xcode version)
 # in Linux this get overrided and GCC53 used anyway!
 # --------------------------------------
-# SCRIPTVER="v4.1.1-test"
+SCRIPTVER="v4.1.1"
 export LC_ALL=C
 SYSNAME="$( uname )"
 
