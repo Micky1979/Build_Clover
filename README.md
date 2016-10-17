@@ -1,6 +1,6 @@
 <h1>Build_Clover</h1>
 <p>
-A script to build <a href="https://sourceforge.net/p/cloverefiboot/code/HEAD/tree/">CloverV2</a> bootloader under macOS X and Ubuntu 16.04 +
+A script to build <a href="https://sourceforge.net/p/cloverefiboot/code/HEAD/tree/">CloverV2</a> bootloader under macOS X, Ubuntu 16.04+ and Debian Jessie 8.6+
 </p>
 <h2>Author</h2>
 <p>
@@ -8,7 +8,7 @@ Micky1979
 </p>
 <h2>Contributors/Developers</h2>
 <p>
-Slice, Zenith432, STLVNUB, JrCs, cecekpawon, Needy, cvad, Rehabman, philip_petev
+Slice, Zenith432, STLVNUB, JrCs, cecekpawon, Needy, cvad, Rehabman, philip_petev, ErmaC
 </p>
 <h2>Usage</h2>
 <p>
@@ -24,9 +24,9 @@ Build_Clover script {VERSION}
                           <----------------------------------------------------
 ===============================================================================
 By Micky1979 based on Slice, Zenith432, STLVNUB, JrCs, cecekpawon, Needy,
-cvad, Rehabman, philip_petev
+cvad, Rehabman, philip_petev, ErmaC
 
-Supported OSes: macOS X, Ubuntu 16.04
+Supported OSes: macOS X, Ubuntu 16.04, Debian Jessie 8.6
                           <----------------------------------------------------
 Remote revision: 3761 Local revision: 3760
                           <----------------------------------------------------
