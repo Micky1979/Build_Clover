@@ -13,7 +13,7 @@ Double _click_ the **Build_Clover.command** or _right click_ on the file, **Buil
 ###Example output
 >**Menu for less comfortable users:**
 
-```bash
+``` bash
 ========================================================================
 Build_Clover script {VERSION}
                           <---------------------------------------------
@@ -40,7 +40,7 @@ Please enter your choice:
 ```
 >**Menu for advanced users:**
 
-```bash
+``` bash
 Please enter your choice: 
  1) build with ./ebuild.sh -nb
  2) build with ./ebuild.sh --module=rEFIt_UEFI/refit.inf

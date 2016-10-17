@@ -73,6 +73,7 @@ TIMES=0
 
 GITHUB='https://raw.githubusercontent.com/Micky1979/Build_Clover/master/Test_Script_dont_use.command'
 SELF_UPDATE_OPT="NO" # show hide selfUpdate option
+PING_RESPONSE="NO" # show hide option with connection dependency
 
 edk2array=(
             MdePkg
@@ -309,6 +310,7 @@ printCloverRev() {
 
     # Remote
     if [ -z "${REMOTE_REV}" ]; then
+        PING_RESPONSE="NO"
         REMOTE_REV="Something went wrong while getting the remote revision, check your internet connection!"
         printError "$REMOTE_REV"
         printf "\n"
@@ -321,6 +323,7 @@ printCloverRev() {
             printWarning "${2}${LOCAL_REV}"
         fi
     else
+        PING_RESPONSE="YES"
         REMOTE_REV="${REMOTE_REV}"
         printf "\033[1;32m${1}${REMOTE_REV}\033[0m\040"
         # Local
@@ -1378,6 +1381,9 @@ build() {
         if [[ "$SELF_UPDATE_OPT" == YES ]]; then
             options+=("update Build_Clover.command")
         fi
+        if [[ "$PING_RESPONSE" == YES ]]; then
+            options+=("update Clover only (no building)")
+        fi
         if [[ "$BUILDER" == 'slice' ]]; then
             set +e
             options+=("build with ./ebuild.sh -nb")
@@ -1391,7 +1397,6 @@ build() {
             options+=("Back to Main Menu")
             options+=("Exit")
         else
-            options+=("update Clover only (no building)")
             options+=("update & build Clover")
             options+=("run my script on the source")
             options+=("build existing revision (no update, for testing only)")
