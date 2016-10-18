@@ -1,0 +1,27 @@
+
+
+v4.1.1
+- Window size set to 90x34
+- hide/show 'update Clover only (no building)' depending on ping response
+- Added missed carriage return
+- more restrict greep filter for match remote script version
+
+v4.1.0
+- Show local/remote revision of Build_Clover.command.
+- Auto hide/unhide option to update the script based on remote revision.
+- Sync with edk2 r 22793 following Slice in Clover r3817.
+
+v4.0.9
+- ...
+
+v4.0.7
+- Recursively upgrade working copy (modded funct).
+- Added missing packages for edk2 (list is read online).
+- Now edk2 get updated only if some pkg are missing or not at the specified revision.
+- Custom macros enabled in Ubuntu.
+- Default language invoked on all command lines.
+- Fixed uuid-dev and subversion installation in Linux.
+- Autoupdate function now execute the new script ($MODE is taken from the old script and set in the new one).
+
+v4.0.6
+- ...
