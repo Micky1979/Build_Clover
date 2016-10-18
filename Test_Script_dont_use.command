@@ -1,5 +1,7 @@
 #!/bin/bash
 
+printf '\e[8;34;90t'
+
 # made by Micky1979 on 07/05/2016 based on Slice, Zenith432, STLVNUB, JrCs, cvad, Rehabman, and ErmaC works
 
 # Tested in OSX using both GNU gcc and clang (Xcode 6.4, 7.2.1, 7.3.1 and Xcode 8).
