@@ -1,5 +1,7 @@
 #!/bin/bash
 
+printf '\e[8;34;90t'
+
 # made by Micky1979 on 07/05/2016 based on Slice, Zenith432, STLVNUB, JrCs, cvad, Rehabman, and ErmaC works
 
 # Tested in OSX using both GNU gcc and clang (Xcode 6.4, 7.2.1, 7.3.1 and Xcode 8).
@@ -33,7 +35,7 @@ GNU="GCC49"        # GCC49 GCC53
 BUILDTOOL="$XCODE" # XCODE or GNU?      (use $GNU to use GNU gcc, $XCODE to use the choosen Xcode version)
 # in Linux this get overrided and GCC53 used anyway!
 # --------------------------------------
-SCRIPTVER="v4.1.0"
+SCRIPTVER="v4.1.1"
 export LC_ALL=C
 SYSNAME="$( uname )"
 
@@ -71,9 +73,9 @@ CUSTOM_BUILD="NO"
 START_BUILD=""
 TIMES=0
 
-RCRIPTVER="" # we define a global variable to store remote script version
 GITHUB='https://raw.githubusercontent.com/Micky1979/Build_Clover/master/Build_Clover.command'
 SELF_UPDATE_OPT="NO" # show hide selfUpdate option
+PING_RESPONSE="NO" # show hide option with connection dependency
 
 edk2array=(
             MdePkg
@@ -275,31 +277,33 @@ if [[ $EUID -eq 0 ]]; then
 fi
 # --------------------------------------
 printCloverScriptRev() {
-
     local LVALUE
     local RVALUE
+    local SVERSION
+    local RSCRIPTVER
 
-    # Retrive and filter remote script version 
-    RSCRIPTVER='v'$(curl -v --silent $GITHUB 2>&1 | grep 'SCRIPTVER="v' | tr -cd '.0-9')
+    if ping -c 1 github.com >> /dev/null 2>&1; then
+        # Retrive and filter remote script version
+        RSCRIPTVER='v'$(curl -v --silent $GITHUB 2>&1 | grep '^SCRIPTVER="v' | tr -cd '.0-9')
 
-    LVALUE=$(echo $SCRIPTVER | tr -cd [:digit:])
-    RVALUE=$(echo $RSCRIPTVER | tr -cd [:digit:])
+        LVALUE=$(echo $SCRIPTVER | tr -cd [:digit:])
+        RVALUE=$(echo $RSCRIPTVER | tr -cd [:digit:])
 
-    # Compare local and remote script version
-    if [ $LVALUE -eq $RVALUE ]; then
-        SELF_UPDATE_OPT="NO"
-        SVERSION="\033[1;32m${2}${SCRIPTVER}\033[0m\040 is the latest version avaiable"
-    elif [ $LVALUE -gt $RVALUE ]; then
-        SELF_UPDATE_OPT="NO"
-        SVERSION="${SCRIPTVER}"
+        # Compare local and remote script version
+        if [ $LVALUE -eq $RVALUE ]; then
+            SELF_UPDATE_OPT="NO"
+            SVERSION="\033[1;32m${2}${SCRIPTVER}\033[0m\040 is the latest version avaiable"
+        elif [ $LVALUE -gt $RVALUE ]; then
+            SELF_UPDATE_OPT="NO"
+            SVERSION="${SCRIPTVER} (wow, you coming from the future?)"
+        else
+            SELF_UPDATE_OPT="YES"
+            SVERSION="${SCRIPTVER} a new version $RSCRIPTVER is available for download"
+        fi
     else
-        SELF_UPDATE_OPT="YES"
-        SVERSION="${SCRIPTVER} a new version $RSCRIPTVER is available for download"
+        printError "Build_Clover script ${SCRIPTVER}\n(remote version unavailable because\ngithub is unreachable, check your internet connection)\n"
     fi
-
-    printHeader "Build_Clover script $SVERSION" 
-    #printf "\n"
-    #echo "${Line}"
+    printHeader "Build_Clover script $SVERSION"
 }
 # --------------------------------------
 printCloverRev() {
@@ -308,6 +312,7 @@ printCloverRev() {
 
     # Remote
     if [ -z "${REMOTE_REV}" ]; then
+        PING_RESPONSE="NO"
         REMOTE_REV="Something went wrong while getting the remote revision, check your internet connection!"
         printError "$REMOTE_REV"
         printf "\n"
@@ -320,6 +325,7 @@ printCloverRev() {
             printWarning "${2}${LOCAL_REV}"
         fi
     else
+        PING_RESPONSE="YES"
         REMOTE_REV="${REMOTE_REV}"
         printf "\033[1;32m${1}${REMOTE_REV}\033[0m\040"
         # Local
@@ -328,7 +334,7 @@ printCloverRev() {
             printError "$LOCAL_REV"
         else
             LOCAL_REV="${LOCAL_REV}"
-            if [ $LOCAL_REV == $REMOTE_REV ]; then
+            if [ "${LOCAL_REV}" == "${REMOTE_REV}" ]; then
                 printf "\033[1;32m${2}${LOCAL_REV}\033[0m\040"
             else
                 printWarning "${2}${LOCAL_REV}"
@@ -468,10 +474,15 @@ getRev() {
     fi
 
     # universal
-    if [[ ${Arg} == *"remote"* ]]; then
-        # Remote
-        REMOTE_REV=$(svn info ${CLOVER_REP} | grep '^Revision:' | tr -cd [:digit:])
+    if ping -c 1 svn.code.sf.net >> /dev/null 2>&1; then
+        if [[ ${Arg} == *"remote"* ]]; then
+            # Remote
+            REMOTE_REV=$(svn info ${CLOVER_REP} | grep '^Revision:' | tr -cd [:digit:])
+        fi
+    else
+        REMOTE_REV=""
     fi
+
     if [[ ${Arg} == *"local"* ]]; then
         # Local
         if [[ -d "${DIR_MAIN}"/edk2/Clover/.svn ]]; then
@@ -1372,6 +1383,9 @@ build() {
         if [[ "$SELF_UPDATE_OPT" == YES ]]; then
             options+=("update Build_Clover.command")
         fi
+        if [[ "$PING_RESPONSE" == YES ]]; then
+            options+=("update Clover only (no building)")
+        fi
         if [[ "$BUILDER" == 'slice' ]]; then
             set +e
             options+=("build with ./ebuild.sh -nb")
@@ -1385,7 +1399,6 @@ build() {
             options+=("Back to Main Menu")
             options+=("Exit")
         else
-            options+=("update Clover only (no building)")
             options+=("update & build Clover")
             options+=("run my script on the source")
             options+=("build existing revision (no update, for testing only)")
