@@ -1,15 +1,16 @@
 #Build_Clover
-
 A script to build [CloverV2](https://sourceforge.net/p/cloverefiboot/code/HEAD/tree) bootloader under macOS X, Ubuntu 16.04+ and Debian Jessie 8.6+
+
 ##Author
 Micky1979
+
 ##Contributors/Developers
 Slice, Zenith432, STLVNUB, JrCs, cecekpawon, Needy, cvad, Rehabman, philip_petev, ErmaC
 
----
 ##Usage
 Double _click_ the **Build_Clover.command** or _right click_ on the file, **Build_Clover.command**, and press _open_.
 ...
+
 ###Example output
 >**Menu for less comfortable users:**
 
@@ -54,7 +55,6 @@ Please enter your choice:
 10) Exit
 #? 
 ```
-
 ##Other
 **Special thanks to the [InsanelyMac board](http://www.insanelymac.com "www.insanelymac.com") and its members, who are testing the script and report issues.**
 
