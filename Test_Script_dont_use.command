@@ -1,12 +1,13 @@
 #!/bin/bash
 
 printf '\e[8;34;90t'
+# printf '\e[3;0;0t'
 
 # made by Micky1979 on 07/05/2016 based on Slice, Zenith432, STLVNUB, JrCs, cvad, Rehabman, and ErmaC works
 
 # Tested in OSX using both GNU gcc and clang (Xcode 6.4, 7.2.1, 7.3.1 and Xcode 8).
 # Preferred OS is El Capitan with Xcode >= 7.3.1 and Sierra with Xcode >= 8.
-# I older version of OS X is better to use GNU gcc.
+# In older version of OS X is better to use GNU gcc.
 
 # Tested in linux Ubuntu 16.04/Debian 8.6 amb64 (x86_64).
 # This script install all missing dependencies in the iso images you
@@ -35,13 +36,13 @@ GNU="GCC49"        # GCC49 GCC53
 BUILDTOOL="$XCODE" # XCODE or GNU?      (use $GNU to use GNU gcc, $XCODE to use the choosen Xcode version)
 # in Linux this get overrided and GCC53 used anyway!
 # --------------------------------------
-SCRIPTVER="v4.1.1"
+SCRIPTVER="v4.1.3 test"
 export LC_ALL=C
 SYSNAME="$( uname )"
 
 BUILDER=$USER # don't touch!
 
-EDK2_REV="22793"   # or any revision supported by Slice (otherwise no claim please)
+EDK2_REV="22837"   # or any revision supported by Slice (otherwise no claim please)
 # <----------------------------
 # Preferences:
 
@@ -289,16 +290,20 @@ printCloverScriptRev() {
         LVALUE=$(echo $SCRIPTVER | tr -cd [:digit:])
         RVALUE=$(echo $RSCRIPTVER | tr -cd [:digit:])
 
-        # Compare local and remote script version
-        if [ $LVALUE -eq $RVALUE ]; then
-            SELF_UPDATE_OPT="NO"
-            SVERSION="\033[1;32m${2}${SCRIPTVER}\033[0m\040 is the latest version avaiable"
-        elif [ $LVALUE -gt $RVALUE ]; then
-            SELF_UPDATE_OPT="NO"
-            SVERSION="${SCRIPTVER} (wow, you coming from the future?)"
+        if IsNumericOnly $RVALUE; then
+            # Compare local and remote script version
+            if [ $LVALUE -eq $RVALUE ]; then
+                SELF_UPDATE_OPT="NO"
+                SVERSION="\033[1;32m${2}${SCRIPTVER}\033[0m\040 is the latest version avaiable"
+            elif [ $LVALUE -gt $RVALUE ]; then
+                SELF_UPDATE_OPT="NO"
+                SVERSION="${SCRIPTVER} (wow, you coming from the future?)"
+            else
+                SELF_UPDATE_OPT="YES"
+                SVERSION="${SCRIPTVER} a new version $RSCRIPTVER is available for download"
+            fi
         else
-            SELF_UPDATE_OPT="YES"
-            SVERSION="${SCRIPTVER} a new version $RSCRIPTVER is available for download"
+            printError "Build_Clover script ${SCRIPTVER}\n(remote version unavailable due to unknown reasons)\n"
         fi
     else
         printError "Build_Clover script ${SCRIPTVER}\n(remote version unavailable because\ngithub is unreachable, check your internet connection)\n"
@@ -411,6 +416,12 @@ clear
 # print local Script revision with relative info
 printCloverScriptRev
 printHeader "By Micky1979 based on Slice, Zenith432, STLVNUB, JrCs, cecekpawon, Needy,\ncvad, Rehabman, philip_petev, ErmaC\n\nSupported OSes: macOS X, Ubuntu 16.04, Debian Jessie 8.6"
+
+if [[ "$GITHUB" == *"Test_Script_dont_use.command"* ]];then
+    printError "This script is for testing only and may be outdated:\n"
+    printError "use the regular one at:\n"
+    printError "http://www.insanelymac.com/forum/files/download/589-build-clovercommand/\n"
+fi
 
 if [[ "$SYSNAME" == Linux ]]; then
     if [[ "$(uname -m)" != x86_64 ]]; then
@@ -1409,9 +1420,37 @@ build() {
             options+=("Exit")
         fi
 
-        select opt in "${options[@]}"
+# -----------------------------------
+#        select opt in "${options[@]}"
+#        do
+        restoreIFS
+        local count=1
+        for opt in "${options[@]}"
         do
             case $opt in
+            "update Build_Clover.command")
+                printf "\033[1;31m ${count}) ${opt}\033[0m\n"
+            ;;
+            "build existing revision for release (no update, standard build)")
+                printf "\033[1;34m ${count}) ${opt}\033[0m\n"
+            ;;
+            *)
+                printf " ${count}) ${opt}\n"
+            ;;
+            esac
+            ((count+=1))
+        done
+            local choice=""
+            local lastIndex="${#options[@]}"
+            ((lastIndex-=1))
+            read opt
+
+            if IsNumericOnly $opt && [ "$opt" -gt "0" ] && [ "$opt" -le "$lastIndex" ]; then
+                choice="$(echo ${options[$opt -1]})"
+            fi
+            case $choice in
+# -----------------------------------
+#            case $opt in
             "update Build_Clover.command")
                 if [[ -x $(which wget) ]]; then
                     selfUpdate wget
@@ -1572,7 +1611,7 @@ build() {
                 clear && echo "invalid option!!" && build
             ;;
             esac
-        done
+#        done
     fi
 
     if [[ "$BUILDER" == 'slice' ]]; then clear && build; fi
