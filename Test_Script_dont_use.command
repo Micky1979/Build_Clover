@@ -1474,25 +1474,25 @@ build() {
             ;;
             "update Clover only (no building)")
                 BUILD_FLAG="NO"
-                break
+#                break
             ;;
             "update & build Clover")
                 BUILD_FLAG="YES"
                 selectArch
-                break
+#                break
             ;;
             "build existing revision (no update, for testing only)")
                 UPDATE_FLAG="NO"
                 BUILD_FLAG="YES"
                 selectArch
-                break
+#                break
             ;;
             "build with ./ebuild.sh -nb")
                 printHeader 'ebuild.sh -nb'
                 cd "${DIR_MAIN}"/edk2/Clover
                 START_BUILD=$(date)
                 ./ebuild.sh -nb
-                break
+#                break
             ;;
             "build with ./ebuild.sh --module=rEFIt_UEFI/refit.inf")
                 cd "${DIR_MAIN}"/edk2/Clover
@@ -1500,7 +1500,7 @@ build() {
                 START_BUILD=$(date)
                 ./ebuild.sh --module=rEFIt_UEFI/refit.inf
                 echo && printf "build started at:\n${START_BUILD}\nfinished at\n$(date)\n\nDone!\n"
-                break
+#                break
             ;;
             "build binaries (boot3, 6 and 7 also)")
                 cd "${DIR_MAIN}"/edk2/Clover
@@ -1512,7 +1512,7 @@ build() {
                 printHeader 'boot3'
                 ./ebuild.sh -ia32 -D NO_GRUB_DRIVERS_EMBEDDED -D CHECK_FLAGS -t XCODE5
                 echo && printf "build started at:\n${START_BUILD}\nfinished at\n$(date)\n\nDone!\n"
-                break
+#                break
             ;;
             "build binaries with FORCEREBUILD (boot3, 6 and 7 also)")
                 cd "${DIR_MAIN}"/edk2/Clover
@@ -1524,7 +1524,7 @@ build() {
                 printHeader 'boot3'
                 ./ebuild.sh -fr -ia32 -D NO_GRUB_DRIVERS_EMBEDDED -D CHECK_FLAGS -t XCODE5
                 echo && printf "build started at:\n${START_BUILD}\nfinished at\n$(date)\n\nDone!\n"
-                break
+#                break
             ;;
             "build pkg")
                 cd "${DIR_MAIN}"/edk2/Clover/CloverPackage
@@ -1532,14 +1532,14 @@ build() {
                 printHeader 'make pkg'
                 make pkg
                 echo && printf "build started at:\n${START_BUILD}\nfinished at\n$(date)\n\nDone!\n"
-                break
+#                break
             ;;
             "build iso")
                 cd "${DIR_MAIN}"/edk2/Clover/CloverPackage
                 printHeader 'make iso'
                 make iso
                 echo && printf "build started at:\n${START_BUILD}\nfinished at\n$(date)\n\nDone!\n"
-                break
+#                break
             ;;
             "build pkg+iso")
                 cd "${DIR_MAIN}"/edk2/Clover/CloverPackage
@@ -1548,7 +1548,7 @@ build() {
                 make pkg
                 make iso
                 echo && printf "build started at:\n${START_BUILD}\nfinished at\n$(date)\n\nDone!\n"
-                break
+#                break
             ;;
             "build all for Release")
                 cd "${DIR_MAIN}"/edk2/Clover
@@ -1567,14 +1567,14 @@ build() {
                 printHeader 'make iso'
                 make iso
                 echo && printf "build started at:\n${START_BUILD}\nfinished at\n$(date)\n\nDone!\n"
-                break
+#                break
             ;;
             "build existing revision for release (no update, standard build)")
                 FORCEREBUILD="-fr"
                 UPDATE_FLAG="NO"
                 BUILD_FLAG="YES"
                 selectArch
-                break
+#                break
             ;;
             "build existing revision with custom macros enabled")
                 DEFINED_MACRO=""
@@ -1582,7 +1582,7 @@ build() {
                 BUILD_FLAG="YES"
                 selectArch
                 showMacros ""
-                break
+#                break
             ;;
             "run my script on the source")
                 if [[ $(echo $USER | tr "[:upper:]" "[:lower:]" ) =~ ^micky1979 ]]; then
@@ -1599,7 +1599,7 @@ build() {
             ;;
             "info and limitations about this script")
                 showInfo
-                break
+#                break
             ;;
             "Back to Main Menu")
                 clear && BUILDER=$USER && build
