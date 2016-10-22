@@ -35,7 +35,7 @@ GNU="GCC49"        # GCC49 GCC53
 BUILDTOOL="$XCODE" # XCODE or GNU?      (use $GNU to use GNU gcc, $XCODE to use the choosen Xcode version)
 # in Linux this get overrided and GCC53 used anyway!
 # --------------------------------------
-SCRIPTVER="v4.1.3 test"
+SCRIPTVER="v4.1.4"
 export LC_ALL=C
 SYSNAME="$( uname )"
 
@@ -72,8 +72,9 @@ DEFINED_MACRO=""
 CUSTOM_BUILD="NO"
 START_BUILD=""
 TIMES=0
+SYMLINKPATH='/usr/local/bin/buildclover'
 
-GITHUB='https://raw.githubusercontent.com/Micky1979/Build_Clover/master/Test_Script_dont_use.command'
+GITHUB='https://raw.githubusercontent.com/Micky1979/Build_Clover/master/Build_Clover.command'
 SELF_UPDATE_OPT="NO" # show hide selfUpdate option
 PING_RESPONSE="NO" # show hide option with connection dependency
 
@@ -102,7 +103,9 @@ IsNumericOnly() {
 }
 # ---------------------------->
 pressAnyKey(){
-    clear
+    if [[ "${2}" != noclear ]]; then
+        clear
+    fi
     printf "${1}\n"
     read -rsp $'Press any key to continue...\n' -n1 key
     clear
@@ -191,7 +194,16 @@ if [[ "$MODE" == "S" ]]; then
     export DIR_MAIN=${DIR_MAIN:-"${HOME}"/src}
 elif [[ "$MODE" == "R" ]]; then
     # Rehabman wants the script path as the place for the edk2 source!
-    cd "$(dirname "$0")"
+    # check if $0 is a symlink
+    if [[ -L "${0}" ]]; then
+        if [[ "$SYSNAME" == Linux ]]; then
+            cd "$(dirname $(readlink -f ${0}))"
+        else
+            cd "$(dirname $(readlink ${0}))"
+        fi
+    else
+        cd "$(dirname ${0})"
+    fi
     export DIR_MAIN="$(pwd)"/src
 
     if [[ "${DIR_MAIN}" = "${DIR_MAIN%[[:space:]]*}" ]]; then
@@ -275,6 +287,39 @@ if [[ $EUID -eq 0 ]]; then
     printError "\nThis script should not be run using sudo!!\n"
     exit 1
 fi
+# --------------------------------------
+addSymlink() {
+    local cmd="sudo ln -nfs"
+    clear
+    if [[ ! -d "$(dirname $SYMLINKPATH)" ]]; then
+        printError "$(dirname $SYMLINKPATH) does not exist, cannot add a symlink..\n"
+        pressAnyKey '\n'
+        build
+    fi
+
+    if [[ -L "${0}" ]]; then
+        if [[ "$SYSNAME" == Linux ]]; then
+            cmd="$cmd $(readlink -f ${0}) $SYMLINKPATH"
+        else
+            cmd="$cmd $(readlink ${0}) $SYMLINKPATH"
+        fi
+    else
+        cmd="$cmd ${0} $SYMLINKPATH"
+    fi
+
+    if [[ "$USER" != root ]]; then echo "type your password to add the symlink:"; fi
+    eval "${cmd}"
+    if [[ $? -ne 0 ]] ; then
+        printError "\no_Ops, something wrong, cannot add the symlink..\n"
+        pressAnyKey '\n'
+        sudo -k && build
+    else
+        echo "now is possible to open the Terminal and type \"buildclover\""
+        echo "to simply run Build_Clover.command.."
+        pressAnyKey '..the script will be closed to allow you to do that!\n'
+        sudo -k && exit 0
+    fi
+}
 # --------------------------------------
 printCloverScriptRev() {
     local LVALUE
@@ -660,7 +705,8 @@ showInfo () {
     printf "outside the Home folder:\n"
     printf "Blank spaces in the path are not allowed because it will auto-fail!\n"
     echo "${Line}"
-    exit 0
+    pressAnyKey '' noclear
+    build
 }
 # --------------------------------------
 # Function: to manage PATH
@@ -1399,10 +1445,43 @@ build() {
     if [[ -d "${DIR_MAIN}/edk2/Clover" ]] ; then
         echo 'Please enter your choice: '
         local options=()
+
+        # add the option to link the script
+        if [[ ! -f "$SYMLINKPATH" ]]; then
+            options+=("add \"buildclover\" symlink to $(dirname $SYMLINKPATH)")
+        else
+            #  ...but may point to another script..
+            local scriptPath="${0}"
+            local symPath=""
+            if [[ -L "${0}" ]]; then
+                if [[ "$SYSNAME" == Linux ]]; then
+                    scriptPath="$(readlink -f ${0})"
+                else
+                    scriptPath="$(readlink ${0})"
+                fi
+            fi
+
+            if [[ ! -L "$SYMLINKPATH" ]]; then
+                # not a symlink..
+                options+=("restore \"buildclover\" symlink")
+            else
+                if [[ "$SYSNAME" == Linux ]]; then
+                    symPath="$(readlink -f ${SYMLINKPATH}))"
+                else
+                    symPath="$(readlink ${SYMLINKPATH}))"
+                fi
+                if [[ "${scriptPath}" != "$(readlink ${SYMLINKPATH})" ]]; then
+                    # script path mismatch..
+                    options+=("update \"buildclover\" symlink")
+                fi
+            fi
+        fi
+
         if [[ "$SELF_UPDATE_OPT" == YES ]]; then
             options+=("update Build_Clover.command")
         fi
-        if [[ "$PING_RESPONSE" == YES ]]; then
+
+        if [[ "$PING_RESPONSE" == YES ]] && [[ "$BUILDER" != 'slice' ]]; then
             options+=("update Clover only (no building)")
         fi
         if [[ "$BUILDER" == 'slice' ]]; then
@@ -1433,13 +1512,16 @@ build() {
         for opt in "${options[@]}"
         do
             case $opt in
-            "update Build_Clover.command")
+            "update Build_Clover.command" \
+            | "add \"buildclover\" symlink to $(dirname $SYMLINKPATH)" \
+            | "restore \"buildclover\" symlink" \
+            | "update \"buildclover\" symlink")
                 printf "\033[1;31m ${count}) ${opt}\033[0m\n"
             ;;
             "build existing revision for release (no update, standard build)" \
-                                                   | "update & build Clover" | \
-                                                      "build all for Release" | \
-                         "build binaries with FORCEREBUILD (boot3, 6 and 7 also)")
+            | "update & build Clover" \
+            | "build all for Release" \
+            | "build binaries with FORCEREBUILD (boot3, 6 and 7 also)")
                 printf "\033[1;36m ${count}) ${opt}\033[0m\n"
             ;;
             *)
@@ -1454,11 +1536,17 @@ build() {
         ((lastIndex-=1))
         printf '? ' && read opt
 
-        if IsNumericOnly $opt && [ "$opt" -gt "0" ] && [ "$opt" -le "$lastIndex" ]; then
-            choice="$(echo ${options[$opt -1]})"
+        if IsNumericOnly $opt; then
+            ((opt-=1))
+            if [ "$opt" -ge "0" ] && [ "$opt" -le "$lastIndex" ]; then
+                choice="$(echo ${options[$opt]})"
+            fi
         fi
-        case $choice in
 
+        case $choice in
+        "add \"buildclover\" symlink to $(dirname $SYMLINKPATH)" | "restore \"buildclover\" symlink" | "update \"buildclover\" symlink")
+            addSymlink
+        ;;
         "update Build_Clover.command")
             if [[ -x $(which wget) ]]; then
                 selfUpdate wget

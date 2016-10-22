@@ -35,7 +35,7 @@ GNU="GCC49"        # GCC49 GCC53
 BUILDTOOL="$XCODE" # XCODE or GNU?      (use $GNU to use GNU gcc, $XCODE to use the choosen Xcode version)
 # in Linux this get overrided and GCC53 used anyway!
 # --------------------------------------
-SCRIPTVER="v4.1.3"
+SCRIPTVER="v4.1.4"
 export LC_ALL=C
 SYSNAME="$( uname )"
 
@@ -103,7 +103,9 @@ IsNumericOnly() {
 }
 # ---------------------------->
 pressAnyKey(){
-    clear
+    if [[ "${2}" != noclear ]]; then
+        clear
+    fi
     printf "${1}\n"
     read -rsp $'Press any key to continue...\n' -n1 key
     clear
@@ -703,7 +705,8 @@ showInfo () {
     printf "outside the Home folder:\n"
     printf "Blank spaces in the path are not allowed because it will auto-fail!\n"
     echo "${Line}"
-    exit 0
+    pressAnyKey '' noclear
+    build
 }
 # --------------------------------------
 # Function: to manage PATH
@@ -1478,7 +1481,7 @@ build() {
             options+=("update Build_Clover.command")
         fi
 
-        if [[ "$PING_RESPONSE" == YES ]]; then
+        if [[ "$PING_RESPONSE" == YES ]] && [[ "$BUILDER" != 'slice' ]]; then
             options+=("update Clover only (no building)")
         fi
         if [[ "$BUILDER" == 'slice' ]]; then
@@ -1533,9 +1536,13 @@ build() {
         ((lastIndex-=1))
         printf '? ' && read opt
 
-        if IsNumericOnly $opt && [ "$opt" -gt "0" ] && [ "$opt" -le "$lastIndex" ]; then
-            choice="$(echo ${options[$opt -1]})"
+        if IsNumericOnly $opt; then
+            ((opt-=1))
+            if [ "$opt" -ge "0" ] && [ "$opt" -le "$lastIndex" ]; then
+                choice="$(echo ${options[$opt]})"
+            fi
         fi
+
         case $choice in
         "add \"buildclover\" symlink to $(dirname $SYMLINKPATH)" | "restore \"buildclover\" symlink" | "update \"buildclover\" symlink")
             addSymlink
