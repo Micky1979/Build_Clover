@@ -6,7 +6,7 @@ printf '\e[8;34;90t'
 
 # Tested in OSX using both GNU gcc and clang (Xcode 6.4, 7.2.1, 7.3.1 and Xcode 8).
 # Preferred OS is El Capitan with Xcode >= 7.3.1 and Sierra with Xcode >= 8.
-# I older version of OS X is better to use GNU gcc.
+# In older version of OS X is better to use GNU gcc.
 
 # Tested in linux Ubuntu 16.04/Debian 8.6 amb64 (x86_64).
 # This script install all missing dependencies in the iso images you
@@ -35,7 +35,7 @@ GNU="GCC49"        # GCC49 GCC53
 BUILDTOOL="$XCODE" # XCODE or GNU?      (use $GNU to use GNU gcc, $XCODE to use the choosen Xcode version)
 # in Linux this get overrided and GCC53 used anyway!
 # --------------------------------------
-SCRIPTVER="v4.1.2"
+SCRIPTVER="v4.1.3"
 export LC_ALL=C
 SYSNAME="$( uname )"
 
@@ -72,6 +72,7 @@ DEFINED_MACRO=""
 CUSTOM_BUILD="NO"
 START_BUILD=""
 TIMES=0
+SYMLINKPATH='/usr/local/bin/buildclover'
 
 GITHUB='https://raw.githubusercontent.com/Micky1979/Build_Clover/master/Build_Clover.command'
 SELF_UPDATE_OPT="NO" # show hide selfUpdate option
@@ -191,7 +192,16 @@ if [[ "$MODE" == "S" ]]; then
     export DIR_MAIN=${DIR_MAIN:-"${HOME}"/src}
 elif [[ "$MODE" == "R" ]]; then
     # Rehabman wants the script path as the place for the edk2 source!
-    cd "$(dirname "$0")"
+    # check if $0 is a symlink
+    if [[ -L "${0}" ]]; then
+        if [[ "$SYSNAME" == Linux ]]; then
+            cd "$(dirname $(readlink -f ${0}))"
+        else
+            cd "$(dirname $(readlink ${0}))"
+        fi
+    else
+        cd "$(dirname ${0})"
+    fi
     export DIR_MAIN="$(pwd)"/src
 
     if [[ "${DIR_MAIN}" = "${DIR_MAIN%[[:space:]]*}" ]]; then
@@ -276,6 +286,39 @@ if [[ $EUID -eq 0 ]]; then
     exit 1
 fi
 # --------------------------------------
+addSymlink() {
+    local cmd="sudo ln -nfs"
+    clear
+    if [[ ! -d "$(dirname $SYMLINKPATH)" ]]; then
+        printError "$(dirname $SYMLINKPATH) does not exist, cannot add a symlink..\n"
+        pressAnyKey '\n'
+        build
+    fi
+
+    if [[ -L "${0}" ]]; then
+        if [[ "$SYSNAME" == Linux ]]; then
+            cmd="$cmd $(readlink -f ${0}) $SYMLINKPATH"
+        else
+            cmd="$cmd $(readlink ${0}) $SYMLINKPATH"
+        fi
+    else
+        cmd="$cmd ${0} $SYMLINKPATH"
+    fi
+
+    if [[ "$USER" != root ]]; then echo "type your password to add the symlink:"; fi
+    eval "${cmd}"
+    if [[ $? -ne 0 ]] ; then
+        printError "\no_Ops, something wrong, cannot add the symlink..\n"
+        pressAnyKey '\n'
+        sudo -k && build
+    else
+        echo "now is possible to open the Terminal and type \"buildclover\""
+        echo "to simply run Build_Clover.command.."
+        pressAnyKey '..the script will be closed to allow you to do that!\n'
+        sudo -k && exit 0
+    fi
+}
+# --------------------------------------
 printCloverScriptRev() {
     local LVALUE
     local RVALUE
@@ -289,16 +332,20 @@ printCloverScriptRev() {
         LVALUE=$(echo $SCRIPTVER | tr -cd [:digit:])
         RVALUE=$(echo $RSCRIPTVER | tr -cd [:digit:])
 
-        # Compare local and remote script version
-        if [ $LVALUE -eq $RVALUE ]; then
-            SELF_UPDATE_OPT="NO"
-            SVERSION="\033[1;32m${2}${SCRIPTVER}\033[0m\040 is the latest version avaiable"
-        elif [ $LVALUE -gt $RVALUE ]; then
-            SELF_UPDATE_OPT="NO"
-            SVERSION="${SCRIPTVER} (wow, you coming from the future?)"
+        if IsNumericOnly $RVALUE; then
+            # Compare local and remote script version
+            if [ $LVALUE -eq $RVALUE ]; then
+                SELF_UPDATE_OPT="NO"
+                SVERSION="\033[1;32m${2}${SCRIPTVER}\033[0m\040 is the latest version avaiable"
+            elif [ $LVALUE -gt $RVALUE ]; then
+                SELF_UPDATE_OPT="NO"
+                SVERSION="${SCRIPTVER} (wow, you coming from the future?)"
+            else
+                SELF_UPDATE_OPT="YES"
+                SVERSION="${SCRIPTVER} a new version $RSCRIPTVER is available for download"
+            fi
         else
-            SELF_UPDATE_OPT="YES"
-            SVERSION="${SCRIPTVER} a new version $RSCRIPTVER is available for download"
+            printError "Build_Clover script ${SCRIPTVER}\n(remote version unavailable due to unknown reasons)\n"
         fi
     else
         printError "Build_Clover script ${SCRIPTVER}\n(remote version unavailable because\ngithub is unreachable, check your internet connection)\n"
@@ -412,6 +459,12 @@ clear
 printCloverScriptRev
 printHeader "By Micky1979 based on Slice, Zenith432, STLVNUB, JrCs, cecekpawon, Needy,\ncvad, Rehabman, philip_petev, ErmaC\n\nSupported OSes: macOS X, Ubuntu 16.04, Debian Jessie 8.6"
 
+if [[ "$GITHUB" == *"Test_Script_dont_use.command"* ]];then
+    printError "This script is for testing only and may be outdated,\n"
+    printError "use the regular one at:\n"
+    printError "http://www.insanelymac.com/forum/files/download/589-build-clovercommand/\n"
+fi
+
 if [[ "$SYSNAME" == Linux ]]; then
     if [[ "$(uname -m)" != x86_64 ]]; then
         printError "\nBuild_Clover.command is tested only on x86_64 architecture, aborting..\n"
@@ -524,11 +577,19 @@ selectArch () {
     local count=1
     for op in "${archs[@]}"
     do
-        printf "\t $count) ${op}\n"
+        case "${op}" in
+        'Standard with both ia32 and x64')
+            printf "\033[1;36m\t ${count}) ${op}\033[0m\n"
+        ;;
+        *)
+            printf "\t $count) ${op}\n"
+        ;;
+        esac
+
         ((count+=1))
     done
 
-    read opt
+    printf '? ' && read opt
 
     case $opt in
     1)
@@ -1342,18 +1403,19 @@ showMacros() {
 
     echo $1
 
+    printf 'actual macros defined: '
     if [[ ( "${#DEFINED_MACRO} " < 1 ) ]] ; then
-        echo "actual macros defined: no one"
+        printf "\e[1;30mno one\033[0m\n"
     else
-        echo "actual macros defined: $DEFINED_MACRO"
+        printf "\033[1;36m\n${DEFINED_MACRO}\033[0m\n"
     fi
 
     echo
 
     if [ "${#macros[@]}" -gt "0" ]; then
         echo "enter you choice or press \"b\" to build:"
-        read choice
-        if [ "${choice}" == "b" ]; then
+        printf '? ' && read choice
+        if [ "${choice}" == "b" ] || [ "${choice}" == "B" ]; then
             echo "going to build as requested.."
         elif [[ ${choice} =~ ^[0-9]+$ ]]; then
             if [ "$choice" -gt "0" ] && [ "$choice" -le ${#macros[@]} ]; then
@@ -1380,9 +1442,42 @@ build() {
     if [[ -d "${DIR_MAIN}/edk2/Clover" ]] ; then
         echo 'Please enter your choice: '
         local options=()
+
+        # add the option to link the script
+        if [[ ! -f "$SYMLINKPATH" ]]; then
+            options+=("add \"buildclover\" symlink to $(dirname $SYMLINKPATH)")
+        else
+            #  ...but may point to another script..
+            local scriptPath="${0}"
+            local symPath=""
+            if [[ -L "${0}" ]]; then
+                if [[ "$SYSNAME" == Linux ]]; then
+                    scriptPath="$(readlink -f ${0})"
+                else
+                    scriptPath="$(readlink ${0})"
+                fi
+            fi
+
+            if [[ ! -L "$SYMLINKPATH" ]]; then
+                # not a symlink..
+                options+=("restore \"buildclover\" symlink")
+            else
+                if [[ "$SYSNAME" == Linux ]]; then
+                    symPath="$(readlink -f ${SYMLINKPATH}))"
+                else
+                    symPath="$(readlink ${SYMLINKPATH}))"
+                fi
+                if [[ "${scriptPath}" != "$(readlink ${SYMLINKPATH})" ]]; then
+                    # script path mismatch..
+                    options+=("update \"buildclover\" symlink")
+                fi
+            fi
+        fi
+
         if [[ "$SELF_UPDATE_OPT" == YES ]]; then
             options+=("update Build_Clover.command")
         fi
+
         if [[ "$PING_RESPONSE" == YES ]]; then
             options+=("update Clover only (no building)")
         fi
@@ -1409,170 +1504,188 @@ build() {
             options+=("Exit")
         fi
 
-        select opt in "${options[@]}"
+        restoreIFS
+        local count=1
+        for opt in "${options[@]}"
         do
             case $opt in
-            "update Build_Clover.command")
-                if [[ -x $(which wget) ]]; then
-                    selfUpdate wget
-                elif [[ -x $(which curl) ]]; then
-                    selfUpdate curl
-                else
-                    printError "\nNo curl nor wget are installed! Install one of them and retry..\n" && exit 1
-                fi
-                build
+            "update Build_Clover.command" \
+            | "add \"buildclover\" symlink to $(dirname $SYMLINKPATH)" \
+            | "restore \"buildclover\" symlink" \
+            | "update \"buildclover\" symlink")
+                printf "\033[1;31m ${count}) ${opt}\033[0m\n"
             ;;
-            "enter Developers mode (only for devs)")
-                clear
-                if [[ -d "${DIR_MAIN}/edk2/Clover" ]] ; then
-                    set +e
-                    BUILDER="slice"
-                else
-                    BUILDER=$USER
-                    echo "yep... you are a Dev, but at least download Clover firstly :-)"
-                fi
-                build
-            ;;
-            "update Clover only (no building)")
-                BUILD_FLAG="NO"
-                break
-            ;;
-            "update & build Clover")
-                BUILD_FLAG="YES"
-                selectArch
-                break
-            ;;
-            "build existing revision (no update, for testing only)")
-                UPDATE_FLAG="NO"
-                BUILD_FLAG="YES"
-                selectArch
-                break
-            ;;
-            "build with ./ebuild.sh -nb")
-                printHeader 'ebuild.sh -nb'
-                cd "${DIR_MAIN}"/edk2/Clover
-                START_BUILD=$(date)
-                ./ebuild.sh -nb
-                break
-            ;;
-            "build with ./ebuild.sh --module=rEFIt_UEFI/refit.inf")
-                cd "${DIR_MAIN}"/edk2/Clover
-                printHeader 'ebuild.sh --module=rEFIt_UEFI/refit.inf'
-                START_BUILD=$(date)
-                ./ebuild.sh --module=rEFIt_UEFI/refit.inf
-                echo && printf "build started at:\n${START_BUILD}\nfinished at\n$(date)\n\nDone!\n"
-                break
-            ;;
-            "build binaries (boot3, 6 and 7 also)")
-                cd "${DIR_MAIN}"/edk2/Clover
-                START_BUILD=$(date)
-                printHeader 'boot6'
-                ./ebuild.sh -x64 -D NO_GRUB_DRIVERS_EMBEDDED -D CHECK_FLAGS -t XCODE5
-                printHeader 'boot7'
-                ./ebuild.sh -mc --no-usb -D NO_GRUB_DRIVERS_EMBEDDED -D CHECK_FLAGS -t XCODE5
-                printHeader 'boot3'
-                ./ebuild.sh -ia32 -D NO_GRUB_DRIVERS_EMBEDDED -D CHECK_FLAGS -t XCODE5
-                echo && printf "build started at:\n${START_BUILD}\nfinished at\n$(date)\n\nDone!\n"
-                break
-            ;;
-            "build binaries with FORCEREBUILD (boot3, 6 and 7 also)")
-                cd "${DIR_MAIN}"/edk2/Clover
-                START_BUILD=$(date)
-                printHeader 'boot6'
-                ./ebuild.sh -fr -x64 -D NO_GRUB_DRIVERS_EMBEDDED -D CHECK_FLAGS -t XCODE5
-                printHeader 'boot7'
-                ./ebuild.sh -fr -mc --no-usb -D NO_GRUB_DRIVERS_EMBEDDED -D CHECK_FLAGS -t XCODE5
-                printHeader 'boot3'
-                ./ebuild.sh -fr -ia32 -D NO_GRUB_DRIVERS_EMBEDDED -D CHECK_FLAGS -t XCODE5
-                echo && printf "build started at:\n${START_BUILD}\nfinished at\n$(date)\n\nDone!\n"
-                break
-            ;;
-            "build pkg")
-                cd "${DIR_MAIN}"/edk2/Clover/CloverPackage
-                START_BUILD=$(date)
-                printHeader 'make pkg'
-                make pkg
-                echo && printf "build started at:\n${START_BUILD}\nfinished at\n$(date)\n\nDone!\n"
-                break
-            ;;
-            "build iso")
-                cd "${DIR_MAIN}"/edk2/Clover/CloverPackage
-                printHeader 'make iso'
-                make iso
-                echo && printf "build started at:\n${START_BUILD}\nfinished at\n$(date)\n\nDone!\n"
-                break
-            ;;
-            "build pkg+iso")
-                cd "${DIR_MAIN}"/edk2/Clover/CloverPackage
-                START_BUILD=$(date)
-                printHeader 'make pkg + make iso'
-                make pkg
-                make iso
-                echo && printf "build started at:\n${START_BUILD}\nfinished at\n$(date)\n\nDone!\n"
-                break
-            ;;
-            "build all for Release")
-                cd "${DIR_MAIN}"/edk2/Clover
-                START_BUILD=$(date)
-                printHeader 'boot6'
-                ./ebuild.sh -fr -x64 -D NO_GRUB_DRIVERS_EMBEDDED -D CHECK_FLAGS -t XCODE5
-                printHeader 'boot7'
-                ./ebuild.sh -fr -mc --no-usb -D NO_GRUB_DRIVERS_EMBEDDED -D CHECK_FLAGS -t XCODE5
-                printHeader 'boot3'
-                ./ebuild.sh -fr -ia32 -D NO_GRUB_DRIVERS_EMBEDDED -D CHECK_FLAGS -t XCODE5
-
-                cd "${DIR_MAIN}"/edk2/Clover/CloverPackage
-                make clean
-                printHeader 'make pkg'
-                make pkg
-                printHeader 'make iso'
-                make iso
-                echo && printf "build started at:\n${START_BUILD}\nfinished at\n$(date)\n\nDone!\n"
-                break
-            ;;
-            "build existing revision for release (no update, standard build)")
-                FORCEREBUILD="-fr"
-                UPDATE_FLAG="NO"
-                BUILD_FLAG="YES"
-                selectArch
-                break
-            ;;
-            "build existing revision with custom macros enabled")
-                DEFINED_MACRO=""
-                UPDATE_FLAG="NO"
-                BUILD_FLAG="YES"
-                selectArch
-                showMacros ""
-                break
-            ;;
-            "run my script on the source")
-                if [[ $(echo $USER | tr "[:upper:]" "[:lower:]" ) =~ ^micky1979 ]]; then
-                    printHeader Pandora
-                    mydir="$(cd "$(dirname "$BASH_SOURCE")"; pwd)"
-                    cd "${mydir}"
-                    ./CloverPandora.sh Clover $BUILDTOOL
-                    printHeader Done
-                    build
-                else
-                    printHeader "add the script you want to run here.."
-                    exit 0
-                fi
-            ;;
-            "info and limitations about this script")
-                showInfo
-                break
-            ;;
-            "Back to Main Menu")
-                clear && BUILDER=$USER && build
-            ;;
-            "Exit")
-                exit 0;
+            "build existing revision for release (no update, standard build)" \
+            | "update & build Clover" \
+            | "build all for Release" \
+            | "build binaries with FORCEREBUILD (boot3, 6 and 7 also)")
+                printf "\033[1;36m ${count}) ${opt}\033[0m\n"
             ;;
             *)
-                clear && echo "invalid option!!" && build
+                printf " ${count}) ${opt}\n"
             ;;
             esac
+            ((count+=1))
         done
+
+        local choice=""
+        local lastIndex="${#options[@]}"
+        ((lastIndex-=1))
+        printf '? ' && read opt
+
+        if IsNumericOnly $opt && [ "$opt" -gt "0" ] && [ "$opt" -le "$lastIndex" ]; then
+            choice="$(echo ${options[$opt -1]})"
+        fi
+        case $choice in
+        "add \"buildclover\" symlink to $(dirname $SYMLINKPATH)" | "restore \"buildclover\" symlink" | "update \"buildclover\" symlink")
+            addSymlink
+        ;;
+        "update Build_Clover.command")
+            if [[ -x $(which wget) ]]; then
+                selfUpdate wget
+            elif [[ -x $(which curl) ]]; then
+                selfUpdate curl
+            else
+                printError "\nNo curl nor wget are installed! Install one of them and retry..\n" && exit 1
+            fi
+            build
+        ;;
+        "enter Developers mode (only for devs)")
+            clear
+            if [[ -d "${DIR_MAIN}/edk2/Clover" ]] ; then
+                set +e
+                BUILDER="slice"
+            else
+                BUILDER=$USER
+                echo "yep... you are a Dev, but at least download Clover firstly :-)"
+            fi
+            build
+        ;;
+        "update Clover only (no building)")
+            BUILD_FLAG="NO"
+        ;;
+        "update & build Clover")
+            BUILD_FLAG="YES"
+            selectArch
+        ;;
+        "build existing revision (no update, for testing only)")
+            UPDATE_FLAG="NO"
+            BUILD_FLAG="YES"
+            selectArch
+        ;;
+        "build with ./ebuild.sh -nb")
+            printHeader 'ebuild.sh -nb'
+            cd "${DIR_MAIN}"/edk2/Clover
+            START_BUILD=$(date)
+            ./ebuild.sh -nb
+        ;;
+        "build with ./ebuild.sh --module=rEFIt_UEFI/refit.inf")
+            cd "${DIR_MAIN}"/edk2/Clover
+            printHeader 'ebuild.sh --module=rEFIt_UEFI/refit.inf'
+            START_BUILD=$(date)
+            ./ebuild.sh --module=rEFIt_UEFI/refit.inf
+            echo && printf "build started at:\n${START_BUILD}\nfinished at\n$(date)\n\nDone!\n"
+        ;;
+        "build binaries (boot3, 6 and 7 also)")
+            cd "${DIR_MAIN}"/edk2/Clover
+            START_BUILD=$(date)
+            printHeader 'boot6'
+            ./ebuild.sh -x64 -D NO_GRUB_DRIVERS_EMBEDDED -D CHECK_FLAGS -t XCODE5
+            printHeader 'boot7'
+            ./ebuild.sh -mc --no-usb -D NO_GRUB_DRIVERS_EMBEDDED -D CHECK_FLAGS -t XCODE5
+            printHeader 'boot3'
+            ./ebuild.sh -ia32 -D NO_GRUB_DRIVERS_EMBEDDED -D CHECK_FLAGS -t XCODE5
+            echo && printf "build started at:\n${START_BUILD}\nfinished at\n$(date)\n\nDone!\n"
+        ;;
+        "build binaries with FORCEREBUILD (boot3, 6 and 7 also)")
+            cd "${DIR_MAIN}"/edk2/Clover
+            START_BUILD=$(date)
+            printHeader 'boot6'
+            ./ebuild.sh -fr -x64 -D NO_GRUB_DRIVERS_EMBEDDED -D CHECK_FLAGS -t XCODE5
+            printHeader 'boot7'
+            ./ebuild.sh -fr -mc --no-usb -D NO_GRUB_DRIVERS_EMBEDDED -D CHECK_FLAGS -t XCODE5
+            printHeader 'boot3'
+            ./ebuild.sh -fr -ia32 -D NO_GRUB_DRIVERS_EMBEDDED -D CHECK_FLAGS -t XCODE5
+            echo && printf "build started at:\n${START_BUILD}\nfinished at\n$(date)\n\nDone!\n"
+        ;;
+        "build pkg")
+            cd "${DIR_MAIN}"/edk2/Clover/CloverPackage
+            START_BUILD=$(date)
+            printHeader 'make pkg'
+            make pkg
+            echo && printf "build started at:\n${START_BUILD}\nfinished at\n$(date)\n\nDone!\n"
+        ;;
+        "build iso")
+            cd "${DIR_MAIN}"/edk2/Clover/CloverPackage
+            printHeader 'make iso'
+            make iso
+            echo && printf "build started at:\n${START_BUILD}\nfinished at\n$(date)\n\nDone!\n"
+        ;;
+        "build pkg+iso")
+            cd "${DIR_MAIN}"/edk2/Clover/CloverPackage
+            START_BUILD=$(date)
+            printHeader 'make pkg + make iso'
+            make pkg
+            make iso
+            echo && printf "build started at:\n${START_BUILD}\nfinished at\n$(date)\n\nDone!\n"
+        ;;
+        "build all for Release")
+            cd "${DIR_MAIN}"/edk2/Clover
+            START_BUILD=$(date)
+            printHeader 'boot6'
+            ./ebuild.sh -fr -x64 -D NO_GRUB_DRIVERS_EMBEDDED -D CHECK_FLAGS -t XCODE5
+            printHeader 'boot7'
+            ./ebuild.sh -fr -mc --no-usb -D NO_GRUB_DRIVERS_EMBEDDED -D CHECK_FLAGS -t XCODE5
+            printHeader 'boot3'
+            ./ebuild.sh -fr -ia32 -D NO_GRUB_DRIVERS_EMBEDDED -D CHECK_FLAGS -t XCODE5
+
+            cd "${DIR_MAIN}"/edk2/Clover/CloverPackage
+            make clean
+            printHeader 'make pkg'
+            make pkg
+            printHeader 'make iso'
+            make iso
+            echo && printf "build started at:\n${START_BUILD}\nfinished at\n$(date)\n\nDone!\n"
+        ;;
+        "build existing revision for release (no update, standard build)")
+            FORCEREBUILD="-fr"
+            UPDATE_FLAG="NO"
+            BUILD_FLAG="YES"
+            selectArch
+        ;;
+        "build existing revision with custom macros enabled")
+            DEFINED_MACRO=""
+            UPDATE_FLAG="NO"
+            BUILD_FLAG="YES"
+            selectArch
+            showMacros ""
+        ;;
+        "run my script on the source")
+            if [[ $(echo $USER | tr "[:upper:]" "[:lower:]" ) =~ ^micky1979 ]]; then
+                printHeader Pandora
+                mydir="$(cd "$(dirname "$BASH_SOURCE")"; pwd)"
+                cd "${mydir}"
+                ./CloverPandora.sh Clover $BUILDTOOL
+                printHeader Done
+                build
+            else
+                printHeader "add the script you want to run here.."
+                exit 0
+            fi
+        ;;
+        "info and limitations about this script")
+            showInfo
+        ;;
+        "Back to Main Menu")
+            clear && BUILDER=$USER && build
+        ;;
+        "Exit")
+            exit 0;
+        ;;
+        *)
+            clear && echo "invalid option!!" && build
+        ;;
+        esac
     fi
 
     if [[ "$BUILDER" == 'slice' ]]; then clear && build; fi
@@ -1714,6 +1827,7 @@ build() {
 
     if [[ "$BUILDER" != 'slice' ]]; then restoreClover; fi
     printHeader "build started at:\n${START_BUILD}\nfinished at\n$(date)\n\nDone!\n"
+    printf '\e[3;0;0t'
     exit 0
 }
 
