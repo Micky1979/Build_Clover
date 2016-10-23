@@ -35,7 +35,7 @@ GNU="GCC49"        # GCC49 GCC53
 BUILDTOOL="$XCODE" # XCODE or GNU?      (use $GNU to use GNU gcc, $XCODE to use the choosen Xcode version)
 # in Linux this get overrided and GCC53 used anyway!
 # --------------------------------------
-SCRIPTVER="v4.1.4"
+SCRIPTVER="v4.1.5"
 export LC_ALL=C
 SYSNAME="$( uname )"
 
@@ -72,6 +72,7 @@ DEFINED_MACRO=""
 CUSTOM_BUILD="NO"
 START_BUILD=""
 TIMES=0
+ForceEDK2Update=0 # cause edk2 to be re-updated again if > 0 (handeled by the script in more places)
 SYMLINKPATH='/usr/local/bin/buildclover'
 
 GITHUB='https://raw.githubusercontent.com/Micky1979/Build_Clover/master/Build_Clover.command'
@@ -961,14 +962,20 @@ edk2() {
 
     local revision="-r $EDK2_REV"
 
-    if [[ ! -d "${DIR_MAIN}/edk2" ]] ; then
+    if [[ ! -d "${DIR_MAIN}/edk2" ]]; then
         printHeader 'Downloading edk2'
         mkdir -p "${DIR_MAIN}"/edk2
     else
         printHeader 'Updating edk2'
-        if [[ -d "${DIR_MAIN}/edk2/BaseTools" ]] ; then
+        if [[ -d "${DIR_MAIN}/edk2/BaseTools" ]]; then
             getRev "BaseTools"
         fi
+    fi
+
+    if [ "$ForceEDK2Update" -eq "1979" ]; then
+        # was invoke to force update edk2, so is safe to rebuild BaseTools
+        # in case some conflicts are resolved
+        BaseToolsRev=$ForceEDK2Update
     fi
 
     # update only relevant pkgs of edk2 needed by Clover
@@ -996,13 +1003,12 @@ edk2() {
 
     # check if we have all already there and updated at the specified revision..
     # 'Scripts' and 'Source' are not present in edk2. maybe are Slice's stuff
-    local numCheck=0
     for d in "${edk2array[@]}"
     do
         if [[ "$d" != Source ]] && [[ "$d" != Scripts ]]; then
             if [[ ! -d "${DIR_MAIN}/edk2/${d}/.svn" ]] || \
                [ "$(svn info "${DIR_MAIN}/edk2/${d}" | grep '^Revision:' | tr -cd [:digit:])" -ne "$EDK2_REV" ]; then
-                ((numCheck+=1))
+                ((ForceEDK2Update+=1))
             fi
         fi
     done
@@ -1010,10 +1016,10 @@ edk2() {
     # check also edk2/.svn
     if [[ ! -d "${DIR_MAIN}/edk2/.svn" ]] || \
        [ "$(svn info "${DIR_MAIN}/edk2" | grep '^Revision:' | tr -cd [:digit:])" -ne "$EDK2_REV" ]; then
-        ((numCheck+=1))
+        ((ForceEDK2Update+=1))
     fi
 
-    if [ "$numCheck" -eq "0" ];then
+    if [ "$ForceEDK2Update" -eq "0" ];then
         printWarning "edk2 appear to be up to date, skipping ...\n"
         return
     fi
@@ -1045,7 +1051,7 @@ edk2() {
             fi
         fi
     done
-
+    ForceEDK2Update=0
     cleanAllTools $BaseToolsRev
 }
 # --------------------------------------
@@ -1497,7 +1503,7 @@ build() {
             options+=("Back to Main Menu")
             options+=("Exit")
         else
-            options+=("update & build Clover")
+            options+=("update Clover + force edk2 update (no building)")
             options+=("run my script on the source")
             options+=("build existing revision (no update, for testing only)")
             options+=("build existing revision for release (no update, standard build)")
@@ -1519,7 +1525,7 @@ build() {
                 printf "\033[1;31m ${count}) ${opt}\033[0m\n"
             ;;
             "build existing revision for release (no update, standard build)" \
-            | "update & build Clover" \
+            | "update Clover + force edk2 update (no building)" \
             | "build all for Release" \
             | "build binaries with FORCEREBUILD (boot3, 6 and 7 also)")
                 printf "\033[1;36m ${count}) ${opt}\033[0m\n"
@@ -1570,10 +1576,10 @@ build() {
         ;;
         "update Clover only (no building)")
             BUILD_FLAG="NO"
+            ForceEDK2Update=0
         ;;
-        "update & build Clover")
-            BUILD_FLAG="YES"
-            selectArch
+        "update Clover + force edk2 update (no building)")
+            ForceEDK2Update=1979 # 1979 has a special meaning ...i.e force clean BaseTools
         ;;
         "build existing revision (no update, for testing only)")
             UPDATE_FLAG="NO"
