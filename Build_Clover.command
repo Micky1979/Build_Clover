@@ -842,20 +842,38 @@ exportXcodePaths() {
 # --------------------------------------
 svnWithErrorCheck() {
 
+	# $1 = svn command to be execute
+	# $2 = containing folder of our /.svn we are attempting to work on
+	# $3 = reserved argument ("once") indicating we are calling 'svn resolve'
+	# $4 = reserved argument equal to initial $1 command string
+		
     if [ -z "${1}" ]; then return; fi
 
-    local cmd="${1}"
+	local cmd="${1}"
+	if [ -n "${4}" ]; then
+		cmd="${4}"
+	fi
+    
     echo "" > "${SVN_STDERR_LOG}"
     eval "${cmd}" 2> "${SVN_STDERR_LOG}"
 
-    local errors=(  'svn: E'
-                    'Unable to connect'
-                    'Unknown hostname'
-                    'timeout'
-                    'time out' )
+    local errors=(  "svn: E"
+                    "Unable to connect"
+                    "Unknown hostname"
+                    "timeout"
+                    "time out" 
+                 )
 
     local ErrCount=0
-
+    
+    # try to resolve conflicts if any
+    if [[ -n "${2}" ]] && [[ "${3}" != once ]];then
+    	if grep -q "Tree conflict can only be resolved to 'working' state" "${SVN_STDERR_LOG}"; then
+    		printWarning "calling svn resolve..\n"
+            svnWithErrorCheck "svn resolve ${2}" "${2}" once "${1}"
+        fi
+    fi
+	
     for err in "${errors[@]}"
     do
         if grep -q "${err}" "${SVN_STDERR_LOG}"; then
@@ -1044,10 +1062,10 @@ edk2() {
             cd "${DIR_MAIN}"/edk2
             if [[ -d "${DIR_MAIN}/edk2/${d}" ]] ; then
                 cd "${DIR_MAIN}/edk2/${d}"
-                svnWithErrorCheck "svn update --accept tf --non-interactive --trust-server-cert $revision"
+                svnWithErrorCheck "svn update --accept tf --non-interactive --trust-server-cert $revision" "$(pwd)"
             else
                 cd "${DIR_MAIN}"/edk2
-                svnWithErrorCheck "svn co $revision --non-interactive --trust-server-cert $EDK2_REP/${d}"
+                svnWithErrorCheck "svn co $revision --non-interactive --trust-server-cert $EDK2_REP/${d}" "$(pwd)"
             fi
         fi
     done
@@ -1078,7 +1096,7 @@ clover() {
     fi
 
     cd "${DIR_MAIN}"/edk2/Clover
-    svnWithErrorCheck "$cmd"
+    svnWithErrorCheck "$cmd" "$(pwd)"
 
     printHeader 'Apply Edk2 patches'
     cp -R "${DIR_MAIN}"/edk2/Clover/Patches_for_EDK2/* "${DIR_MAIN}"/edk2/ # in Lion cp cause error with subversion (comment this line and enable next)
