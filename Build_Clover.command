@@ -23,8 +23,9 @@ printf '\e[8;34;90t'
 #
 # Big thanks to the following testers:
 # droples, Riley Freeman, pico joe, fantomas1, Fljagd, calibre, Mork vom Ork, Maniac10, Matgen84,
-# Sherlocks, ellaosx, magnifico, AsusFreak,
-# and all others (I'll be happy to increase this list)
+# Sherlocks, ellaosx, magnifico, AsusFreak, badruzeus, LabyOne, Ukr55, D-an-W, SavageAUS, bronxteck,
+# artur_pt
+# and all others (I'll be happy to increase this list and to not forgot anyone)
 #
 
 # --------------------------------------
