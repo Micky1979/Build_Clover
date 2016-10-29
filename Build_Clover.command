@@ -8,7 +8,7 @@ printf '\e[8;34;90t'
 # Preferred OS is El Capitan with Xcode >= 7.3.1 and Sierra with Xcode >= 8.
 # In older version of OS X is better to use GNU gcc.
 
-# Tested in linux Ubuntu 16.04/Debian 8.6 amb64 (x86_64).
+# Tested in linux Ubuntu 16.04,16.10/Debian 8.6 amb64 (x86_64).
 # This script install all missing dependencies in the iso images you
 # can download at the official download page here: http://releases.ubuntu.com/16.04/ubuntu-16.04.1-desktop-amd64.iso
 # where nasm, subversion, curl (wget if installed is used as replacement) and or uuid-dev headers are missing.
@@ -461,7 +461,7 @@ aptInstall() {
 clear
 # print local Script revision with relative info
 printCloverScriptRev
-printHeader "By Micky1979 based on Slice, Zenith432, STLVNUB, JrCs, cecekpawon, Needy,\ncvad, Rehabman, philip_petev, ErmaC\n\nSupported OSes: macOS X, Ubuntu 16.04, Debian Jessie 8.6"
+printHeader "By Micky1979 based on Slice, Zenith432, STLVNUB, JrCs, cecekpawon, Needy,\ncvad, Rehabman, philip_petev, ErmaC\n\nSupported OSes: macOS X, Ubuntu 16.04/16.10, Debian Jessie 8.6"
 
 if [[ "$GITHUB" == *"Test_Script_dont_use.command"* ]];then
     printError "This script is for testing only and may be outdated,\n"
@@ -662,7 +662,7 @@ showInfo () {
     printf "UPDATE: actually using XCODE5 LTO is disabled anyway due to problems coming with\n"
     printf "Xcode 8 and new version of clang.\n"
     echo
-    printf "Since v3.5 Build_Clover.command is able to build Clover in Ubuntu 16.04\n"
+    printf "Since v3.5 Build_Clover.command is able to build Clover in Ubuntu 16.04 +\n"
     printf "using the built-in gcc and installing some dependecies like nasm, subversion,\n"
     printf "curl (wget is good if found), the uuid-dev headers if not installed.\n"
     printf "Off course using only the amd64 release (x86_64).\n"
