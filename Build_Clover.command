@@ -36,7 +36,7 @@ GNU="GCC49"        # GCC49 GCC53
 BUILDTOOL="$XCODE" # XCODE or GNU?      (use $GNU to use GNU gcc, $XCODE to use the choosen Xcode version)
 # in Linux this get overrided and GCC53 used anyway!
 # --------------------------------------
-SCRIPTVER="v4.1.6"
+SCRIPTVER="v4.1.7"
 export LC_ALL=C
 SYSNAME="$( uname )"
 
@@ -1514,7 +1514,8 @@ build() {
             options+=("build with ./ebuild.sh -nb")
             options+=("build with ./ebuild.sh --module=rEFIt_UEFI/refit.inf")
             options+=("build binaries (boot3, 6 and 7 also)")
-            options+=("build binaries with FORCEREBUILD (boot3, 6 and 7 also)")
+            options+=("build binaries with -fr (boot3, 6 and 7 also)")
+            options+=("build boot6/7 with -fr --std-ebda")
             options+=("build pkg")
             options+=("build iso")
             options+=("build pkg+iso")
@@ -1629,7 +1630,7 @@ build() {
             ./ebuild.sh -ia32 -D NO_GRUB_DRIVERS_EMBEDDED -D CHECK_FLAGS -t XCODE5
             echo && printf "build started at:\n${START_BUILD}\nfinished at\n$(date)\n\nDone!\n"
         ;;
-        "build binaries with FORCEREBUILD (boot3, 6 and 7 also)")
+        "build binaries with -fr (boot3, 6 and 7 also)")
             cd "${DIR_MAIN}"/edk2/Clover
             START_BUILD=$(date)
             printHeader 'boot6'
@@ -1638,6 +1639,15 @@ build() {
             ./ebuild.sh -fr -mc --no-usb -D NO_GRUB_DRIVERS_EMBEDDED -D CHECK_FLAGS -t XCODE5
             printHeader 'boot3'
             ./ebuild.sh -fr -ia32 -D NO_GRUB_DRIVERS_EMBEDDED -D CHECK_FLAGS -t XCODE5
+            echo && printf "build started at:\n${START_BUILD}\nfinished at\n$(date)\n\nDone!\n"
+        ;;
+        "build boot6/7 with -fr --std-ebda")
+            cd "${DIR_MAIN}"/edk2/Clover
+            START_BUILD=$(date)
+            printHeader 'boot6'
+            ./ebuild.sh -fr -x64 --std-ebda -D NO_GRUB_DRIVERS_EMBEDDED -D CHECK_FLAGS -t XCODE5
+            printHeader 'boot7'
+            ./ebuild.sh -fr -mc --std-ebda --no-usb -D NO_GRUB_DRIVERS_EMBEDDED -D CHECK_FLAGS -t XCODE5
             echo && printf "build started at:\n${START_BUILD}\nfinished at\n$(date)\n\nDone!\n"
         ;;
         "build pkg")
