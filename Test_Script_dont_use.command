@@ -8,7 +8,7 @@ printf '\e[8;34;90t'
 # Preferred OS is El Capitan with Xcode >= 7.3.1 and Sierra with Xcode >= 8.
 # In older version of OS X is better to use GNU gcc.
 
-# Tested in linux Ubuntu 16.04/Debian 8.6 amb64 (x86_64).
+# Tested in linux Ubuntu 16.04,16.10/Debian 8.6 amb64 (x86_64).
 # This script install all missing dependencies in the iso images you
 # can download at the official download page here: http://releases.ubuntu.com/16.04/ubuntu-16.04.1-desktop-amd64.iso
 # where nasm, subversion, curl (wget if installed is used as replacement) and or uuid-dev headers are missing.
@@ -23,8 +23,9 @@ printf '\e[8;34;90t'
 #
 # Big thanks to the following testers:
 # droples, Riley Freeman, pico joe, fantomas1, Fljagd, calibre, Mork vom Ork, Maniac10, Matgen84,
-# Sherlocks, ellaosx, magnifico, AsusFreak,
-# and all others (I'll be happy to increase this list)
+# Sherlocks, ellaosx, magnifico, AsusFreak, badruzeus, LabyOne, Ukr55, D-an-W, SavageAUS, bronxteck,
+# artur_pt
+# and all others (I'll be happy to increase this list and to not forgot anyone)
 #
 
 # --------------------------------------
@@ -35,13 +36,13 @@ GNU="GCC49"        # GCC49 GCC53
 BUILDTOOL="$XCODE" # XCODE or GNU?      (use $GNU to use GNU gcc, $XCODE to use the choosen Xcode version)
 # in Linux this get overrided and GCC53 used anyway!
 # --------------------------------------
-SCRIPTVER="v4.1.4"
+SCRIPTVER="v4.1.8"
 export LC_ALL=C
 SYSNAME="$( uname )"
 
 BUILDER=$USER # don't touch!
 
-EDK2_REV="22837"   # or any revision supported by Slice (otherwise no claim please)
+EDK2_REV="22865"   # or any revision supported by Slice (otherwise no claim please)
 # <----------------------------
 # Preferences:
 
@@ -72,11 +73,13 @@ DEFINED_MACRO=""
 CUSTOM_BUILD="NO"
 START_BUILD=""
 TIMES=0
+ForceEDK2Update=0 # cause edk2 to be re-updated again if > 0 (handeled by the script in more places)
 SYMLINKPATH='/usr/local/bin/buildclover'
 
-GITHUB='https://raw.githubusercontent.com/Micky1979/Build_Clover/master/Build_Clover.command'
+GITHUB='https://raw.githubusercontent.com/Micky1979/Build_Clover/master/Test_Script_dont_use.command'
 SELF_UPDATE_OPT="NO" # show hide selfUpdate option
 PING_RESPONSE="NO" # show hide option with connection dependency
+REMOTE_EDK2_REV="" # info for developer submenu this mean to show latest rev avaiable
 
 edk2array=(
             MdePkg
@@ -329,7 +332,13 @@ printCloverScriptRev() {
 
     if ping -c 1 github.com >> /dev/null 2>&1; then
         # Retrive and filter remote script version
-        RSCRIPTVER='v'$(curl -v --silent $GITHUB 2>&1 | grep '^SCRIPTVER="v' | tr -cd '.0-9')
+        if [[ -x $(which wget) ]]; then
+            RSCRIPTVER='v'$(wget $GITHUB -q -O - | grep '^SCRIPTVER="v' | tr -cd '.0-9')
+        elif [[ -x $(which curl) ]]; then
+            RSCRIPTVER='v'$(curl -v --silent $GITHUB 2>&1 | grep '^SCRIPTVER="v' | tr -cd '.0-9')
+        else
+            return
+        fi
 
         LVALUE=$(echo $SCRIPTVER | tr -cd [:digit:])
         RVALUE=$(echo $RSCRIPTVER | tr -cd [:digit:])
@@ -459,7 +468,7 @@ aptInstall() {
 clear
 # print local Script revision with relative info
 printCloverScriptRev
-printHeader "By Micky1979 based on Slice, Zenith432, STLVNUB, JrCs, cecekpawon, Needy,\ncvad, Rehabman, philip_petev, ErmaC\n\nSupported OSes: macOS X, Ubuntu 16.04, Debian Jessie 8.6"
+printHeader "By Micky1979 based on Slice, Zenith432, STLVNUB, JrCs, cecekpawon, Needy,\ncvad, Rehabman, philip_petev, ErmaC\n\nSupported OSes: macOS X, Ubuntu 16.04/16.10, Debian Jessie 8.6"
 
 if [[ "$GITHUB" == *"Test_Script_dont_use.command"* ]];then
     printError "This script is for testing only and may be outdated,\n"
@@ -533,6 +542,7 @@ getRev() {
         if [[ ${Arg} == *"remote"* ]]; then
             # Remote
             REMOTE_REV=$(svn info ${CLOVER_REP} | grep '^Revision:' | tr -cd [:digit:])
+            REMOTE_EDK2_REV=$(svn info ${EDK2_REP} | grep '^Revision:' | tr -cd [:digit:])
         fi
     else
         REMOTE_REV=""
@@ -660,7 +670,7 @@ showInfo () {
     printf "UPDATE: actually using XCODE5 LTO is disabled anyway due to problems coming with\n"
     printf "Xcode 8 and new version of clang.\n"
     echo
-    printf "Since v3.5 Build_Clover.command is able to build Clover in Ubuntu 16.04\n"
+    printf "Since v3.5 Build_Clover.command is able to build Clover in Ubuntu 16.04 +\n"
     printf "using the built-in gcc and installing some dependecies like nasm, subversion,\n"
     printf "curl (wget is good if found), the uuid-dev headers if not installed.\n"
     printf "Off course using only the amd64 release (x86_64).\n"
@@ -841,20 +851,38 @@ exportXcodePaths() {
 # --------------------------------------
 svnWithErrorCheck() {
 
+	# $1 = svn command to be execute
+	# $2 = containing folder of our /.svn we are attempting to work on
+	# $3 = reserved argument ("once") indicating we are calling 'svn resolve'
+	# $4 = reserved argument equal to initial $1 command string
+		
     if [ -z "${1}" ]; then return; fi
 
-    local cmd="${1}"
+	local cmd="${1}"
+	if [ -n "${4}" ]; then
+		cmd="${4}"
+	fi
+    
     echo "" > "${SVN_STDERR_LOG}"
     eval "${cmd}" 2> "${SVN_STDERR_LOG}"
 
-    local errors=(  'svn: E'
-                    'Unable to connect'
-                    'Unknown hostname'
-                    'timeout'
-                    'time out' )
+    local errors=(  "svn: E"
+                    "Unable to connect"
+                    "Unknown hostname"
+                    "timeout"
+                    "time out" 
+                 )
 
     local ErrCount=0
-
+    
+    # try to resolve conflicts if any
+    if [[ -n "${2}" ]] && [[ "${3}" != once ]];then
+    	if grep -q "Tree conflict can only be resolved to 'working' state" "${SVN_STDERR_LOG}"; then
+    		printWarning "calling svn resolve..\n"
+            svnWithErrorCheck "svn resolve ${2}" "${2}" once "${1}"
+        fi
+    fi
+	
     for err in "${errors[@]}"
     do
         if grep -q "${err}" "${SVN_STDERR_LOG}"; then
@@ -961,14 +989,20 @@ edk2() {
 
     local revision="-r $EDK2_REV"
 
-    if [[ ! -d "${DIR_MAIN}/edk2" ]] ; then
+    if [[ ! -d "${DIR_MAIN}/edk2" ]]; then
         printHeader 'Downloading edk2'
         mkdir -p "${DIR_MAIN}"/edk2
     else
         printHeader 'Updating edk2'
-        if [[ -d "${DIR_MAIN}/edk2/BaseTools" ]] ; then
+        if [[ -d "${DIR_MAIN}/edk2/BaseTools" ]]; then
             getRev "BaseTools"
         fi
+    fi
+
+    if [ "$ForceEDK2Update" -eq "1979" ]; then
+        # was invoke to force update edk2, so is safe to rebuild BaseTools
+        # in case some conflicts are resolved
+        BaseToolsRev=$ForceEDK2Update
     fi
 
     # update only relevant pkgs of edk2 needed by Clover
@@ -996,13 +1030,12 @@ edk2() {
 
     # check if we have all already there and updated at the specified revision..
     # 'Scripts' and 'Source' are not present in edk2. maybe are Slice's stuff
-    local numCheck=0
     for d in "${edk2array[@]}"
     do
         if [[ "$d" != Source ]] && [[ "$d" != Scripts ]]; then
             if [[ ! -d "${DIR_MAIN}/edk2/${d}/.svn" ]] || \
                [ "$(svn info "${DIR_MAIN}/edk2/${d}" | grep '^Revision:' | tr -cd [:digit:])" -ne "$EDK2_REV" ]; then
-                ((numCheck+=1))
+                ((ForceEDK2Update+=1))
             fi
         fi
     done
@@ -1010,10 +1043,10 @@ edk2() {
     # check also edk2/.svn
     if [[ ! -d "${DIR_MAIN}/edk2/.svn" ]] || \
        [ "$(svn info "${DIR_MAIN}/edk2" | grep '^Revision:' | tr -cd [:digit:])" -ne "$EDK2_REV" ]; then
-        ((numCheck+=1))
+        ((ForceEDK2Update+=1))
     fi
 
-    if [ "$numCheck" -eq "0" ];then
+    if [ "$ForceEDK2Update" -eq "0" ];then
         printWarning "edk2 appear to be up to date, skipping ...\n"
         return
     fi
@@ -1038,14 +1071,14 @@ edk2() {
             cd "${DIR_MAIN}"/edk2
             if [[ -d "${DIR_MAIN}/edk2/${d}" ]] ; then
                 cd "${DIR_MAIN}/edk2/${d}"
-                svnWithErrorCheck "svn update --accept tf --non-interactive --trust-server-cert $revision"
+                svnWithErrorCheck "svn update --accept tf --non-interactive --trust-server-cert $revision" "$(pwd)"
             else
                 cd "${DIR_MAIN}"/edk2
-                svnWithErrorCheck "svn co $revision --non-interactive --trust-server-cert $EDK2_REP/${d}"
+                svnWithErrorCheck "svn co $revision --non-interactive --trust-server-cert $EDK2_REP/${d}" "$(pwd)"
             fi
         fi
     done
-
+    ForceEDK2Update=0
     cleanAllTools $BaseToolsRev
 }
 # --------------------------------------
@@ -1072,7 +1105,7 @@ clover() {
     fi
 
     cd "${DIR_MAIN}"/edk2/Clover
-    svnWithErrorCheck "$cmd"
+    svnWithErrorCheck "$cmd" "$(pwd)"
 
     printHeader 'Apply Edk2 patches'
     cp -R "${DIR_MAIN}"/edk2/Clover/Patches_for_EDK2/* "${DIR_MAIN}"/edk2/ # in Lion cp cause error with subversion (comment this line and enable next)
@@ -1485,11 +1518,13 @@ build() {
             options+=("update Clover only (no building)")
         fi
         if [[ "$BUILDER" == 'slice' ]]; then
+            printf "   \e[90m EDK2 revision used r$EDK2_REV latest avaiable is r$REMOTE_EDK2_REV \e[0m\n"
             set +e
             options+=("build with ./ebuild.sh -nb")
             options+=("build with ./ebuild.sh --module=rEFIt_UEFI/refit.inf")
             options+=("build binaries (boot3, 6 and 7 also)")
-            options+=("build binaries with FORCEREBUILD (boot3, 6 and 7 also)")
+            options+=("build binaries with -fr (boot3, 6 and 7 also)")
+            options+=("build boot6/7 with -fr --std-ebda")
             options+=("build pkg")
             options+=("build iso")
             options+=("build pkg+iso")
@@ -1497,7 +1532,7 @@ build() {
             options+=("Back to Main Menu")
             options+=("Exit")
         else
-            options+=("update & build Clover")
+            options+=("update Clover + force edk2 update (no building)")
             options+=("run my script on the source")
             options+=("build existing revision (no update, for testing only)")
             options+=("build existing revision for release (no update, standard build)")
@@ -1519,7 +1554,7 @@ build() {
                 printf "\033[1;31m ${count}) ${opt}\033[0m\n"
             ;;
             "build existing revision for release (no update, standard build)" \
-            | "update & build Clover" \
+            | "update Clover + force edk2 update (no building)" \
             | "build all for Release" \
             | "build binaries with FORCEREBUILD (boot3, 6 and 7 also)")
                 printf "\033[1;36m ${count}) ${opt}\033[0m\n"
@@ -1570,10 +1605,10 @@ build() {
         ;;
         "update Clover only (no building)")
             BUILD_FLAG="NO"
+            ForceEDK2Update=0
         ;;
-        "update & build Clover")
-            BUILD_FLAG="YES"
-            selectArch
+        "update Clover + force edk2 update (no building)")
+            ForceEDK2Update=1979 # 1979 has a special meaning ...i.e force clean BaseTools
         ;;
         "build existing revision (no update, for testing only)")
             UPDATE_FLAG="NO"
@@ -1604,7 +1639,7 @@ build() {
             ./ebuild.sh -ia32 -D NO_GRUB_DRIVERS_EMBEDDED -D CHECK_FLAGS -t XCODE5
             echo && printf "build started at:\n${START_BUILD}\nfinished at\n$(date)\n\nDone!\n"
         ;;
-        "build binaries with FORCEREBUILD (boot3, 6 and 7 also)")
+        "build binaries with -fr (boot3, 6 and 7 also)")
             cd "${DIR_MAIN}"/edk2/Clover
             START_BUILD=$(date)
             printHeader 'boot6'
@@ -1613,6 +1648,15 @@ build() {
             ./ebuild.sh -fr -mc --no-usb -D NO_GRUB_DRIVERS_EMBEDDED -D CHECK_FLAGS -t XCODE5
             printHeader 'boot3'
             ./ebuild.sh -fr -ia32 -D NO_GRUB_DRIVERS_EMBEDDED -D CHECK_FLAGS -t XCODE5
+            echo && printf "build started at:\n${START_BUILD}\nfinished at\n$(date)\n\nDone!\n"
+        ;;
+        "build boot6/7 with -fr --std-ebda")
+            cd "${DIR_MAIN}"/edk2/Clover
+            START_BUILD=$(date)
+            printHeader 'boot6'
+            ./ebuild.sh -fr -x64 --std-ebda -D NO_GRUB_DRIVERS_EMBEDDED -D CHECK_FLAGS -t XCODE5
+            printHeader 'boot7'
+            ./ebuild.sh -fr -mc --std-ebda --no-usb -D NO_GRUB_DRIVERS_EMBEDDED -D CHECK_FLAGS -t XCODE5
             echo && printf "build started at:\n${START_BUILD}\nfinished at\n$(date)\n\nDone!\n"
         ;;
         "build pkg")
