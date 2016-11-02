@@ -1539,7 +1539,9 @@ build() {
             options+=("build existing revision for release (no update, standard build)")
             options+=("build existing revision with custom macros enabled")
             options+=("info and limitations about this script")
-            options+=("enter Developers mode (only for devs)")
+            if [[ "$SYSNAME" == Darwin ]]; then
+                options+=("enter Developers mode (only for devs)")
+            fi
             options+=("Exit")
         fi
 
