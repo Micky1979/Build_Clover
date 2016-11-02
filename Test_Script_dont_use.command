@@ -1526,10 +1526,12 @@ build() {
             options+=("build binaries (boot3, 6 and 7 also)")
             options+=("build binaries with -fr (boot3, 6 and 7 also)")
             options+=("build boot6/7 with -fr --std-ebda")
-            options+=("build pkg")
-            options+=("build iso")
-            options+=("build pkg+iso")
-            options+=("build all for Release")
+            if [[ "$SYSNAME" == Darwin ]]; then
+                options+=("build pkg")
+                options+=("build iso")
+                options+=("build pkg+iso")
+                options+=("build all for Release")
+            fi
             options+=("Back to Main Menu")
             options+=("Exit")
         else
@@ -1539,9 +1541,7 @@ build() {
             options+=("build existing revision for release (no update, standard build)")
             options+=("build existing revision with custom macros enabled")
             options+=("info and limitations about this script")
-            if [[ "$SYSNAME" == Darwin ]]; then
-                options+=("enter Developers mode (only for devs)")
-            fi
+            options+=("enter Developers mode (only for devs)")
             options+=("Exit")
         fi
 
