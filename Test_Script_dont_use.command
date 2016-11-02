@@ -36,7 +36,7 @@ GNU="GCC49"        # GCC49 GCC53
 BUILDTOOL="$XCODE" # XCODE or GNU?      (use $GNU to use GNU gcc, $XCODE to use the choosen Xcode version)
 # in Linux this get overrided and GCC53 used anyway!
 # --------------------------------------
-SCRIPTVER="v4.1.8"
+SCRIPTVER="v4.1.9"
 export LC_ALL=C
 SYSNAME="$( uname )"
 
@@ -94,6 +94,7 @@ edk2array=(
             PcAtChipsetPkg
             ShellPkg
             UefiCpuPkg
+	    FatPkg
             BaseTools
             )
 # <----------------------------
