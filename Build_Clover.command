@@ -36,7 +36,7 @@ GNU="GCC49"        # GCC49 GCC53
 BUILDTOOL="$XCODE" # XCODE or GNU?      (use $GNU to use GNU gcc, $XCODE to use the choosen Xcode version)
 # in Linux this get overrided and GCC53 used anyway!
 # --------------------------------------
-SCRIPTVER="v4.1.8"
+SCRIPTVER="v4.1.9"
 export LC_ALL=C
 SYSNAME="$( uname )"
 
@@ -566,9 +566,9 @@ printCloverRev "Remote revision: " "Local revision: "
 selectArch () {
     restoreIFS
     archs=(
-            'Standard with both ia32 and x64'
-            'x64 only'
-            'ia32 only'
+            'Standard x64 only'
+            'ia32 and x64 (ia32 is deprecated)'
+            'ia32 only (deprecated)'
             'Back to Main Menu'
             'Exit'
           )
@@ -583,7 +583,7 @@ selectArch () {
     for op in "${archs[@]}"
     do
         case "${op}" in
-        'Standard with both ia32 and x64')
+        'Standard x64 only')
             printf "\033[1;36m\t ${count}) ${op}\033[0m\n"
         ;;
         *)
@@ -598,10 +598,10 @@ selectArch () {
 
     case $opt in
     1)
-        ARCH="IA32_X64"
+        ARCH="X64"
     ;;
     2)
-        ARCH="X64"
+        ARCH="IA32_X64"
     ;;
     3)
         ARCH="IA32"
@@ -1514,13 +1514,15 @@ build() {
             set +e
             options+=("build with ./ebuild.sh -nb")
             options+=("build with ./ebuild.sh --module=rEFIt_UEFI/refit.inf")
-            options+=("build binaries (boot3, 6 and 7 also)")
-            options+=("build binaries with -fr (boot3, 6 and 7 also)")
+            options+=("build binaries w/o -fr (boot6 and 7)")
+            options+=("build binaries with -fr (boot6 and 7)")
             options+=("build boot6/7 with -fr --std-ebda")
-            options+=("build pkg")
-            options+=("build iso")
-            options+=("build pkg+iso")
-            options+=("build all for Release")
+            if [[ "$SYSNAME" == Darwin ]]; then
+                options+=("build pkg")
+                options+=("build iso")
+                options+=("build pkg+iso")
+                options+=("build all for Release")
+            fi
             options+=("Back to Main Menu")
             options+=("Exit")
         else
@@ -1620,26 +1622,22 @@ build() {
             ./ebuild.sh --module=rEFIt_UEFI/refit.inf
             echo && printf "build started at:\n${START_BUILD}\nfinished at\n$(date)\n\nDone!\n"
         ;;
-        "build binaries (boot3, 6 and 7 also)")
+        "build binaries w/o -fr (boot6 and 7)")
             cd "${DIR_MAIN}"/edk2/Clover
             START_BUILD=$(date)
             printHeader 'boot6'
             ./ebuild.sh -x64 -D NO_GRUB_DRIVERS_EMBEDDED -D CHECK_FLAGS -t XCODE5
             printHeader 'boot7'
             ./ebuild.sh -mc --no-usb -D NO_GRUB_DRIVERS_EMBEDDED -D CHECK_FLAGS -t XCODE5
-            printHeader 'boot3'
-            ./ebuild.sh -ia32 -D NO_GRUB_DRIVERS_EMBEDDED -D CHECK_FLAGS -t XCODE5
             echo && printf "build started at:\n${START_BUILD}\nfinished at\n$(date)\n\nDone!\n"
         ;;
-        "build binaries with -fr (boot3, 6 and 7 also)")
+        "build binaries with -fr (boot6 and 7)")
             cd "${DIR_MAIN}"/edk2/Clover
             START_BUILD=$(date)
             printHeader 'boot6'
             ./ebuild.sh -fr -x64 -D NO_GRUB_DRIVERS_EMBEDDED -D CHECK_FLAGS -t XCODE5
             printHeader 'boot7'
             ./ebuild.sh -fr -mc --no-usb -D NO_GRUB_DRIVERS_EMBEDDED -D CHECK_FLAGS -t XCODE5
-            printHeader 'boot3'
-            ./ebuild.sh -fr -ia32 -D NO_GRUB_DRIVERS_EMBEDDED -D CHECK_FLAGS -t XCODE5
             echo && printf "build started at:\n${START_BUILD}\nfinished at\n$(date)\n\nDone!\n"
         ;;
         "build boot6/7 with -fr --std-ebda")
@@ -1679,8 +1677,6 @@ build() {
             ./ebuild.sh -fr -x64 -D NO_GRUB_DRIVERS_EMBEDDED -D CHECK_FLAGS -t XCODE5
             printHeader 'boot7'
             ./ebuild.sh -fr -mc --no-usb -D NO_GRUB_DRIVERS_EMBEDDED -D CHECK_FLAGS -t XCODE5
-            printHeader 'boot3'
-            ./ebuild.sh -fr -ia32 -D NO_GRUB_DRIVERS_EMBEDDED -D CHECK_FLAGS -t XCODE5
 
             cd "${DIR_MAIN}"/edk2/Clover/CloverPackage
             make clean
@@ -1812,6 +1808,9 @@ build() {
             printHeader 'boot6'
             backupBoot7MCP79
             doSomething --run-script ./ebuild.sh $FORCEREBUILD -x64 $DEFAULT_MACROS $LTO_FLAG -t $BUILDTOOL
+
+            printHeader 'boot7'
+            doSomething --run-script ./ebuild.sh $FORCEREBUILD -mc --no-usb $DEFAULT_MACROS $LTO_FLAG -t $BUILDTOOL
         ;;
         IA32)
             printHeader 'boot3'
