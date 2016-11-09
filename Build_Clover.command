@@ -36,13 +36,13 @@ GNU="GCC49"        # GCC49 GCC53
 BUILDTOOL="$XCODE" # XCODE or GNU?      (use $GNU to use GNU gcc, $XCODE to use the choosen Xcode version)
 # in Linux this get overrided and GCC53 used anyway!
 # --------------------------------------
-SCRIPTVER="v4.1.9"
+SCRIPTVER="v4.2.0"
 export LC_ALL=C
 SYSNAME="$( uname )"
 
 BUILDER=$USER # don't touch!
 
-EDK2_REV="22865"   # or any revision supported by Slice (otherwise no claim please)
+EDK2_REV="23152"   # or any revision supported by Slice (otherwise no claim please)
 # <----------------------------
 # Preferences:
 
@@ -79,6 +79,7 @@ SYMLINKPATH='/usr/local/bin/buildclover'
 GITHUB='https://raw.githubusercontent.com/Micky1979/Build_Clover/master/Build_Clover.command'
 SELF_UPDATE_OPT="NO" # show hide selfUpdate option
 PING_RESPONSE="NO" # show hide option with connection dependency
+REMOTE_EDK2_REV="" # info for developer submenu this mean to show latest rev avaiable
 
 edk2array=(
             MdePkg
@@ -332,7 +333,13 @@ printCloverScriptRev() {
 
     if ping -c 1 github.com >> /dev/null 2>&1; then
         # Retrive and filter remote script version
-        RSCRIPTVER='v'$(curl -v --silent $GITHUB 2>&1 | grep '^SCRIPTVER="v' | tr -cd '.0-9')
+        if [[ -x $(which wget) ]]; then
+            RSCRIPTVER='v'$(wget $GITHUB -q -O - | grep '^SCRIPTVER="v' | tr -cd '.0-9')
+        elif [[ -x $(which curl) ]]; then
+            RSCRIPTVER='v'$(curl -v --silent $GITHUB 2>&1 | grep '^SCRIPTVER="v' | tr -cd '.0-9')
+        else
+            return
+        fi
 
         LVALUE=$(echo $SCRIPTVER | tr -cd [:digit:])
         RVALUE=$(echo $RSCRIPTVER | tr -cd [:digit:])
@@ -536,6 +543,7 @@ getRev() {
         if [[ ${Arg} == *"remote"* ]]; then
             # Remote
             REMOTE_REV=$(svn info ${CLOVER_REP} | grep '^Revision:' | tr -cd [:digit:])
+            REMOTE_EDK2_REV=$(svn info ${EDK2_REP} | grep '^Revision:' | tr -cd [:digit:])
         fi
     else
         REMOTE_REV=""
@@ -1511,6 +1519,7 @@ build() {
             options+=("update Clover only (no building)")
         fi
         if [[ "$BUILDER" == 'slice' ]]; then
+            printf "   \e[90m EDK2 revision used r$EDK2_REV latest avaiable is r$REMOTE_EDK2_REV \e[0m\n"
             set +e
             options+=("build with ./ebuild.sh -nb")
             options+=("build with ./ebuild.sh --module=rEFIt_UEFI/refit.inf")
