@@ -36,7 +36,7 @@ GNU="GCC49"        # GCC49 GCC53
 BUILDTOOL="$XCODE" # XCODE or GNU?      (use $GNU to use GNU gcc, $XCODE to use the choosen Xcode version)
 # in Linux this get overrided and GCC53 used anyway!
 # --------------------------------------
-SCRIPTVER="v4.2.0"
+SCRIPTVER="v4.2.1"
 export LC_ALL=C
 SYSNAME="$( uname )"
 
@@ -1872,8 +1872,10 @@ build() {
         if [[ $(echo $USER | tr "[:upper:]" "[:lower:]" ) =~ ^micky1979 ]]; then
             doSomething --run-script "${PATCHES}/Linux/distribution" # under study (.deb)
         else
-            nautilus "${CLOVERV2_PATH}" > /dev/null
-        fi
+	    # use xdg-open to use default filemanager for ALL linux.
+            #nautilus "${CLOVERV2_PATH}" > /dev/null
+	    xdg-open "${CLOVERV2_PATH}" > /dev/null
+	fi
     fi
 
     if [[ "$BUILDER" != 'slice' ]]; then restoreClover; fi
