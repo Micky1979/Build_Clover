@@ -504,28 +504,27 @@ svnUpgrade () {
     # make sure that a svn working directory exists
     if [[ -d "${DIR_MAIN}/edk2/Clover/.svn" ]]; then
         svn info "${DIR_MAIN}/edk2/Clover" 2>&1 | grep 'svn upgrade'
-	# if the svn working directory is outdated, let the user know
-        if [[ $? -eq 0 ]]; then
-            printError "Error: You need to upgrade the working copy first.\n"
-            printWarning "Would you like to upgrade the, $(dirname $workingCopy), working copy? (Y/n)\n"
-            read input
-            case $input in
-            Y | y)
-                for workingCopy in `find "${DIR_MAIN}/edk2" -name "*.svn"`
-                do
-                    if [[ -d "$(dirname $workingCopy)" ]]; then
-                        printWarning "Upgrading $(dirname $workingCopy).\n"
-                        svn upgrade "$(dirname $workingCopy)"
-                    fi
-                done
-            ;;
-            *)
-                printWarning "You may encounter errors!\n"
-                return 2;
-            ;;
-            esac
-        fi
-    fi
+		# if the svn working directory is outdated, let the user know
+		if [[ $? -eq 0 ]]; then
+			printError "Error: You need to upgrade the working copy first.\n"
+			for workingCopy in `find "${DIR_MAIN}/edk2" -name "*.svn"`
+			do
+				if [[ -d "$(dirname $workingCopy)" ]]; then
+					printWarning "Would you like to upgrade the, $(dirname $workingCopy), working copy? (y/n)\n"
+					read input
+					case $input in
+					Y | y)
+						printWarning "Upgrading $(dirname $workingCopy).\n"
+						svn upgrade "$(dirname $workingCopy)"
+					;;
+					*)
+						printWarning "You may encounter errors!\n"
+					;;
+					esac
+				fi
+			done
+		fi
+	fi
 }
 # Remote and local revisions
 getRev() {
