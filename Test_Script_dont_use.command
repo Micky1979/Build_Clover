@@ -42,7 +42,7 @@ SYSNAME="$( uname )"
 
 BUILDER=$USER # don't touch!
 
-EDK2_REV="23152"   # or any revision supported by Slice (otherwise no claim please)
+EDK2_REV="23226"   # or any revision supported by Slice (otherwise no claim please)
 # <----------------------------
 # Preferences:
 
