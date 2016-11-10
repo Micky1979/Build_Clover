@@ -499,6 +499,34 @@ if [[ "$SYSNAME" == Linux ]]; then
     fi
 fi
 # ---------------------------->
+# Upgrage SVN working copy
+svnUpgrade () {
+    # make sure that a svn working directory exists
+    if [[ -d "${DIR_MAIN}/edk2/Clover/.svn" ]]; then
+        svn info "${DIR_MAIN}/edk2/Clover" 2>&1 | grep 'svn upgrade'
+	# if the svn working directory is outdated, let the user know
+        if [[ $? -eq 0 ]]; then
+            printError "Error: You need to upgrade the working copy first.\n"
+            printWarning "Would you like to upgrade the, $(dirname $workingCopy), working copy? (Y/n)\n"
+            read input
+            case $input in
+            Y | y)
+                for workingCopy in `find "${DIR_MAIN}/edk2" -name "*.svn"`
+                do
+                    if [[ -d "$(dirname $workingCopy)" ]]; then
+                        printWarning "Upgrading $(dirname $workingCopy).\n"
+                        svn upgrade "$(dirname $workingCopy)"
+                    fi
+                done
+            ;;
+            *)
+                printWarning "You may encounter errors!\n"
+                return 2;
+            ;;
+            esac
+        fi
+    fi
+}
 # Remote and local revisions
 getRev() {
     # for svn 1.9 and higher
@@ -512,31 +540,9 @@ getRev() {
 
     # convert to lowercase
     Arg=$(echo "$1" | tr '[:upper:]' '[:lower:]')
-
-    # shold we upgrade the working copy??
-    if [[ -d "${DIR_MAIN}/edk2/Clover/.svn" ]]; then
-        svn info "${DIR_MAIN}/edk2/Clover" 2>&1 | grep 'svn upgrade'
-        if [[ $? -eq 0 ]]; then
-            printError "Error: You need to upgrade the working copy first.\n"
-            printWarning "Would you like to upgrade the working copy? (Y/n)\n"
-            read input
-            case $input in
-            Y | y)
-                for workingCopy in `find "${DIR_MAIN}/edk2" -name "*.svn"`
-                do
-                    if [[ -d "$(dirname $workingCopy)" ]]; then
-                        printWarning "upgrading $(dirname $workingCopy)\n"
-                        svn upgrade "$(dirname $workingCopy)"
-                    fi
-                done
-            ;;
-            *)
-                printWarning "You may encounter errors!\n"
-                return 2;
-            ;;
-            esac
-        fi
-    fi
+    
+    # upgrade the working copy to avoid errors
+    svnUpgrade
 
     # universal
     if ping -c 1 svn.code.sf.net >> /dev/null 2>&1; then
