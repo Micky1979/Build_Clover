@@ -8,7 +8,7 @@ printf '\e[8;34;90t'
 # Preferred OS is El Capitan with Xcode >= 7.3.1 and Sierra with Xcode >= 8.
 # In older version of OS X is better to use GNU gcc.
 
-# Tested in linux Ubuntu (16.04 and 16.10) / Debian (8.4, 8.5 and 8.6) amb64 (x86_64).
+# Tested in linux Ubuntu (16.04 and 16.10) / Debian (8.4, 8.5 and 8.6) amd64 (x86_64).
 # This script install all missing dependencies in the iso images you
 # can download at the official download page here: http://releases.ubuntu.com/16.04/ubuntu-16.04.1-desktop-amd64.iso
 # where nasm, subversion, curl (wget if installed is used as replacement) and or uuid-dev headers are missing.
