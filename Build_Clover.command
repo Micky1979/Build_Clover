@@ -8,7 +8,7 @@ printf '\e[8;34;90t'
 # Preferred OS is El Capitan with Xcode >= 7.3.1 and Sierra with Xcode >= 8.
 # In older version of OS X is better to use GNU gcc.
 
-# Tested in linux Ubuntu 16.04,16.10/Debian 8.6 amb64 (x86_64).
+# Tested in linux Ubuntu (16.04 and 16.10) / Debian (8.4, 8.5 and 8.6) amd64 (x86_64).
 # This script install all missing dependencies in the iso images you
 # can download at the official download page here: http://releases.ubuntu.com/16.04/ubuntu-16.04.1-desktop-amd64.iso
 # where nasm, subversion, curl (wget if installed is used as replacement) and or uuid-dev headers are missing.
@@ -36,13 +36,13 @@ GNU="GCC49"        # GCC49 GCC53
 BUILDTOOL="$XCODE" # XCODE or GNU?      (use $GNU to use GNU gcc, $XCODE to use the choosen Xcode version)
 # in Linux this get overrided and GCC53 used anyway!
 # --------------------------------------
-SCRIPTVER="v4.2.0"
+SCRIPTVER="v4.2.1"
 export LC_ALL=C
 SYSNAME="$( uname )"
 
 BUILDER=$USER # don't touch!
 
-EDK2_REV="23152"   # or any revision supported by Slice (otherwise no claim please)
+EDK2_REV="23226"   # or any revision supported by Slice (otherwise no claim please)
 # <----------------------------
 # Preferences:
 
@@ -94,7 +94,7 @@ edk2array=(
             PcAtChipsetPkg
             ShellPkg
             UefiCpuPkg
-	    FatPkg
+            FatPkg
             BaseTools
             )
 # <----------------------------
@@ -469,7 +469,7 @@ aptInstall() {
 clear
 # print local Script revision with relative info
 printCloverScriptRev
-printHeader "By Micky1979 based on Slice, Zenith432, STLVNUB, JrCs, cecekpawon, Needy,\ncvad, Rehabman, philip_petev, ErmaC\n\nSupported OSes: macOS X, Ubuntu 16.04/16.10, Debian Jessie 8.6"
+printHeader "By Micky1979 based on Slice, Zenith432, STLVNUB, JrCs, cecekpawon, Needy,\ncvad, Rehabman, philip_petev, ErmaC\n\nSupported OSes: macOS X, Ubuntu (16.04/16.10), Debian Jessie (8.4/8.5/8.6)"
 
 if [[ "$GITHUB" == *"Test_Script_dont_use.command"* ]];then
     printError "This script is for testing only and may be outdated,\n"
@@ -499,6 +499,33 @@ if [[ "$SYSNAME" == Linux ]]; then
     fi
 fi
 # ---------------------------->
+# Upgrage SVN working copy
+svnUpgrade () {
+    # make sure that a svn working directory exists
+    if [[ -d "${DIR_MAIN}/edk2/Clover/.svn" ]]; then
+        svn info "${DIR_MAIN}/edk2/Clover" 2>&1 | grep 'svn upgrade'
+		# if the svn working directory is outdated, let the user know
+		if [[ $? -eq 0 ]]; then
+			printError "Error: You need to upgrade the working copy first.\n"
+			for workingCopy in `find "${DIR_MAIN}/edk2" -name "*.svn"`
+			do
+				if [[ -d "$(dirname $workingCopy)" ]]; then
+					printWarning "Would you like to upgrade the, $(dirname $workingCopy), working copy? (y/n)\n"
+					read input
+					case $input in
+					Y | y)
+						printWarning "Upgrading $(dirname $workingCopy).\n"
+						svn upgrade "$(dirname $workingCopy)"
+					;;
+					*)
+						printWarning "You may encounter errors!\n"
+					;;
+					esac
+				fi
+			done
+		fi
+	fi
+}
 # Remote and local revisions
 getRev() {
     # for svn 1.9 and higher
@@ -512,31 +539,9 @@ getRev() {
 
     # convert to lowercase
     Arg=$(echo "$1" | tr '[:upper:]' '[:lower:]')
-
-    # shold we upgrade the working copy??
-    if [[ -d "${DIR_MAIN}/edk2/Clover/.svn" ]]; then
-        svn info "${DIR_MAIN}/edk2/Clover" 2>&1 | grep 'svn upgrade'
-        if [[ $? -eq 0 ]]; then
-            printError "Error: You need to upgrade the working copy first.\n"
-            printWarning "Would you like to upgrade the working copy? (Y/n)\n"
-            read input
-            case $input in
-            Y | y)
-                for workingCopy in `find "${DIR_MAIN}/edk2" -name "*.svn"`
-                do
-                    if [[ -d "$(dirname $workingCopy)" ]]; then
-                        printWarning "upgrading $(dirname $workingCopy)\n"
-                        svn upgrade "$(dirname $workingCopy)"
-                    fi
-                done
-            ;;
-            *)
-                printWarning "You may encounter errors!\n"
-                return 2;
-            ;;
-            esac
-        fi
-    fi
+    
+    # upgrade the working copy to avoid errors
+    svnUpgrade
 
     # universal
     if ping -c 1 svn.code.sf.net >> /dev/null 2>&1; then
@@ -1872,8 +1877,10 @@ build() {
         if [[ $(echo $USER | tr "[:upper:]" "[:lower:]" ) =~ ^micky1979 ]]; then
             doSomething --run-script "${PATCHES}/Linux/distribution" # under study (.deb)
         else
-            nautilus "${CLOVERV2_PATH}" > /dev/null
-        fi
+	    # use xdg-open to use default filemanager for ALL linux.
+            #nautilus "${CLOVERV2_PATH}" > /dev/null
+	    xdg-open "${CLOVERV2_PATH}" > /dev/null
+	fi
     fi
 
     if [[ "$BUILDER" != 'slice' ]]; then restoreClover; fi
