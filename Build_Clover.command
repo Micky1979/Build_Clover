@@ -36,13 +36,13 @@ GNU="GCC49"        # GCC49 GCC53
 BUILDTOOL="$XCODE" # XCODE or GNU?      (use $GNU to use GNU gcc, $XCODE to use the choosen Xcode version)
 # in Linux this get overrided and GCC53 used anyway!
 # --------------------------------------
-SCRIPTVER="v4.2.2"
+SCRIPTVER="v4.2.3"
 export LC_ALL=C
 SYSNAME="$( uname )"
 
 BUILDER=$USER # don't touch!
 
-EDK2_REV="23152"   # or any revision supported by Slice (otherwise no claim please)
+EDK2_REV="23447"   # or any revision supported by Slice (otherwise no claim please)
 # <----------------------------
 # Preferences:
 
