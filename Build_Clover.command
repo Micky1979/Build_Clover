@@ -36,15 +36,20 @@ GNU="GCC49"        # GCC49 GCC53
 BUILDTOOL="$XCODE" # XCODE or GNU?      (use $GNU to use GNU gcc, $XCODE to use the choosen Xcode version)
 # in Linux this get overrided and GCC53 used anyway!
 # --------------------------------------
-SCRIPTVER="v4.2.4"
+SCRIPTVER="v4.2.5"
 export LC_ALL=C
 SYSNAME="$( uname )"
 
 BUILDER=$USER # don't touch!
-
-EDK2_REV="23520"   # or any revision supported by Slice (otherwise no claim please)
 # <----------------------------
 # Preferences:
+EDK2_REV="23520"   # or any revision supported by Slice (otherwise no claim please)
+
+# "SUGGESTED_CLOVER_REV" is used to force the script to updated at the specified revision:
+# REQUIRED is a known edk2 revision (EDK2_REV="XXXXX") compatible with the "/Clover/Patches_for_EDK2" coming with
+# the specified Clover revision!
+# WARNING: anyway too old revision may be incompatible due to radical changes to ebuild.sh and tools_def.txt
+SUGGESTED_CLOVER_REV="" # empty by default
 
 # normal behavior (src inside the Home folder)
 # MODE="S" src is ~/src
@@ -68,7 +73,7 @@ BUILD_FLAG="NO"
 NEW_FLAG="YES"
 LTO_FLAG=""        # default for Xcode >= 7.3, will automatically adjusted for older ones
 MOD_PKG_FLAG="YES" # used only when you add custom macros. Does nothing for normal build.
-ARCH="IA32_X64"    # will ask if you want IA32 or X64 only
+ARCH="IA32_X64"    # will ask if you want IA32 (deprecated) or X64 only
 DEFINED_MACRO=""
 CUSTOM_BUILD="NO"
 START_BUILD=""
@@ -891,7 +896,11 @@ svnWithErrorCheck() {
 	fi
     
     echo "" > "${SVN_STDERR_LOG}"
-    eval "${cmd}" 2> "${SVN_STDERR_LOG}"
+    if [[ ! -x $(which tee) ]]; then
+        eval "${cmd}" 2> "${SVN_STDERR_LOG}"
+    else
+        eval "${cmd}" 2>&1  | tee -a "${SVN_STDERR_LOG}"
+    fi
 
     local errors=(  "svn: E"
                     "Unable to connect"
@@ -904,7 +913,8 @@ svnWithErrorCheck() {
     
     # try to resolve conflicts if any
     if [[ -n "${2}" ]] && [[ "${3}" != once ]];then
-    	if grep -q "Tree conflict can only be resolved to 'working' state" "${SVN_STDERR_LOG}"; then
+    	if grep -q "Tree conflict can only be resolved to 'working' state" "${SVN_STDERR_LOG}" || \
+                grep -q "Node remains in conflict" "${SVN_STDERR_LOG}"; then
     		printWarning "calling svn resolve..\n"
             svnWithErrorCheck "svn resolve ${2}" "${2}" once "${1}"
         fi
@@ -1110,25 +1120,36 @@ edk2() {
 }
 # --------------------------------------
 clover() {
-    TIMES=0
-
-    IsLinkOnline ${CLOVER_REP}
-    getRev "remote"
     local cmd=""
+    # check if SUGGESTED_CLOVER_REV is set
+    if [[ -z "$SUGGESTED_CLOVER_REV" ]]; then
+        TIMES=0
 
-    echo
-    if [[ ! -d "${DIR_MAIN}/edk2/Clover" ]] ; then
-        printHeader 'Downloading Clover'
-        mkdir -p "${DIR_MAIN}"/edk2/Clover
-        if IsNumericOnly "${REMOTE_REV}"; then
-            cmd="svn checkout -r $REMOTE_REV --non-interactive --trust-server-cert ${CLOVER_REP} ."
+        IsLinkOnline ${CLOVER_REP}
+        getRev "remote"
+        echo
+        if [[ ! -d "${DIR_MAIN}/edk2/Clover" ]] ; then
+            printHeader 'Downloading Clover'
+            mkdir -p "${DIR_MAIN}"/edk2/Clover
+            if IsNumericOnly "${REMOTE_REV}"; then
+                cmd="svn checkout -r $REMOTE_REV --non-interactive --trust-server-cert ${CLOVER_REP} ."
+            else
+                printError "unable to get latest Clover's revision, check your internet connection or try later.\n"
+                exit 1
+            fi
         else
-            printError "unable to get latest Clover's revision, check your internet connection or try later.\n"
-            exit 1
+            printHeader 'Updating Clover'
+            cmd="svn up --accept tf"
         fi
     else
-        printHeader 'Updating Clover'
-        cmd="svn up --accept tf"
+
+        printHeader "Downloading Clover using the specific revision r${SUGGESTED_CLOVER_REV}"
+
+        if [[ -d "${DIR_MAIN}/edk2/Clover" ]] ; then
+                cmd="svn update --accept tf --non-interactive --trust-server-cert -r $SUGGESTED_CLOVER_REV"
+        else
+                cmd="svn co checkout -r $SUGGESTED_CLOVER_REV --non-interactive --trust-server-cert ${DIR_MAIN}/edk2/Clover"
+        fi
     fi
 
     cd "${DIR_MAIN}"/edk2/Clover
