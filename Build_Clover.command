@@ -1130,29 +1130,38 @@ clover() {
         echo
         if [[ ! -d "${DIR_MAIN}/edk2/Clover" ]] ; then
             printHeader 'Downloading Clover'
-            mkdir -p "${DIR_MAIN}"/edk2/Clover
             if IsNumericOnly "${REMOTE_REV}"; then
-                cmd="svn checkout -r $REMOTE_REV --non-interactive --trust-server-cert ${CLOVER_REP} ."
+				mkdir -p "${DIR_MAIN}"/edk2/Clover
+                cmd="svn co -r $REMOTE_REV --non-interactive --trust-server-cert ${CLOVER_REP} ."
             else
                 printError "unable to get latest Clover's revision, check your internet connection or try later.\n"
                 exit 1
             fi
         else
             printHeader 'Updating Clover'
-            cmd="svn up --accept tf"
+			case ${LOCAL_REV} in
+				"0")	rm -rf "${DIR_MAIN}"/edk2/Clover/* > /dev/null 2>&1
+						cmd="svn co -r $REMOTE_REV --non-interactive --trust-server-cert ${CLOVER_REP} ." ;;
+            	*)		cmd="svn up --accept tf" ;;
+			esac
         fi
     else
 
         printHeader "Downloading Clover using the specific revision r${SUGGESTED_CLOVER_REV}"
 
         if [[ -d "${DIR_MAIN}/edk2/Clover" ]] ; then
-                cmd="svn update --accept tf --non-interactive --trust-server-cert -r $SUGGESTED_CLOVER_REV"
+			case ${LOCAL_REV} in
+				"0")	rm -rf "${DIR_MAIN}"/edk2/Clover/* > /dev/null 2>&1
+						cmd="svn co -r $SUGGESTED_CLOVER_REV --non-interactive --trust-server-cert ${CLOVER_REP} ." ;;
+            	*)		cmd="svn up --accept tf --non-interactive --trust-server-cert -r $SUGGESTED_CLOVER_REV" ;;
+			esac
         else
-                cmd="svn co checkout -r $SUGGESTED_CLOVER_REV --non-interactive --trust-server-cert ${DIR_MAIN}/edk2/Clover"
+				mkdir -p "${DIR_MAIN}"/edk2/Clover
+                cmd="svn co -r $SUGGESTED_CLOVER_REV --non-interactive --trust-server-cert ${CLOVER_REP} ."
         fi
     fi
 
-    cd "${DIR_MAIN}"/edk2/Clover
+	cd "${DIR_MAIN}"/edk2/Clover
     svnWithErrorCheck "$cmd" "$(pwd)"
 
     printHeader 'Apply Edk2 patches'
