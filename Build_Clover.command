@@ -1,5 +1,5 @@
 #!/bin/bash
-
+#set -x
 printf '\e[8;34;90t'
 
 # made by Micky1979 on 07/05/2016 based on Slice, Zenith432, STLVNUB, JrCs, cvad, Rehabman, and ErmaC works
@@ -36,7 +36,7 @@ GNU="GCC49"        # GCC49 GCC53
 BUILDTOOL="$XCODE" # XCODE or GNU?      (use $GNU to use GNU gcc, $XCODE to use the choosen Xcode version)
 # in Linux this get overrided and GCC53 used anyway!
 # --------------------------------------
-SCRIPTVER="v4.2.7"
+SCRIPTVER="v4.2.8"
 export LC_ALL=C
 SYSNAME="$( uname )"
 
