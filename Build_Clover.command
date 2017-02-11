@@ -1124,38 +1124,38 @@ clover() {
     # check if SUGGESTED_CLOVER_REV is set
     if [[ -z "$SUGGESTED_CLOVER_REV" ]]; then
         TIMES=0
-
         IsLinkOnline ${CLOVER_REP}
         getRev "remote"
         echo
         if [[ ! -d "${DIR_MAIN}/edk2/Clover" ]] ; then
-            printHeader 'Downloading Clover'
+            printHeader 'Downloading Clover, using the latest revision'
             if IsNumericOnly "${REMOTE_REV}"; then
 				mkdir -p "${DIR_MAIN}"/edk2/Clover
                 cmd="svn co -r $REMOTE_REV --non-interactive --trust-server-cert ${CLOVER_REP} ."
             else
-                printError "unable to get latest Clover's revision, check your internet connection or try later.\n"
+                printError "Unable to get latest Clover revision, check your internet connection or try later.\n"
                 exit 1
             fi
         else
-            printHeader 'Updating Clover'
-			case ${LOCAL_REV} in
-				"0")	rm -rf "${DIR_MAIN}"/edk2/Clover/* > /dev/null 2>&1
+            case ${LOCAL_REV} in
+				"0")	printHeader 'Clover local repo not found or damaged, downloading the latest revision'
+						rm -rf "${DIR_MAIN}"/edk2/Clover/* > /dev/null 2>&1
 						cmd="svn co -r $REMOTE_REV --non-interactive --trust-server-cert ${CLOVER_REP} ." ;;
-            	*)		cmd="svn up --accept tf" ;;
+            	*)		printHeader 'Updating Clover, using the latest revision'
+						cmd="svn up --accept tf" ;;
 			esac
         fi
     else
-
-        printHeader "Downloading Clover using the specific revision r${SUGGESTED_CLOVER_REV}"
-
         if [[ -d "${DIR_MAIN}/edk2/Clover" ]] ; then
 			case ${LOCAL_REV} in
-				"0")	rm -rf "${DIR_MAIN}"/edk2/Clover/* > /dev/null 2>&1
+				"0")	printHeader "Clover local repo not found or damaged, downloading the specific revision r${SUGGESTED_CLOVER_REV}"
+						rm -rf "${DIR_MAIN}"/edk2/Clover/* > /dev/null 2>&1
 						cmd="svn co -r $SUGGESTED_CLOVER_REV --non-interactive --trust-server-cert ${CLOVER_REP} ." ;;
-            	*)		cmd="svn up --accept tf --non-interactive --trust-server-cert -r $SUGGESTED_CLOVER_REV" ;;
+            	*)		printHeader "Updating Clover, using the specific revision r${SUGGESTED_CLOVER_REV}"
+						cmd="svn up --accept tf --non-interactive --trust-server-cert -r $SUGGESTED_CLOVER_REV" ;;
 			esac
         else
+				printHeader "Downloading Clover, using the specific revision r${SUGGESTED_CLOVER_REV}"
 				mkdir -p "${DIR_MAIN}"/edk2/Clover
                 cmd="svn co -r $SUGGESTED_CLOVER_REV --non-interactive --trust-server-cert ${CLOVER_REP} ."
         fi
@@ -1532,7 +1532,7 @@ backupBoot7MCP79() {
 }
 # --------------------------------------
 build() {
-    if [[ -d "${DIR_MAIN}/edk2/Clover" ]] ; then
+    if [[ -d "${DIR_MAIN}/edk2/Clover/.svn" ]] ; then
         echo 'Please enter your choice: '
         local options=()
 
