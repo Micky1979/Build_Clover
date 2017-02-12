@@ -36,15 +36,20 @@ GNU="GCC49"        # GCC49 GCC53
 BUILDTOOL="$XCODE" # XCODE or GNU?      (use $GNU to use GNU gcc, $XCODE to use the choosen Xcode version)
 # in Linux this get overrided and GCC53 used anyway!
 # --------------------------------------
-SCRIPTVER="v4.2.1"
+SCRIPTVER="v4.2.8"
 export LC_ALL=C
 SYSNAME="$( uname )"
 
 BUILDER=$USER # don't touch!
-
-EDK2_REV="23226"   # or any revision supported by Slice (otherwise no claim please)
 # <----------------------------
 # Preferences:
+EDK2_REV="23836"   # or any revision supported by Slice (otherwise no claim please)
+
+# "SUGGESTED_CLOVER_REV" is used to force the script to updated at the specified revision:
+# REQUIRED is a known edk2 revision (EDK2_REV="XXXXX") compatible with the "/Clover/Patches_for_EDK2" coming with
+# the specified Clover revision!
+# WARNING: anyway too old revision may be incompatible due to radical changes to ebuild.sh and tools_def.txt
+SUGGESTED_CLOVER_REV="" # empty by default
 
 # normal behavior (src inside the Home folder)
 # MODE="S" src is ~/src
@@ -68,7 +73,7 @@ BUILD_FLAG="NO"
 NEW_FLAG="YES"
 LTO_FLAG=""        # default for Xcode >= 7.3, will automatically adjusted for older ones
 MOD_PKG_FLAG="YES" # used only when you add custom macros. Does nothing for normal build.
-ARCH="IA32_X64"    # will ask if you want IA32 or X64 only
+ARCH="IA32_X64"    # will ask if you want IA32 (deprecated) or X64 only
 DEFINED_MACRO=""
 CUSTOM_BUILD="NO"
 START_BUILD=""
@@ -76,6 +81,8 @@ TIMES=0
 ForceEDK2Update=0 # cause edk2 to be re-updated again if > 0 (handeled by the script in more places)
 SYMLINKPATH='/usr/local/bin/buildclover'
 
+DOWNLOADER_CMD=""
+DOWNLOADER_PATH=""
 GITHUB='https://raw.githubusercontent.com/Micky1979/Build_Clover/master/Test_Script_dont_use.command'
 SELF_UPDATE_OPT="NO" # show hide selfUpdate option
 PING_RESPONSE="NO" # show hide option with connection dependency
@@ -125,10 +132,10 @@ selfUpdate() {
 
     case $1 in
     wget)
-        cmd='$1 $GITHUB -q -O -'
+        cmd='${DOWNLOADER_PATH}/wget $GITHUB -q -O -'
     ;;
     curl)
-        cmd='$1 -L $GITHUB'
+        cmd='${DOWNLOADER_PATH}/curl -L $GITHUB'
     ;;
     *)
         printError "selfUpdate(): invalid cmd!\n"
@@ -325,7 +332,48 @@ addSymlink() {
     fi
 }
 # --------------------------------------
+initialChecks() {
+    if [[ "$SYSNAME" == Linux ]]; then
+        if [[ "$(uname -m)" != x86_64 ]]; then
+            printError "\nBuild_Clover.command is tested only on x86_64 architecture, aborting..\n"
+            exit 1
+        fi
+
+        # check if the Universally Unique ID library - headers are installed
+        if [[ "$(apt-cache policy uuid-dev | grep 'Installed: (none)')" =~ 'Installed: (none)' ]]; then
+            aptInstall uuid-dev
+        fi
+        # check if subversion is installed
+        if [[ ! -x $(which svn) ]]; then
+            aptInstall subversion
+        fi
+
+        # check whether at least one of curl or wget are installed
+        if [[ ! -x $(which wget) ]] && [[ ! -x $(which curl) ]]; then
+            # ok both of them are no currently installed, we prefear wget
+            aptInstall wget
+        fi
+
+        # set the donloader command path
+        if [[ -x $(which wget) ]]; then
+            DOWNLOADER_PATH=$(dirname $(which wget))
+            DOWNLOADER_CMD="wget"
+        elif [[ -x $(which curl) ]]; then
+            DOWNLOADER_PATH=$(dirname $(which curl))
+            DOWNLOADER_CMD="curl"
+        else
+            DOWNLOADER_CMD=$(which curl)
+            printError "\nNo curl nor wget are installed! Install one of them and retry..\n" && exit 1
+        fi
+    else
+        # /usr/bin/curl!! (philip_petev)
+        DOWNLOADER_PATH=/usr/bin
+        DOWNLOADER_CMD="curl"
+    fi
+}
+# --------------------------------------
 printCloverScriptRev() {
+    initialChecks
     local LVALUE
     local RVALUE
     local SVERSION
@@ -333,10 +381,10 @@ printCloverScriptRev() {
 
     if ping -c 1 github.com >> /dev/null 2>&1; then
         # Retrive and filter remote script version
-        if [[ -x $(which wget) ]]; then
-            RSCRIPTVER='v'$(wget $GITHUB -q -O - | grep '^SCRIPTVER="v' | tr -cd '.0-9')
-        elif [[ -x $(which curl) ]]; then
-            RSCRIPTVER='v'$(curl -v --silent $GITHUB 2>&1 | grep '^SCRIPTVER="v' | tr -cd '.0-9')
+        if [[ "$DOWNLOADER_CMD" == wget ]]; then
+            RSCRIPTVER='v'$("${DOWNLOADER_PATH}/${DOWNLOADER_CMD}" $GITHUB -q -O - | grep '^SCRIPTVER="v' | tr -cd '.0-9')
+        elif [[ "$DOWNLOADER_CMD" == curl ]]; then
+            RSCRIPTVER='v'$("${DOWNLOADER_PATH}/${DOWNLOADER_CMD}" -v --silent $GITHUB 2>&1 | grep '^SCRIPTVER="v' | tr -cd '.0-9')
         else
             return
         fi
@@ -405,7 +453,7 @@ printCloverRev() {
     echo "${Line}"
 }
 # --------------------------------------
-donwloader(){
+downloader(){
     #$1 link
     #$2 file name
     #$3 path (where will be saved)
@@ -414,20 +462,20 @@ donwloader(){
     local suggestedFilename=""
     local downloadLocation=""
 
-    if [ -z "${1}" ]; then printError "\nError: donwloader() require 3 argument!!\n" && exit 1; fi
+    if [ -z "${1}" ]; then printError "\nError: downloader() require 3 argument!!\n" && exit 1; fi
     if [ -z "${2}" ]; then
-        printError "\nError: donwloader() require a suggested file name\n" && exit 1
+        printError "\nError: downloader() require a suggested file name\n" && exit 1
     fi
-    if [ -z "${3}" ] || [[ ! -d "${3}" ]]; then printError "\nError: donwloader() require the download path!!\n" && exit 1; fi
+    if [ -z "${3}" ] || [[ ! -d "${3}" ]]; then printError "\nError: downloader() require the download path!!\n" && exit 1; fi
 
     downloadlink="${1}"
     suggestedFilename="${2}"
     downloadLocation="${3}"
 
-    if [[ -x $(which wget) ]]; then
-        cmd="wget -O ${downloadLocation}/${suggestedFilename} ${downloadlink}"
-    elif [[ -x $(which curl) ]]; then
-        cmd="curl -o ${downloadLocation}/${suggestedFilename} -LOk ${downloadlink}"
+    if [[ "$DOWNLOADER_CMD" == wget ]]; then
+        cmd="${DOWNLOADER_PATH}/${DOWNLOADER_CMD} -O ${downloadLocation}/${suggestedFilename} ${downloadlink}"
+    elif [[ "$DOWNLOADER_CMD" == curl ]]; then
+        cmd="${DOWNLOADER_PATH}/${DOWNLOADER_CMD} -o ${downloadLocation}/${suggestedFilename} -LOk ${downloadlink}"
     else
         printError "\nNo curl nor wget are installed! Install one of them and retry..\n" && exit 1
     fi
@@ -463,7 +511,7 @@ aptInstall() {
         exit 1
     ;;
     esac
-    sudo -k	
+    sudo -k
 }
 # --------------------------------------
 clear
@@ -475,28 +523,6 @@ if [[ "$GITHUB" == *"Test_Script_dont_use.command"* ]];then
     printError "This script is for testing only and may be outdated,\n"
     printError "use the regular one at:\n"
     printError "http://www.insanelymac.com/forum/files/download/589-build-clovercommand/\n"
-fi
-
-if [[ "$SYSNAME" == Linux ]]; then
-    if [[ "$(uname -m)" != x86_64 ]]; then
-        printError "\nBuild_Clover.command is tested only on x86_64 architecture, aborting..\n"
-        exit 1
-    fi
-
-    # check if the Universally Unique ID library - headers are installed
-    if [[ "$(apt-cache policy uuid-dev | grep 'Installed: (none)')" =~ 'Installed: (none)' ]]; then
-        aptInstall uuid-dev
-    fi
-    # check if subversion is installed
-    if [[ ! -x $(which svn) ]]; then
-        aptInstall subversion
-    fi
-
-    # check whether at least one of curl or wget are installed
-    if [[ ! -x $(which wget) ]] && [[ ! -x $(which curl) ]]; then
-        # ok both of them are no currently installed, we prefear wget
-        aptInstall wget
-    fi
 fi
 # ---------------------------->
 # Upgrage SVN working copy
@@ -870,7 +896,11 @@ svnWithErrorCheck() {
 	fi
     
     echo "" > "${SVN_STDERR_LOG}"
-    eval "${cmd}" 2> "${SVN_STDERR_LOG}"
+    if [[ ! -x $(which tee) ]]; then
+        eval "${cmd}" 2> "${SVN_STDERR_LOG}"
+    else
+        eval "${cmd}" 2>&1  | tee -a "${SVN_STDERR_LOG}"
+    fi
 
     local errors=(  "svn: E"
                     "Unable to connect"
@@ -883,7 +913,8 @@ svnWithErrorCheck() {
     
     # try to resolve conflicts if any
     if [[ -n "${2}" ]] && [[ "${3}" != once ]];then
-    	if grep -q "Tree conflict can only be resolved to 'working' state" "${SVN_STDERR_LOG}"; then
+    	if grep -q "Tree conflict can only be resolved to 'working' state" "${SVN_STDERR_LOG}" || \
+                grep -q "Node remains in conflict" "${SVN_STDERR_LOG}"; then
     		printWarning "calling svn resolve..\n"
             svnWithErrorCheck "svn resolve ${2}" "${2}" once "${1}"
         fi
@@ -1015,10 +1046,10 @@ edk2() {
     # keep them from update.sh used by Slice..
     local cmd=""
     local updatelink="https://sourceforge.net/p/cloverefiboot/code/HEAD/tree/update.sh?format=raw"
-    if [[ -x $(which wget) ]]; then
-        cmd="wget $updatelink -q -O -"
-    elif [[ -x $(which curl) ]]; then
-        cmd="curl -L $updatelink"
+    if [[ "$DOWNLOADER_CMD" == wget ]]; then
+        cmd="${DOWNLOADER_PATH}/${DOWNLOADER_CMD} $updatelink -q -O -"
+    elif [[ "$DOWNLOADER_CMD" == curl ]]; then
+        cmd="${DOWNLOADER_PATH}/${DOWNLOADER_CMD} -L $updatelink"
     else
         printError "\nNo curl nor wget are installed! Install one of them and retry..\n" && exit 1
     fi
@@ -1089,25 +1120,36 @@ edk2() {
 }
 # --------------------------------------
 clover() {
-    TIMES=0
-
-    IsLinkOnline ${CLOVER_REP}
-    getRev "remote"
     local cmd=""
+    # check if SUGGESTED_CLOVER_REV is set
+    if [[ -z "$SUGGESTED_CLOVER_REV" ]]; then
+        TIMES=0
 
-    echo
-    if [[ ! -d "${DIR_MAIN}/edk2/Clover" ]] ; then
-        printHeader 'Downloading Clover'
-        mkdir -p "${DIR_MAIN}"/edk2/Clover
-        if IsNumericOnly "${REMOTE_REV}"; then
-            cmd="svn checkout -r $REMOTE_REV --non-interactive --trust-server-cert ${CLOVER_REP} ."
+        IsLinkOnline ${CLOVER_REP}
+        getRev "remote"
+        echo
+        if [[ ! -d "${DIR_MAIN}/edk2/Clover" ]] ; then
+            printHeader 'Downloading Clover'
+            mkdir -p "${DIR_MAIN}"/edk2/Clover
+            if IsNumericOnly "${REMOTE_REV}"; then
+                cmd="svn checkout -r $REMOTE_REV --non-interactive --trust-server-cert ${CLOVER_REP} ."
+            else
+                printError "unable to get latest Clover's revision, check your internet connection or try later.\n"
+                exit 1
+            fi
         else
-            printError "unable to get latest Clover's revision, check your internet connection or try later.\n"
-            exit 1
+            printHeader 'Updating Clover'
+            cmd="svn up --accept tf"
         fi
     else
-        printHeader 'Updating Clover'
-        cmd="svn up --accept tf"
+
+        printHeader "Downloading Clover using the specific revision r${SUGGESTED_CLOVER_REV}"
+
+        if [[ -d "${DIR_MAIN}/edk2/Clover" ]] ; then
+                cmd="svn update --accept tf --non-interactive --trust-server-cert -r $SUGGESTED_CLOVER_REV"
+        else
+                cmd="svn co checkout -r $SUGGESTED_CLOVER_REV --non-interactive --trust-server-cert ${DIR_MAIN}/edk2/Clover"
+        fi
     fi
 
     cd "${DIR_MAIN}"/edk2/Clover
@@ -1358,7 +1400,7 @@ buildEssentials() {
 
         if [[ "$SYSNAME" == Linux ]]; then
             mkdir -p "${DIR_DOWNLOADS}"/source.download
-            donwloader "http://www.nasm.us/pub/nasm/releasebuilds/${NASM_PREFERRED}/nasm-${NASM_PREFERRED}.tar.gz" "${NASM_PREFERRED}.tar.gz" "${DIR_DOWNLOADS}/source.download"
+            downloader "http://www.nasm.us/pub/nasm/releasebuilds/${NASM_PREFERRED}/nasm-${NASM_PREFERRED}.tar.gz" "${NASM_PREFERRED}.tar.gz" "${DIR_DOWNLOADS}/source.download"
             cd "${DIR_DOWNLOADS}"/source.download
             tar -zxf "${NASM_PREFERRED}".tar.gz
             cd "${DIR_DOWNLOADS}/source.download/nasm-${NASM_PREFERRED}"
@@ -1376,7 +1418,7 @@ buildEssentials() {
             fi
         elif [[ "$SYSNAME" == Darwin ]]; then
             mkdir -p "${DIR_DOWNLOADS}"/source.download
-            donwloader "http://www.nasm.us/pub/nasm/releasebuilds/${NASM_PREFERRED}/macosx/nasm-${NASM_PREFERRED}-macosx.zip" "${NASM_PREFERRED}.zip" "${DIR_DOWNLOADS}/source.download"
+            downloader "http://www.nasm.us/pub/nasm/releasebuilds/${NASM_PREFERRED}/macosx/nasm-${NASM_PREFERRED}-macosx.zip" "${NASM_PREFERRED}.zip" "${DIR_DOWNLOADS}/source.download"
             cd "${DIR_DOWNLOADS}"/source.download
             unzip "${NASM_PREFERRED}".zip
 
@@ -1591,9 +1633,9 @@ build() {
             addSymlink
         ;;
         "update Build_Clover.command")
-            if [[ -x $(which wget) ]]; then
+            if [[ "$DOWNLOADER_CMD" == wget ]]; then
                 selfUpdate wget
-            elif [[ -x $(which curl) ]]; then
+            elif [[ "$DOWNLOADER_CMD" == curl ]]; then
                 selfUpdate curl
             else
                 printError "\nNo curl nor wget are installed! Install one of them and retry..\n" && exit 1
