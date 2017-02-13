@@ -1,5 +1,5 @@
 #!/bin/bash
-
+#set -x
 printf '\e[8;34;90t'
 
 # made by Micky1979 on 07/05/2016 based on Slice, Zenith432, STLVNUB, JrCs, cvad, Rehabman, and ErmaC works
@@ -36,7 +36,7 @@ GNU="GCC49"        # GCC49 GCC53
 BUILDTOOL="$XCODE" # XCODE or GNU?      (use $GNU to use GNU gcc, $XCODE to use the choosen Xcode version)
 # in Linux this get overrided and GCC53 used anyway!
 # --------------------------------------
-SCRIPTVER="v4.2.7"
+SCRIPTVER="v4.2.8"
 export LC_ALL=C
 SYSNAME="$( uname )"
 
@@ -1124,35 +1124,44 @@ clover() {
     # check if SUGGESTED_CLOVER_REV is set
     if [[ -z "$SUGGESTED_CLOVER_REV" ]]; then
         TIMES=0
-
         IsLinkOnline ${CLOVER_REP}
         getRev "remote"
         echo
         if [[ ! -d "${DIR_MAIN}/edk2/Clover" ]] ; then
-            printHeader 'Downloading Clover'
-            mkdir -p "${DIR_MAIN}"/edk2/Clover
+            printHeader 'Downloading Clover, using the latest revision'
             if IsNumericOnly "${REMOTE_REV}"; then
-                cmd="svn checkout -r $REMOTE_REV --non-interactive --trust-server-cert ${CLOVER_REP} ."
+				mkdir -p "${DIR_MAIN}"/edk2/Clover
+                cmd="svn co -r $REMOTE_REV --non-interactive --trust-server-cert ${CLOVER_REP} ."
             else
-                printError "unable to get latest Clover's revision, check your internet connection or try later.\n"
+                printError "Unable to get latest Clover revision, check your internet connection or try later.\n"
                 exit 1
             fi
         else
-            printHeader 'Updating Clover'
-            cmd="svn up --accept tf"
+            case ${LOCAL_REV} in
+				"0")	printHeader 'Clover local repo not found or damaged, downloading the latest revision'
+						rm -rf "${DIR_MAIN}"/edk2/Clover/* > /dev/null 2>&1
+						cmd="svn co -r $REMOTE_REV --non-interactive --trust-server-cert ${CLOVER_REP} ." ;;
+            	*)		printHeader 'Updating Clover, using the latest revision'
+						cmd="svn up --accept tf" ;;
+			esac
         fi
     else
-
-        printHeader "Downloading Clover using the specific revision r${SUGGESTED_CLOVER_REV}"
-
         if [[ -d "${DIR_MAIN}/edk2/Clover" ]] ; then
-                cmd="svn update --accept tf --non-interactive --trust-server-cert -r $SUGGESTED_CLOVER_REV"
+			case ${LOCAL_REV} in
+				"0")	printHeader "Clover local repo not found or damaged, downloading the specific revision r${SUGGESTED_CLOVER_REV}"
+						rm -rf "${DIR_MAIN}"/edk2/Clover/* > /dev/null 2>&1
+						cmd="svn co -r $SUGGESTED_CLOVER_REV --non-interactive --trust-server-cert ${CLOVER_REP} ." ;;
+            	*)		printHeader "Updating Clover, using the specific revision r${SUGGESTED_CLOVER_REV}"
+						cmd="svn up --accept tf --non-interactive --trust-server-cert -r $SUGGESTED_CLOVER_REV" ;;
+			esac
         else
-                cmd="svn co checkout -r $SUGGESTED_CLOVER_REV --non-interactive --trust-server-cert ${DIR_MAIN}/edk2/Clover"
+				printHeader "Downloading Clover, using the specific revision r${SUGGESTED_CLOVER_REV}"
+				mkdir -p "${DIR_MAIN}"/edk2/Clover
+                cmd="svn co -r $SUGGESTED_CLOVER_REV --non-interactive --trust-server-cert ${CLOVER_REP} ."
         fi
     fi
 
-    cd "${DIR_MAIN}"/edk2/Clover
+	cd "${DIR_MAIN}"/edk2/Clover
     svnWithErrorCheck "$cmd" "$(pwd)"
 
     printHeader 'Apply Edk2 patches'
@@ -1523,7 +1532,7 @@ backupBoot7MCP79() {
 }
 # --------------------------------------
 build() {
-    if [[ -d "${DIR_MAIN}/edk2/Clover" ]] ; then
+    if [[ -d "${DIR_MAIN}/edk2/Clover/.svn" ]] ; then
         echo 'Please enter your choice: '
         local options=()
 
