@@ -32,9 +32,9 @@ printf '\e[8;34;90t'
 # preferred build tool (gnu or darwin)
 # --------------------------------------
 XCODE="XCODE5"     # XCODE32
-GNU="GCC49"        # GCC49 GCC53
+GNU="GCC49"        # GCC49 GCC63
 BUILDTOOL="$XCODE" # XCODE or GNU?      (use $GNU to use GNU gcc, $XCODE to use the choosen Xcode version)
-# in Linux this get overrided and GCC53 used anyway!
+# in Linux this get overrided and GCC63 used anyway!
 # --------------------------------------
 SCRIPTVER="v4.2.9"
 export LC_ALL=C
@@ -260,7 +260,7 @@ macros=(
         CHECK_FLAGS
         )
 
-# tools_def.txt provide lto flags for GCC53 in linux
+# tools_def.txt provide lto flags for GCC63 in linux
 if [[ "$SYSNAME" == Linux ]]; then
     macros+=('DISABLE_LTO')
 fi
@@ -812,7 +812,7 @@ checkXcode () {
 if [[ "$SYSNAME" == Darwin ]]; then
     checkXcode
 else
-    BUILDTOOL="GCC53" # ovverride, no chance to use Xcode in linux :-)
+    BUILDTOOL="GCC63" # ovverride, no chance to use Xcode in linux :-)
 fi
 # --------------------------------------
 doSomething() {
@@ -1832,9 +1832,9 @@ build() {
         printHeader "BUILDTOOL is $BUILDTOOL"
         if [[ "$SYSNAME" == Darwin ]]; then "${DIR_MAIN}"/edk2/Clover/buildgcc-4.9.sh; fi
     ;;
-    GCC53)
+    GCC63)
         printHeader "BUILDTOOL is $BUILDTOOL"
-        if [[ "$SYSNAME" == Darwin ]]; then "${DIR_MAIN}"/edk2/Clover/build_gcc5.sh; fi
+        if [[ "$SYSNAME" == Darwin ]]; then "${DIR_MAIN}"/edk2/Clover/build_gcc6.sh; fi
     ;;
     XCODE*)
         exportXcodePaths
