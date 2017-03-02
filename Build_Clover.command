@@ -36,7 +36,7 @@ GNU="GCC49"        # GCC49 GCC53
 BUILDTOOL="$XCODE" # XCODE or GNU?      (use $GNU to use GNU gcc, $XCODE to use the choosen Xcode version)
 # in Linux this get overrided and GCC53 used anyway!
 # --------------------------------------
-SCRIPTVER="v4.2.9"
+SCRIPTVER="v4.3.0"
 export LC_ALL=C
 SYSNAME="$( uname )"
 
@@ -1834,7 +1834,7 @@ build() {
     ;;
     GCC53)
         printHeader "BUILDTOOL is $BUILDTOOL"
-        if [[ "$SYSNAME" == Darwin ]]; then "${DIR_MAIN}"/edk2/Clover/build_gcc5.sh; fi
+        if [[ "$SYSNAME" == Darwin ]]; then "${DIR_MAIN}"/edk2/Clover/build_gcc6.sh; fi
     ;;
     XCODE*)
         exportXcodePaths
