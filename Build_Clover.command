@@ -32,9 +32,9 @@ printf '\e[8;34;90t'
 # preferred build tool (gnu or darwin)
 # --------------------------------------
 XCODE="XCODE5"     # XCODE32
-GNU="GCC49"        # GCC49 GCC53
-BUILDTOOL="$XCODE" # XCODE or GNU?      (use $GNU to use GNU gcc, $XCODE to use the choosen Xcode version)
-# in Linux this get overrided and GCC53 used anyway!
+GNU="GCC53"        # GCC49 GCC53 (means GCC63)
+BUILDTOOL="$GNU" # XCODE or GNU?      (use $GNU to use GNU gcc, $XCODE to use the choosen Xcode version)
+# in Linux this get overrided and GCC63 used anyway!
 # --------------------------------------
 SCRIPTVER="v4.3.0"
 export LC_ALL=C
@@ -260,7 +260,7 @@ macros=(
         CHECK_FLAGS
         )
 
-# tools_def.txt provide lto flags for GCC53 in linux
+# tools_def.txt provide lto flags for GCC63 in linux
 if [[ "$SYSNAME" == Linux ]]; then
     macros+=('DISABLE_LTO')
 fi
