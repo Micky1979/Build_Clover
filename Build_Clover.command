@@ -32,8 +32,8 @@ printf '\e[8;34;90t'
 # preferred build tool (gnu or darwin)
 # --------------------------------------
 XCODE="XCODE5"     # XCODE32
-GNU="GCC49"        # GCC49 GCC63
-BUILDTOOL="$XCODE" # XCODE or GNU?      (use $GNU to use GNU gcc, $XCODE to use the choosen Xcode version)
+GNU="GCC53"        # GCC49 GCC53 (means GCC63)
+BUILDTOOL="$GNU" # XCODE or GNU?      (use $GNU to use GNU gcc, $XCODE to use the choosen Xcode version)
 # in Linux this get overrided and GCC63 used anyway!
 # --------------------------------------
 SCRIPTVER="v4.2.9"
@@ -812,7 +812,7 @@ checkXcode () {
 if [[ "$SYSNAME" == Darwin ]]; then
     checkXcode
 else
-    BUILDTOOL="GCC63" # ovverride, no chance to use Xcode in linux :-)
+    BUILDTOOL="GCC53" # ovverride, no chance to use Xcode in linux :-)
 fi
 # --------------------------------------
 doSomething() {
@@ -1832,7 +1832,7 @@ build() {
         printHeader "BUILDTOOL is $BUILDTOOL"
         if [[ "$SYSNAME" == Darwin ]]; then "${DIR_MAIN}"/edk2/Clover/buildgcc-4.9.sh; fi
     ;;
-    GCC63)
+    GCC53)
         printHeader "BUILDTOOL is $BUILDTOOL"
         if [[ "$SYSNAME" == Darwin ]]; then "${DIR_MAIN}"/edk2/Clover/build_gcc6.sh; fi
     ;;
