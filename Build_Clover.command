@@ -424,11 +424,11 @@ printRevisions() {
 		# Remote
     	if [ -z "${REMOTE_REV}" ]; then
         	PING_RESPONSE="NO"
-        	REMOTE_REV="Something went wrong while getting the remote revision, check your internet connection!"
-        	printError "\n${REMOTE_REV}\n"
+        	REMOTE_REV="Something went wrong while getting the CLOVER remote revision,\ncheck your internet connection!"
+        	printError "${REMOTE_REV}\n"
 		else
        	 	PING_RESPONSE="YES"
-      	  	printMessage "Clover\tRemote revision: ${REMOTE_REV}"
+      	  	printMessage "CLOVER\tRemote revision: ${REMOTE_REV}"
 		fi
     	# Local
     	if [ -z "${LOCAL_REV}" ]; then
@@ -442,11 +442,11 @@ printRevisions() {
 		# Remote
     	if [ -z "${REMOTE_EDK2_REV}" ]; then
         	PING_RESPONSE="NO"
-        	REMOTE_EDK2_REV="Something went wrong while getting the remote revision, check your internet connection!"
-        	printError "\n${REMOTE_EDK2_REV}\n"
+        	REMOTE_EDK2_REV="Something went wrong while getting the EDK2 remote revision,\ncheck your internet connection!"
+        	printError "${REMOTE_EDK2_REV}\n"
 		else
        	 	PING_RESPONSE="YES"
-      	  	printMessage "Edk2\tRemote revision: ${REMOTE_EDK2_REV}"
+      	  	printMessage "EDK2\tRemote revision: ${REMOTE_EDK2_REV}"
 		fi
     	# Local
     	if [ -z "${LOCAL_EDK2_REV}" ]; then
@@ -457,9 +457,9 @@ printRevisions() {
 		fi
 		# Is the current local Edk2 revision the suggested one?
 		if [ "${LOCAL_EDK2_REV}" == "${EDK2_REV}" ]; then
-			printMessage "\nThe current local Edk2 revision is the suggested one (${EDK2_REV})."
+			printMessage "\nThe current local EDK2 revision is the suggested one (${EDK2_REV})."
 		else
-			printWarning "\nThe current local Edk2 revision is not the suggested one (${EDK2_REV})!\nIt's recommended to change it to the suggested one,\nusing the \033[1;32mupdate Clover + force edk2 update\033[1;33m option!"
+			printWarning "\nThe current local EDK2 revision is not the suggested one (${EDK2_REV})!\nIt's recommended to change it to the suggested one,\nusing the \033[1;32mupdate Clover + force edk2 update\033[1;33m option!"
 		fi
 	fi
 	printf "\n${Line}\n"
