@@ -419,41 +419,50 @@ printCloverScriptRev() {
 # --------------------------------------
 printRevisions() {
     # get the revisions
-	local remote_ver=""
-	local local_ver=""
-	local IsSuggested=""
 	getRev "remote_local"
-	case "$1" in
-		"Clover")	remote_ver="${REMOTE_REV}"
-					local_ver="${LOCAL_REV}";;
-		"Edk2")		remote_ver="${REMOTE_EDK2_REV}"
-					local_ver="${LOCAL_EDK2_REV}"
-					if [ "${local_ver}" == "${EDK2_REV}" ]; then
-						IsSuggested="The current local Edk2 revision is the suggested one (${EDK2_REV})."
-					else
-						IsSuggested="The current local Edk2 revision is not the suggested one (${EDK2_REV})!\nIt's recommended to change it to the suggested one,\nusing the \033[1;32mupdate Clover + force edk2 update\033[1;33m option!"
-					fi;;
-	esac
-    # Remote
-    if [ -z "${remote_ver}" ]; then
-        PING_RESPONSE="NO"
-        REMOTE_REV="Something went wrong while getting the remote revision, check your internet connection!"
-        printError "\n${REMOTE_REV}\n"
-	else
-        PING_RESPONSE="YES"
-        printMessage "${1}\tRemote revision: ${remote_ver}"
+	if [[ ${1} == *"Clover"* ]]; then
+		# Remote
+    	if [ -z "${REMOTE_REV}" ]; then
+        	PING_RESPONSE="NO"
+        	REMOTE_REV="Something went wrong while getting the remote revision, check your internet connection!"
+        	printError "\n${REMOTE_REV}\n"
+		else
+       	 	PING_RESPONSE="YES"
+      	  	printMessage "Clover\tRemote revision: ${REMOTE_REV}"
+		fi
+    	# Local
+    	if [ -z "${LOCAL_REV}" ]; then
+  			LOCAL_REV="Something went wrong while getting the local revision!"
+    		printError "\n${LOCAL_REV}\n"
+    	else
+        	[ "${LOCAL_REV}" == "${REMOTE_REV}" ] && printMessage "\tLocal revision: ${LOCAL_REV}\n" || printWarning "\tLocal revision: ${LOCAL_REV}\n"
+		fi
 	fi
-    # Local
-    if [ -z "${local_ver}" ]; then
-        LOCAL_REV="Something went wrong while getting the local revision!"
-        printError "\n${LOCAL_REV}\n"
-    else
-        [ "${local_ver}" == "${remote_ver}" ] && printMessage "\tLocal revision:${local_ver}" || printWarning "\tLocal revision: ${local_ver}"
+	if [[ ${1} == *"Edk2"* ]]; then
+		# Remote
+    	if [ -z "${REMOTE_EDK2_REV}" ]; then
+        	PING_RESPONSE="NO"
+        	REMOTE_EDK2_REV="Something went wrong while getting the remote revision, check your internet connection!"
+        	printError "\n${REMOTE_EDK2_REV}\n"
+		else
+       	 	PING_RESPONSE="YES"
+      	  	printMessage "Edk2\tRemote revision: ${REMOTE_EDK2_REV}"
+		fi
+    	# Local
+    	if [ -z "${LOCAL_EDK2_REV}" ]; then
+  			LOCAL_EDK2_REV="Something went wrong while getting the local revision!"
+    		printError "\n${LOCAL_EDK2_REV}\n"
+    	else
+        	[ "${LOCAL_EDK2_REV}" == "${REMOTE_EDK2_REV}" ] && printMessage "\tLocal revision: ${LOCAL_EDK2_REV}\n" || printWarning "\tLocal revision: ${LOCAL_EDK2_REV}\n"
+		fi
+		# Is the current local Edk2 revision the suggested one?
+		if [ "${LOCAL_EDK2_REV}" == "${EDK2_REV}" ]; then
+			printMessage "\nThe current local Edk2 revision is the suggested one (${EDK2_REV})."
+		else
+			printWarning "\nThe current local Edk2 revision is not the suggested one (${EDK2_REV})!\nIt's recommended to change it to the suggested one,\nusing the \033[1;32mupdate Clover + force edk2 update\033[1;33m option!"
+		fi
 	fi
-	printf "\n"
-	if [ "$1" == "Edk2" ]; then
-		[ "${local_ver}" == "${EDK2_REV}" ] && printMessage "\n${IsSuggested}" || printWarning "\n${IsSuggested}"
-	fi
+	printf "\n${Line}\n"
 }
 # --------------------------------------
 downloader(){
@@ -603,9 +612,7 @@ getRev() {
     fi
 }
 # print the remote and the local revision
-printRevisions "Clover"
-printRevisions "Edk2"
-printf "\n${Line}\n"
+printRevisions "Edk2_Clover"
 
 # ---------------------------->
 # --------------------------------------
@@ -1826,9 +1833,7 @@ build() {
     if [[ "$BUILD_FLAG" == NO ]]; then
         clear
         # print updated remote and local revision
-        printRevisions "Clover"
-		printRevisions "Edk2"
-		printf "\n${Line}\n"
+        printRevisions "Edk2_Clover"
         build
     fi
 
