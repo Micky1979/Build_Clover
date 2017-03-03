@@ -36,7 +36,7 @@ GNU="GCC49"        # GCC49 GCC53
 BUILDTOOL="$XCODE" # XCODE or GNU?      (use $GNU to use GNU gcc, $XCODE to use the choosen Xcode version)
 # in Linux this get overrided and GCC53 used anyway!
 # --------------------------------------
-SCRIPTVER="v4.3.0"
+SCRIPTVER="v4.3.1"
 export LC_ALL=C
 SYSNAME="$( uname )"
 
@@ -292,6 +292,10 @@ printWarning() {
     printf "\033[1;33m${1}\033[0m"
 }
 # --------------------------------------
+printMessage() {
+printf "\033[1;32m${1}\033[0m\040"
+}
+# --------------------------------------
 # don't use sudo!
 if [[ $EUID -eq 0 ]]; then
     echo
@@ -413,44 +417,48 @@ printCloverScriptRev() {
     printHeader "Build_Clover script $SVERSION"
 }
 # --------------------------------------
-printCloverRev() {
+printRevisions() {
     # get the revisions
-    getRev "remote_local"
-
+	local remote_ver=""
+	local local_ver=""
+	local IsSuggested=""
+	getRev "remote_local"
+	case "$1" in
+		"Clover")	remote_ver="${REMOTE_REV}"
+					local_ver="${LOCAL_REV}";;
+		"Edk2")		remote_ver="${REMOTE_EDK2_REV}"
+					local_ver="${LOCAL_EDK2_REV}"
+					if [ "${local_ver}" == "${EDK2_REV}" ]; then
+						IsSuggested="The current local Edk2 revision is the suggested one, no update needed."
+					else
+						IsSuggested="The current local Edk2 revision is not the suggested one!\nPlease, use the \033[1;32mupdate Clover + force edk2 update\033[1;33m option!"
+					fi;;
+	esac
     # Remote
-    if [ -z "${REMOTE_REV}" ]; then
+    if [ -z "${remote_ver}" ]; then
         PING_RESPONSE="NO"
         REMOTE_REV="Something went wrong while getting the remote revision, check your internet connection!"
         printError "$REMOTE_REV"
         printf "\n"
-        # Local
-        if [ -z "${LOCAL_REV}" ]; then
-            LOCAL_REV="Something went wrong while getting the local revision!"
-            printError "$LOCAL_REV"
-        else
-            LOCAL_REV="${LOCAL_REV}"
-            printWarning "${2}${LOCAL_REV}"
-        fi
-    else
+	else
         PING_RESPONSE="YES"
-        REMOTE_REV="${REMOTE_REV}"
-        printf "\033[1;32m${1}${REMOTE_REV}\033[0m\040"
-        # Local
-        if [ -z "${LOCAL_REV}" ]; then
-            LOCAL_REV="\nSomething went wrong while getting the local revision!"
-            printError "$LOCAL_REV"
+        printMessage "${1} - Remote revision: ${remote_ver}"
+	fi
+    # Local
+    if [ -z "${local_ver}" ]; then
+        LOCAL_REV="Something went wrong while getting the local revision!"
+        printError "$LOCAL_REV"
+    else
+        if [ "${local_ver}" == "${remote_ver}" ]; then
+            printMessage "Local revision: ${local_ver}";
         else
-            LOCAL_REV="${LOCAL_REV}"
-            if [ "${LOCAL_REV}" == "${REMOTE_REV}" ]; then
-                printf "\033[1;32m${2}${LOCAL_REV}\033[0m\040"
-            else
-                printWarning "${2}${LOCAL_REV}"
-            fi
+            printWarning "Local revision: ${local_ver}"
         fi
-    fi
-
-    printf "\n"
-    echo "${Line}"
+	fi
+	printf "\n"
+	if [ "$1" == "Edk2" ]; then
+		[ "${local_ver}" == "${EDK2_REV}" ] && printMessage "${IsSuggested}\n" || printWarning "${IsSuggested}\n"
+	fi
 }
 # --------------------------------------
 downloader(){
@@ -584,6 +592,7 @@ getRev() {
         # Local
         if [[ -d "${DIR_MAIN}"/edk2/Clover/.svn ]]; then
             LOCAL_REV=$(svn info "${DIR_MAIN}"/edk2/Clover | grep '^Revision:' | tr -cd [:digit:])
+			LOCAL_EDK2_REV=$(svn info "${DIR_MAIN}"/edk2 | grep '^Revision:' | tr -cd [:digit:])
         else
             LOCAL_REV="0"
         fi
@@ -599,7 +608,10 @@ getRev() {
     fi
 }
 # print the remote and the local revision
-printCloverRev "Remote revision: " "Local revision: "
+printRevisions "Clover"
+printRevisions "Edk2"
+echo "${Line}"
+
 # ---------------------------->
 # --------------------------------------
 selectArch () {
@@ -1819,7 +1831,9 @@ build() {
     if [[ "$BUILD_FLAG" == NO ]]; then
         clear
         # print updated remote and local revision
-        printCloverRev "Remote revision: " "Local revision: "
+        printRevisions "Clover"
+		printRevisions "Edk2"
+		echo "${Line}"
         build
     fi
 
