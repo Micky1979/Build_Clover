@@ -432,7 +432,7 @@ printRevisions() {
 		fi
     	# Local
     	if [ -z "${LOCAL_REV}" ]; then
-  			LOCAL_REV="Something went wrong while getting the local revision!"
+  			LOCAL_REV="Something went wrong while getting the CLOVER local revision!"
     		printError "\n${LOCAL_REV}\n"
     	else
         	[ "${LOCAL_REV}" == "${REMOTE_REV}" ] && printMessage "\tLocal revision: ${LOCAL_REV}\n" || printWarning "\tLocal revision: ${LOCAL_REV}\n"
@@ -450,7 +450,7 @@ printRevisions() {
 		fi
     	# Local
     	if [ -z "${LOCAL_EDK2_REV}" ]; then
-  			LOCAL_EDK2_REV="Something went wrong while getting the local revision!"
+  			LOCAL_EDK2_REV="Something went wrong while getting the EDK2 local revision!"
     		printError "\n${LOCAL_EDK2_REV}\n"
     	else
         	[ "${LOCAL_EDK2_REV}" == "${REMOTE_EDK2_REV}" ] && printMessage "\tLocal revision: ${LOCAL_EDK2_REV}\n" || printWarning "\tLocal revision: ${LOCAL_EDK2_REV}\n"
