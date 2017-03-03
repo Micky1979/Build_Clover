@@ -429,35 +429,30 @@ printRevisions() {
 		"Edk2")		remote_ver="${REMOTE_EDK2_REV}"
 					local_ver="${LOCAL_EDK2_REV}"
 					if [ "${local_ver}" == "${EDK2_REV}" ]; then
-						IsSuggested="The current local Edk2 revision is the suggested one, no update needed."
+						IsSuggested="The current local Edk2 revision is the suggested one (${EDK2_REV})."
 					else
-						IsSuggested="The current local Edk2 revision is not the suggested one!\nPlease, use the \033[1;32mupdate Clover + force edk2 update\033[1;33m option!"
+						IsSuggested="The current local Edk2 revision is not the suggested one (${EDK2_REV})!\nIt's recommended to change it to the suggested one,\nusing the \033[1;32mupdate Clover + force edk2 update\033[1;33m option!"
 					fi;;
 	esac
     # Remote
     if [ -z "${remote_ver}" ]; then
         PING_RESPONSE="NO"
         REMOTE_REV="Something went wrong while getting the remote revision, check your internet connection!"
-        printError "$REMOTE_REV"
-        printf "\n"
+        printError "\n${REMOTE_REV}\n"
 	else
         PING_RESPONSE="YES"
-        printMessage "${1} - Remote revision: ${remote_ver}"
+        printMessage "${1}\tRemote revision: ${remote_ver}"
 	fi
     # Local
     if [ -z "${local_ver}" ]; then
         LOCAL_REV="Something went wrong while getting the local revision!"
-        printError "$LOCAL_REV"
+        printError "\n${LOCAL_REV}\n"
     else
-        if [ "${local_ver}" == "${remote_ver}" ]; then
-            printMessage "Local revision: ${local_ver}";
-        else
-            printWarning "Local revision: ${local_ver}"
-        fi
+        [ "${local_ver}" == "${remote_ver}" ] && printMessage "\tLocal revision:${local_ver}" || printWarning "\tLocal revision: ${local_ver}"
 	fi
 	printf "\n"
 	if [ "$1" == "Edk2" ]; then
-		[ "${local_ver}" == "${EDK2_REV}" ] && printMessage "${IsSuggested}" || printWarning "${IsSuggested}"
+		[ "${local_ver}" == "${EDK2_REV}" ] && printMessage "\n${IsSuggested}" || printWarning "\n${IsSuggested}"
 	fi
 }
 # --------------------------------------
