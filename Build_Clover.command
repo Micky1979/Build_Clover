@@ -457,7 +457,7 @@ printRevisions() {
 	fi
 	printf "\n"
 	if [ "$1" == "Edk2" ]; then
-		[ "${local_ver}" == "${EDK2_REV}" ] && printMessage "${IsSuggested}\n" || printWarning "${IsSuggested}\n"
+		[ "${local_ver}" == "${EDK2_REV}" ] && printMessage "${IsSuggested}" || printWarning "${IsSuggested}"
 	fi
 }
 # --------------------------------------
@@ -610,7 +610,7 @@ getRev() {
 # print the remote and the local revision
 printRevisions "Clover"
 printRevisions "Edk2"
-echo "${Line}"
+printf "\n${Line}\n"
 
 # ---------------------------->
 # --------------------------------------
@@ -1833,7 +1833,7 @@ build() {
         # print updated remote and local revision
         printRevisions "Clover"
 		printRevisions "Edk2"
-		echo "${Line}"
+		printf "\n${Line}\n"
         build
     fi
 
