@@ -435,7 +435,11 @@ printRevisions() {
   			LOCAL_REV="Something went wrong while getting the CLOVER local revision!"
     		printError "\n${LOCAL_REV}\n"
     	else
-        	[ "${LOCAL_REV}" == "${REMOTE_REV}" ] && printMessage "\tLocal revision: ${LOCAL_REV}\n" || printWarning "\tLocal revision: ${LOCAL_REV}\n"
+			if [[ "${REMOTE_REV}" =~ ^-?[0-9]+$ ]]; then
+				[ "${LOCAL_REV}" == "${REMOTE_REV}" ] && printMessage "\tLocal revision: ${LOCAL_REV}\n" || printWarning "\tLocal revision: ${LOCAL_REV}\n"
+			else
+        		printWarning "CLOVER\tLocal revision: ${LOCAL_REV}\n"
+			fi
 		fi
 	fi
 	if [[ ${1} == *"Edk2"* ]]; then
@@ -453,13 +457,19 @@ printRevisions() {
   			LOCAL_EDK2_REV="Something went wrong while getting the EDK2 local revision!"
     		printError "\n${LOCAL_EDK2_REV}\n"
     	else
-        	[ "${LOCAL_EDK2_REV}" == "${REMOTE_EDK2_REV}" ] && printMessage "\tLocal revision: ${LOCAL_EDK2_REV}\n" || printWarning "\tLocal revision: ${LOCAL_EDK2_REV}\n"
+			if [[ "${REMOTE_EDK2_REV}" =~ ^-?[0-9]+$ ]]; then
+				[ "${LOCAL_EDK2_REV}" == "${REMOTE_EDK2_REV}" ] && printMessage "\tLocal revision: ${LOCAL_EDK2_REV}\n" || printWarning "\tLocal revision: ${LOCAL_EDK2_REV}\n"
+			else
+        		printWarning "EDK2\tLocal revision: ${LOCAL_EDK2_REV}\n"
+			fi
 		fi
 		# Is the current local Edk2 revision the suggested one?
 		if [ "${LOCAL_EDK2_REV}" == "${EDK2_REV}" ]; then
 			printMessage "\nThe current local EDK2 revision is the suggested one (${EDK2_REV})."
 		else
-			printWarning "\nThe current local EDK2 revision is not the suggested one (${EDK2_REV})!\nIt's recommended to change it to the suggested one,\nusing the \033[1;32mupdate Clover + force edk2 update\033[1;33m option!"
+			printWarning "\nThe current local EDK2 revision is not the suggested one (${EDK2_REV})!"
+			printWarning "\nIt's recommended to change it to the suggested one,"
+			printWarning "\nusing the \033[1;32mupdate Clover + force edk2 update\033[1;33m option!"
 		fi
 	fi
 	printf "\n${Line}\n"
