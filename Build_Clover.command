@@ -382,17 +382,18 @@ printCloverScriptRev() {
     local RVALUE
     local SVERSION
     local RSCRIPTVER
+	local RSDATA
 
     if ping -c 1 github.com >> /dev/null 2>&1; then
         # Retrive and filter remote script version
         if [[ "$DOWNLOADER_CMD" == wget ]]; then
-            RSCRIPTVER='v'$("${DOWNLOADER_PATH}/${DOWNLOADER_CMD}" $GITHUB -q -O - | grep '^SCRIPTVER="v' | tr -cd '.0-9')
+            RSDATA=$("${DOWNLOADER_PATH}/${DOWNLOADER_CMD}" $GITHUB -q -O -)
         elif [[ "$DOWNLOADER_CMD" == curl ]]; then
-            RSCRIPTVER='v'$("${DOWNLOADER_PATH}/${DOWNLOADER_CMD}" -v --silent $GITHUB 2>&1 | grep '^SCRIPTVER="v' | tr -cd '.0-9')
+            RSDATA=$("${DOWNLOADER_PATH}/${DOWNLOADER_CMD}" -v --silent $GITHUB 2>&1)
         else
             return
         fi
-
+		RSCRIPTVER='v'$(echo "${RSDATA}" | grep '^SCRIPTVER="v' | tr -cd '.0-9')
         LVALUE=$(echo $SCRIPTVER | tr -cd [:digit:])
         RVALUE=$(echo $RSCRIPTVER | tr -cd [:digit:])
 
