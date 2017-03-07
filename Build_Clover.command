@@ -1600,7 +1600,7 @@ build() {
             options+=("update Clover only (no building)")
         fi
         if [[ "$BUILDER" == 'slice' ]]; then
-            printf "   \e[90m EDK2 revision used r$EDK2_REV latest avaiable is r$REMOTE_EDK2_REV \e[0m\n"
+            printf "   \e[1;97;104m EDK2 revision used r$EDK2_REV latest avaiable is r$REMOTE_EDK2_REV \e[0m\n"
             set +e
             options+=("build with ./ebuild.sh -nb")
             options+=("build with ./ebuild.sh --module=rEFIt_UEFI/refit.inf")
