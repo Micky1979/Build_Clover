@@ -43,7 +43,7 @@ SYSNAME="$( uname )"
 BUILDER=$USER # don't touch!
 # <----------------------------
 # Preferences:
-EDK2_REV="23974"   # or any revision supported by Slice (otherwise no claim please)
+EDK2_REV="24045"   # or any revision supported by Slice (otherwise no claim please)
 
 # "SUGGESTED_CLOVER_REV" is used to force the script to updated at the specified revision:
 # REQUIRED is a known edk2 revision (EDK2_REV="XXXXX") compatible with the "/Clover/Patches_for_EDK2" coming with
