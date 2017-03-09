@@ -279,21 +279,21 @@ restoreIFS() {
 # --------------------------------------
 printHeader() {
     echo "${ThickLine}"
-    printf "\033[1;34m${1}\033[0m\n"
+    printf "\e[1;34m${1}\e[0m\n"
     echo "${Line}"
 }
 # --------------------------------------
 printError() {
-    printf "\033[1;31m${1}\033[0m"
+    printf "\e[1;31m${1}\e[0m"
 #    exit 1
 }
 # --------------------------------------
 printWarning() {
-    printf "\033[1;33m${1}\033[0m"
+    printf "\e[1;33m${1}\e[0m"
 }
 # --------------------------------------
 printMessage() {
-printf "\033[1;32m${1}\033[0m\040"
+printf "\e[1;32m${1}\e[0m\040"
 }
 # --------------------------------------
 # don't use sudo!
@@ -383,6 +383,7 @@ printCloverScriptRev() {
     local SVERSION
     local RSCRIPTVER
 	local RSDATA
+	local SNameVer="\e[1;34mBuild_Clover script ${SCRIPTVER}\e[0m"
 
     if ping -c 1 github.com >> /dev/null 2>&1; then
         # Retrive and filter remote script version
@@ -397,25 +398,27 @@ printCloverScriptRev() {
         LVALUE=$(echo $SCRIPTVER | tr -cd [:digit:])
         RVALUE=$(echo $RSCRIPTVER | tr -cd [:digit:])
 
+		echo "${ThickLine}"
         if IsNumericOnly $RVALUE; then
             # Compare local and remote script version
             if [ $LVALUE -eq $RVALUE ]; then
                 SELF_UPDATE_OPT="NO"
-                SVERSION="${SCRIPTVER}\t\t\t\t   \033[1;32mNo update available.\033[0m"
+				printf "${SNameVer}\e[1;32m%*s\e[0m" 53 "No update available."
             elif [ $LVALUE -gt $RVALUE ]; then
                 SELF_UPDATE_OPT="NO"
-                SVERSION="${SCRIPTVER}\t\t   \033[33mWow, are you coming from the future?\033[0m"
+				printf "${SNameVer}\e[1;33m%*s\e[0m" 53 "Wow, are you coming from the future?"
             else
                 SELF_UPDATE_OPT="YES"
-                SVERSION="${SCRIPTVER}\t\t\t      \033[5;33mUpdate available ($RSCRIPTVER)\033[0m"
+				printf "${SNameVer}\e[1;5;33m%*s\e[0m" 53 "Update available ($RSCRIPTVER)"
             fi
         else
-            SVERSION="${SCRIPTVER}\033[1;31m\nRemote version unavailable due to unknown reasons!"
+            printf "${SNameVer}\e[1;31m\n%s\e[0m" "Remote version unavailable due to unknown reasons!"
         fi
     else
-        SVERSION="${SCRIPTVER}\033[1;31m\nRemote version unavailable, because GitHub is unreachable,\ncheck your internet connection!\033[0m"
+		echo "${ThickLine}"
+        printf "${SNameVer}\e[1;31m\n%s\n%s\e[0m" "Remote version unavailable, because GitHub is unreachable," "check your internet connection!"
     fi
-    printHeader "Build_Clover script $SVERSION"
+	printf "\n${Line}\n"
 }
 # --------------------------------------
 printRevisions() {
@@ -468,9 +471,9 @@ printRevisions() {
 		if [ "${LOCAL_EDK2_REV}" == "${EDK2_REV}" ]; then
 			printMessage "\nThe current local EDK2 revision is the suggested one (${EDK2_REV})."
 		else
-			printWarning "\n\033[5mThe current local EDK2 revision is not the suggested one (${EDK2_REV})!"
+			printWarning "\n\e[5mThe current local EDK2 revision is not the suggested one (${EDK2_REV})!"
 			printWarning "\nIt's recommended to change it to the suggested one,"
-			printWarning "\nusing the \033[1;32mupdate Clover + force edk2 update\033[1;33m option!"
+			printWarning "\nusing the \e[1;32mupdate Clover + force edk2 update\e[1;33m option!"
 		fi
 	fi
 	printf "\n${Line}\n"
@@ -648,7 +651,7 @@ selectArch () {
     do
         case "${op}" in
         'Standard x64 only')
-            printf "\033[1;36m\t ${count}) ${op}\033[0m\n"
+            printf "\e[1;36m\t ${count}) ${op}\e[0m\n"
         ;;
         *)
             printf "\t $count) ${op}\n"
@@ -976,10 +979,10 @@ IsLinkOnline() {
     fi
 
     ((TIMES+=1))
-    printf "\033[1;35mchecking..\033[0m"
+    printf "\e[1;35mchecking..\e[0m"
     svn info "${1}" > /dev/null
     if [ $? -eq 0 ]; then
-        printf "\033[1;32mavailable, continuing..\033[0m\n"
+        printf "\e[1;32mavailable, continuing..\e[0m\n"
         TIMES=0
         return 1 # Success!
     else
@@ -1120,14 +1123,14 @@ edk2() {
     svnWithErrorCheck "svn --depth empty co $revision --non-interactive --trust-server-cert $EDK2_REP ."
 
     echo
-    printf "\033[1;34medksetup.sh:\033[0m\n"
+    printf "\e[1;34medksetup.sh:\e[0m\n"
     IsLinkOnline $EDK2_REP/edksetup.sh
     svnWithErrorCheck "svn update --accept tf --non-interactive --trust-server-cert $revision edksetup.sh"
 
     for d in "${edk2array[@]}"
     do
         if [[ "$d" != "Source" ]] && [[ "$d" != "Scripts" ]]; then
-            printf "\033[1;34m${d}:\033[0m\n"
+            printf "\e[1;34m${d}:\e[0m\n"
             TIMES=0
             IsLinkOnline "$EDK2_REP/${d}"
             cd "${DIR_MAIN}"/edk2
@@ -1523,9 +1526,9 @@ showMacros() {
 
     printf 'actual macros defined: '
     if [[ ( "${#DEFINED_MACRO} " < 1 ) ]] ; then
-        printf "\e[1;30mno one\033[0m\n"
+        printf "\e[1;30mno one\e[0m\n"
     else
-        printf "\033[1;36m\n${DEFINED_MACRO}\033[0m\n"
+        printf "\e[1;36m\n${DEFINED_MACRO}\e[0m\n"
     fi
 
     echo
@@ -1635,13 +1638,13 @@ build() {
             | "add \"buildclover\" symlink to $(dirname $SYMLINKPATH)" \
             | "restore \"buildclover\" symlink" \
             | "update \"buildclover\" symlink")
-                printf "\033[1;31m ${count}) ${opt}\033[0m\n"
+                printf "\e[1;31m ${count}) ${opt}\e[0m\n"
             ;;
             "build existing revision for release (no update, standard build)" \
             | "update Clover + force edk2 update (no building)" \
             | "build all for Release" \
             | "build binaries with FORCEREBUILD (boot3, 6 and 7 also)")
-                printf "\033[1;36m ${count}) ${opt}\033[0m\n"
+                printf "\e[1;36m ${count}) ${opt}\e[0m\n"
             ;;
             *)
                 printf " ${count}) ${opt}\n"
@@ -1844,7 +1847,6 @@ build() {
     if [[ "$BUILD_FLAG" == NO ]]; then
         clear
         # print updated remote and local revision
-		echo "${ThickLine}"
         printRevisions "Edk2_Clover"
         build
     fi
