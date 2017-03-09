@@ -36,7 +36,7 @@ GNU="GCC49"        # GCC49 GCC53
 BUILDTOOL="$XCODE" # XCODE or GNU?      (use $GNU to use GNU gcc, $XCODE to use the choosen Xcode version)
 # in Linux this get overrided and GCC53 used anyway!
 # --------------------------------------
-SCRIPTVER="v4.3.2"
+SCRIPTVER="v4.3.3"
 export LC_ALL=C
 SYSNAME="$( uname )"
 
@@ -401,19 +401,19 @@ printCloverScriptRev() {
             # Compare local and remote script version
             if [ $LVALUE -eq $RVALUE ]; then
                 SELF_UPDATE_OPT="NO"
-                SVERSION="\033[1;32m${2}${SCRIPTVER}\033[0m\040 is the latest version avaiable"
+                SVERSION="${SCRIPTVER}\t\t\t\t   \033[1;32mNo update available.\033[0m"
             elif [ $LVALUE -gt $RVALUE ]; then
                 SELF_UPDATE_OPT="NO"
-                SVERSION="${SCRIPTVER} (wow, you coming from the future?)"
+                SVERSION="${SCRIPTVER}\t\t   \033[33mWow, are you coming from the future?\033[0m"
             else
                 SELF_UPDATE_OPT="YES"
-                SVERSION="${SCRIPTVER} a new version $RSCRIPTVER is available for download"
+                SVERSION="${SCRIPTVER}\t\t\t      \033[5;33mUpdate available ($RSCRIPTVER)\033[0m"
             fi
         else
-            printError "Build_Clover script ${SCRIPTVER}\n(remote version unavailable due to unknown reasons)\n"
+            SVERSION="${SCRIPTVER}\033[1;31m\nRemote version unavailable due to unknown reasons!"
         fi
     else
-        printError "Build_Clover script ${SCRIPTVER}\n(remote version unavailable because\ngithub is unreachable, check your internet connection)\n"
+        SVERSION="${SCRIPTVER}\033[1;31m\nRemote version unavailable, because GitHub is unreachable,\ncheck your internet connection!\033[0m"
     fi
     printHeader "Build_Clover script $SVERSION"
 }
@@ -437,9 +437,9 @@ printRevisions() {
     		printError "\n${LOCAL_REV}\n"
     	else
 			if [[ "${REMOTE_REV}" =~ ^-?[0-9]+$ ]]; then
-				[ "${LOCAL_REV}" == "${REMOTE_REV}" ] && printMessage "\tLocal revision: ${LOCAL_REV}\n" || printWarning "\tLocal revision: ${LOCAL_REV}\n"
+				[ "${LOCAL_REV}" == "${REMOTE_REV}" ] && printMessage "\tLocal revision: ${LOCAL_REV}" || printWarning "\tLocal revision: ${LOCAL_REV}"
 			else
-        		printWarning "CLOVER\tLocal revision: ${LOCAL_REV}\n"
+        		printWarning "CLOVER\tLocal revision: ${LOCAL_REV}"
 			fi
 		fi
 	fi
@@ -448,10 +448,10 @@ printRevisions() {
     	if [ -z "${REMOTE_EDK2_REV}" ]; then
         	PING_RESPONSE="NO"
         	REMOTE_EDK2_REV="Something went wrong while getting the EDK2 remote revision,\ncheck your internet connection!"
-        	printError "${REMOTE_EDK2_REV}\n"
+        	printError "\n${REMOTE_EDK2_REV}\n"
 		else
        	 	PING_RESPONSE="YES"
-      	  	printMessage "EDK2\tRemote revision: ${REMOTE_EDK2_REV}"
+      	  	printMessage "\nEDK2\tRemote revision: ${REMOTE_EDK2_REV}"
 		fi
     	# Local
     	if [ -z "${LOCAL_EDK2_REV}" ]; then
@@ -519,7 +519,7 @@ aptInstall() {
     printWarning "Build_Clover need this:\n"
     printError "${1}\n"
     printWarning "..to be installed, but was not found.\n"
-    printWarning "would you allow to install it? (Y/N)\n"
+    printWarning "Would you allow to install it? (Y/N)\n"
 	
     read answer
 
@@ -940,7 +940,7 @@ svnWithErrorCheck() {
     if [[ -n "${2}" ]] && [[ "${3}" != once ]];then
     	if grep -q "Tree conflict can only be resolved to 'working' state" "${SVN_STDERR_LOG}" || \
                 grep -q "Node remains in conflict" "${SVN_STDERR_LOG}"; then
-    		printWarning "calling svn resolve..\n"
+    		printWarning "Calling svn resolve..\n"
             svnWithErrorCheck "svn resolve ${2}" "${2}" once "${1}"
         fi
     fi
@@ -955,7 +955,7 @@ svnWithErrorCheck() {
 
     if [ "${ErrCount}" -ge "1" ];then
         echo
-        printError "an error was encountered syncing the repository:\n"
+        printError "An error was encountered syncing the repository:\n"
         echo "------------------------------"
         echo "$( cat ${SVN_STDERR_LOG} )"
         echo
@@ -984,9 +984,9 @@ IsLinkOnline() {
         return 1 # Success!
     else
         if [ $TIMES -ge 5 ]; then
-            printError "\nError: unable to access ${$1} after $TIMES attempts:";
-            printError "       Build_Clover go to fail voluntarily to avoid problems,";
-            printError "       check your internet connection or retry later!";
+            printError "\nError: unable to access ${1} after $TIMES attempts.";
+            printError "\nBuild_Clover go to fail voluntarily to avoid problems,";
+            printError "\ncheck your internet connection or retry later!\n\n";
             return 0
         else
             # retry..
@@ -1844,6 +1844,7 @@ build() {
     if [[ "$BUILD_FLAG" == NO ]]; then
         clear
         # print updated remote and local revision
+		echo "${ThickLine}"
         printRevisions "Edk2_Clover"
         build
     fi
