@@ -427,55 +427,33 @@ printCloverScriptRev() {
 }
 # --------------------------------------
 printRevisions() {
+	local Clover_Remote Clover_Local EDK2_Remote EDK2_Local
     # get the revisions
 	getRev "remote_local"
-	if [[ ${1} == *"Clover"* ]]; then
-		# Remote
-    	if [ -z "${REMOTE_REV}" ]; then
-        	PING_RESPONSE="NO"
-        	printError "Something went wrong while getting the CLOVER remote revision,\ncheck your internet connection!\n"
-		else
-       	 	PING_RESPONSE="YES"
-      	  	printMessage "CLOVER\tRemote revision: ${REMOTE_REV}"
-		fi
-    	# Local
-    	if [ -z "${LOCAL_REV}" ]; then
-    		printError "\nSomething went wrong while getting the CLOVER local revision!\n"
-    	else
-			if [ -z "${REMOTE_REV}" ]; then
-				printWarning "CLOVER\tLocal revision: ${LOCAL_REV}"
-			else
-        		[ "${LOCAL_REV}" == "${REMOTE_REV}" ] && printMessage "\tLocal revision: ${LOCAL_REV}" || printWarning "\tLocal revision: ${LOCAL_REV}"
-			fi
-		fi
-	fi
-	if [[ ${1} == *"Edk2"* ]]; then
-		# Remote
-    	if [ -z "${REMOTE_EDK2_REV}" ]; then
-        	PING_RESPONSE="NO"
-        	printError "\nSomething went wrong while getting the EDK2 remote revision,\ncheck your internet connection!\n"
-		else
-       	 	PING_RESPONSE="YES"
-      	  	printMessage "\nEDK2\tRemote revision: ${REMOTE_EDK2_REV}"
-		fi
-    	# Local
-    	if [ -z "${LOCAL_EDK2_REV}" ]; then
-    		printError "\nSomething went wrong while getting the EDK2 local revision!\n"
-    	else
-			if [ -z "${REMOTE_EDK2_REV}" ]; then
-				printWarning "EDK2\tLocal revision: ${LOCAL_EDK2_REV}\n"
-			else
-				[ "${LOCAL_EDK2_REV}" == "${REMOTE_EDK2_REV}" ] && printMessage "\tLocal revision: ${LOCAL_EDK2_REV}\n" || printWarning "\tLocal revision: ${LOCAL_EDK2_REV}\n"
-			fi
-		fi
-		# Is the current local Edk2 revision the suggested one?
-		if [ "${LOCAL_EDK2_REV}" == "${EDK2_REV}" ]; then
-			printMessage "\nThe current local EDK2 revision is the suggested one (${EDK2_REV})."
-		else
-			printWarning "\n\e[5mThe current local EDK2 revision is not the suggested one (${EDK2_REV})!"
-			printWarning "\nIt's recommended to change it to the suggested one,"
-			printWarning "\nusing the \e[1;32mupdate Clover + force edk2 update\e[1;33m option!"
-		fi
+	
+	[ -z "$REMOTE_REV" ] && { PING_RESPONSE="NO"; Clover_Remote="\e[1;31munknown"; } || { PING_RESPONSE="YES"; Clover_Remote="$REMOTE_REV"; }
+	[ -z "$LOCAL_REV" ] && Clover_Local="\e[1;31munknown" || Clover_Local="$LOCAL_REV"
+	[ -z "$REMOTE_EDK2_REV" ] && { PING_RESPONSE="NO"; EDK2_Remote="\e[1;31munknown"; } || { PING_RESPONSE="YES"; EDK2_Remote="$REMOTE_EDK2_REV"; }
+	[ -z "$LOCAL_EDK2_REV" ] && EDK2_Local="\e[1;31munknown" } || EDK2_Local="$LOCAL_EDK2_REV"
+	
+	[ "${Clover_Local}" == "${Clover_Remote}" ] && Clover_Local="\e[1;32m${Clover_Local}" || Clover_Local="\e[1;33m${Clover_Local}"
+	[ "${EDK2_Local}" == "${EDK2_Remote}" ] && EDK2_Local="\e[1;32m${EDK2_Local}" || EDK2_Local="\e[1;33m${EDK2_Local}"
+		
+	printf "\e[1;32mCLOVER\tRemote revision: %b\t\e[1;32mLocal revision: %b\e[0m" "${Clover_Remote}" "${Clover_Local}"
+	printf "\n\e[1;32mEDK2\tRemote revision: %b\t\e[1;32mLocal revision: %b\e[0m\n" "${EDK2_Remote}" "${EDK2_Local}"
+	
+	[ "$Clover_Remote" == "\e[1;31munknown" ] && printError "Something went wrong while getting the CLOVER remote revision,\ncheck your internet connection!\n"
+	[ "$Clover_Local" == "\e[1;31munknown" ] && printError "Something went wrong while getting the CLOVER local revision!\n"
+	[ "$EDK2_Remote" == "\e[1;31munknown" ] && printError "Something went wrong while getting the EDK2 remote revision,\ncheck your internet connection!\n"
+	[ "$EDK2_Local" == "\e[1;31munknown" ] && printError "Something went wrong while getting the EDK2 local revision!\n"
+	echo
+	
+	if [ "${LOCAL_EDK2_REV}" == "${EDK2_REV}" ]; then
+		printMessage "The current local EDK2 revision is the suggested one (${EDK2_REV})."
+	else
+		printWarning "\e[5mThe current local EDK2 revision is not the suggested one (${EDK2_REV})!"
+		printWarning "\nIt's recommended to change it to the suggested one,"
+		printWarning "\nusing the \e[1;32mupdate Clover + force edk2 update\e[1;33m option!"
 	fi
 	printLine
 }
@@ -605,6 +583,7 @@ getRev() {
         fi
     else
         REMOTE_REV=""
+		REMOTE_EDK2_REV=""
     fi
 
     if [[ ${Arg} == *"local"* ]]; then
@@ -613,7 +592,8 @@ getRev() {
             LOCAL_REV=$(svn info "${DIR_MAIN}"/edk2/Clover | grep '^Revision:' | tr -cd [:digit:])
 			LOCAL_EDK2_REV=$(svn info "${DIR_MAIN}"/edk2 | grep '^Revision:' | tr -cd [:digit:])
         else
-            LOCAL_REV="0"
+            LOCAL_REV=""
+			LOCAL_EDK2_REV=""
         fi
     fi
     if [[ ${Arg} == *"basetools"* ]]; then
@@ -622,12 +602,12 @@ getRev() {
         elif [[ -d "${DIR_MAIN}"/edk2/BaseTools/.git ]]; then
             BaseToolsRev=$(git svn find-rev git-svn "${DIR_MAIN}"/edk2/BaseTools | tr -cd [:digit:])
         else
-            BaseToolsRev="0"
+            BaseToolsRev=""
         fi
     fi
 }
 # print the remote and the local revision
-printRevisions "Edk2_Clover"
+printRevisions
 
 # ---------------------------->
 # --------------------------------------
@@ -1167,7 +1147,7 @@ clover() {
             fi
         else
             case ${LOCAL_REV} in
-				"0")	printHeader 'Clover local repo not found or damaged, downloading the latest revision'
+				"")	printHeader 'Clover local repo not found or damaged, downloading the latest revision'
 						rm -rf "${DIR_MAIN}"/edk2/Clover/* > /dev/null 2>&1
 						cmd="svn co -r $REMOTE_REV --non-interactive --trust-server-cert ${CLOVER_REP} ." ;;
             	*)		printHeader 'Updating Clover, using the latest revision'
@@ -1177,7 +1157,7 @@ clover() {
     else
         if [[ -d "${DIR_MAIN}/edk2/Clover" ]] ; then
 			case ${LOCAL_REV} in
-				"0")	printHeader "Clover local repo not found or damaged, downloading the specific revision r${SUGGESTED_CLOVER_REV}"
+				"")	printHeader "Clover local repo not found or damaged, downloading the specific revision r${SUGGESTED_CLOVER_REV}"
 						rm -rf "${DIR_MAIN}"/edk2/Clover/* > /dev/null 2>&1
 						cmd="svn co -r $SUGGESTED_CLOVER_REV --non-interactive --trust-server-cert ${CLOVER_REP} ." ;;
             	*)		printHeader "Updating Clover, using the specific revision r${SUGGESTED_CLOVER_REV}"
@@ -1848,7 +1828,7 @@ build() {
     if [[ "$BUILD_FLAG" == NO ]]; then
         clear
         # print updated remote and local revision
-        printRevisions "Edk2_Clover"
+        printRevisions
         build
     fi
 
