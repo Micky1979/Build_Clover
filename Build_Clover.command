@@ -264,10 +264,7 @@ macros=(
 if [[ "$SYSNAME" == Linux ]]; then
     macros+=('DISABLE_LTO')
 fi
-# <----------------------------
-# Separators lines
-ThickLine='==============================================================================='
-Line='                          <----------------------------------------------------'
+
 # --------------------------------------
 # functions
 # --------------------------------------
@@ -277,10 +274,18 @@ restoreIFS() {
     IFS=$' \t\n';
 }
 # --------------------------------------
+printThickLine() {
+    printf "%s\n" $( for i in {1..80}; do printf "="; done )
+}
+# --------------------------------------
+printLine() {
+    printf "\n%*s\n" 80 $( printf "<"; for i in {1..50}; do printf "-"; done )
+}
+# --------------------------------------
 printHeader() {
-    echo "${ThickLine}"
-    printf "\e[1;34m${1}\e[0m\n"
-    echo "${Line}"
+    printThickLine
+    printf "\e[1;34m${1}\e[0m"
+    printLine
 }
 # --------------------------------------
 printError() {
@@ -398,27 +403,27 @@ printCloverScriptRev() {
         LVALUE=$(echo $SCRIPTVER | tr -cd [:digit:])
         RVALUE=$(echo $RSCRIPTVER | tr -cd [:digit:])
 
-		echo "${ThickLine}"
+		printThickLine
         if IsNumericOnly $RVALUE; then
             # Compare local and remote script version
             if [ $LVALUE -eq $RVALUE ]; then
                 SELF_UPDATE_OPT="NO"
-				printf "${SNameVer}\e[1;32m%*s\e[0m" 53 "No update available."
+				printf "${SNameVer}\e[1;32m%*s\e[0m" 54 "No update available."
             elif [ $LVALUE -gt $RVALUE ]; then
                 SELF_UPDATE_OPT="NO"
-				printf "${SNameVer}\e[1;33m%*s\e[0m" 53 "Wow, are you coming from the future?"
+				printf "${SNameVer}\e[1;33m%*s\e[0m" 54 "Wow, are you coming from the future?"
             else
                 SELF_UPDATE_OPT="YES"
-				printf "${SNameVer}\e[1;5;33m%*s\e[0m" 53 "Update available ($RSCRIPTVER)"
+				printf "${SNameVer}\e[1;5;33m%*s\e[0m" 54 "Update available ($RSCRIPTVER)"
             fi
         else
             printf "${SNameVer}\e[1;31m\n%s\e[0m" "Remote version unavailable due to unknown reasons!"
         fi
     else
-		echo "${ThickLine}"
+		printThickLine
         printf "${SNameVer}\e[1;31m\n%s\n%s\e[0m" "Remote version unavailable, because GitHub is unreachable," "check your internet connection!"
     fi
-	printf "\n${Line}\n"
+	printLine
 }
 # --------------------------------------
 printRevisions() {
@@ -428,21 +433,19 @@ printRevisions() {
 		# Remote
     	if [ -z "${REMOTE_REV}" ]; then
         	PING_RESPONSE="NO"
-        	REMOTE_REV="Something went wrong while getting the CLOVER remote revision,\ncheck your internet connection!"
-        	printError "${REMOTE_REV}\n"
+        	printError "Something went wrong while getting the CLOVER remote revision,\ncheck your internet connection!\n"
 		else
        	 	PING_RESPONSE="YES"
       	  	printMessage "CLOVER\tRemote revision: ${REMOTE_REV}"
 		fi
     	# Local
     	if [ -z "${LOCAL_REV}" ]; then
-  			LOCAL_REV="Something went wrong while getting the CLOVER local revision!"
-    		printError "\n${LOCAL_REV}\n"
+    		printError "\nSomething went wrong while getting the CLOVER local revision!\n"
     	else
-			if [[ "${REMOTE_REV}" =~ ^-?[0-9]+$ ]]; then
-				[ "${LOCAL_REV}" == "${REMOTE_REV}" ] && printMessage "\tLocal revision: ${LOCAL_REV}" || printWarning "\tLocal revision: ${LOCAL_REV}"
+			if [ -z "${REMOTE_REV}" ]; then
+				printWarning "CLOVER\tLocal revision: ${LOCAL_REV}"
 			else
-        		printWarning "CLOVER\tLocal revision: ${LOCAL_REV}"
+        		[ "${LOCAL_REV}" == "${REMOTE_REV}" ] && printMessage "\tLocal revision: ${LOCAL_REV}" || printWarning "\tLocal revision: ${LOCAL_REV}"
 			fi
 		fi
 	fi
@@ -450,21 +453,19 @@ printRevisions() {
 		# Remote
     	if [ -z "${REMOTE_EDK2_REV}" ]; then
         	PING_RESPONSE="NO"
-        	REMOTE_EDK2_REV="Something went wrong while getting the EDK2 remote revision,\ncheck your internet connection!"
-        	printError "\n${REMOTE_EDK2_REV}\n"
+        	printError "\nSomething went wrong while getting the EDK2 remote revision,\ncheck your internet connection!\n"
 		else
        	 	PING_RESPONSE="YES"
       	  	printMessage "\nEDK2\tRemote revision: ${REMOTE_EDK2_REV}"
 		fi
     	# Local
     	if [ -z "${LOCAL_EDK2_REV}" ]; then
-  			LOCAL_EDK2_REV="Something went wrong while getting the EDK2 local revision!"
-    		printError "\n${LOCAL_EDK2_REV}\n"
+    		printError "\nSomething went wrong while getting the EDK2 local revision!\n"
     	else
-			if [[ "${REMOTE_EDK2_REV}" =~ ^-?[0-9]+$ ]]; then
-				[ "${LOCAL_EDK2_REV}" == "${REMOTE_EDK2_REV}" ] && printMessage "\tLocal revision: ${LOCAL_EDK2_REV}\n" || printWarning "\tLocal revision: ${LOCAL_EDK2_REV}\n"
+			if [ -z "${REMOTE_EDK2_REV}" ]; then
+				printWarning "EDK2\tLocal revision: ${LOCAL_EDK2_REV}\n"
 			else
-        		printWarning "EDK2\tLocal revision: ${LOCAL_EDK2_REV}\n"
+				[ "${LOCAL_EDK2_REV}" == "${REMOTE_EDK2_REV}" ] && printMessage "\tLocal revision: ${LOCAL_EDK2_REV}\n" || printWarning "\tLocal revision: ${LOCAL_EDK2_REV}\n"
 			fi
 		fi
 		# Is the current local Edk2 revision the suggested one?
@@ -476,7 +477,7 @@ printRevisions() {
 			printWarning "\nusing the \e[1;32mupdate Clover + force edk2 update\e[1;33m option!"
 		fi
 	fi
-	printf "\n${Line}\n"
+	printLine
 }
 # --------------------------------------
 downloader(){
@@ -774,7 +775,7 @@ showInfo () {
     printf "Warning using the \"R\" mode of this script to create the src folder\n"
     printf "outside the Home folder:\n"
     printf "Blank spaces in the path are not allowed because it will auto-fail!\n"
-    echo "${Line}"
+    printLine
     pressAnyKey '' noclear
     build
 }
