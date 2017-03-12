@@ -421,27 +421,32 @@ printCloverScriptRev() {
 printRevisions() {
 	local Clover_Remote Clover_Local EDK2_Remote EDK2_Local
 	local Unknown="\e[1;31munknown"
-    # get the revisions
+    # Getting the Clover and EDK2 revisions
 	getRev "remote_local"
 	
+	# Checking if the local and remote revisions are empty or not
 	[[ -z "$REMOTE_REV" || -z "$REMOTE_EDK2_REV" ]] && PING_RESPONSE="NO" || PING_RESPONSE="YES"
 	[ -z "$REMOTE_REV" ] && Clover_Remote="$Unknown" || Clover_Remote="$REMOTE_REV"
 	[ -z "$LOCAL_REV" ] && Clover_Local="$Unknown" || Clover_Local="$LOCAL_REV"
 	[ -z "$REMOTE_EDK2_REV" ] && EDK2_Remote="$Unknown" || EDK2_Remote="$REMOTE_EDK2_REV"
 	[ -z "$LOCAL_EDK2_REV" ] && EDK2_Local="$Unknown" } || EDK2_Local="$LOCAL_EDK2_REV"
 	
+	# Coloring the local revisions green (if they're equal to the remote revisions) or yellow (if they're not)
 	[ "${Clover_Local}" == "${Clover_Remote}" ] && Clover_Local="\e[1;32m${Clover_Local}" || Clover_Local="\e[1;33m${Clover_Local}"
 	[ "${EDK2_Local}" == "${EDK2_Remote}" ] && EDK2_Local="\e[1;32m${EDK2_Local}" || EDK2_Local="\e[1;33m${EDK2_Local}"
-		
+	
+	# Printing the results on screen	
 	printf "\e[1;32mCLOVER\tRemote revision: %b\t\e[1;32mLocal revision: %b\e[0m" "${Clover_Remote}" "${Clover_Local}"
 	printf "\n\e[1;32mEDK2\tRemote revision: %b\t\e[1;32mLocal revision: %b\e[0m\n" "${EDK2_Remote}" "${EDK2_Local}"
 	
+	# Printing the error messages in case the local and remote revisions are empty
 	[ "$Clover_Remote" == "$Unknown" ] && printError "Something went wrong while getting the CLOVER remote revision,\ncheck your internet connection!\n"
 	[ "$Clover_Local" == "$Unknown" ] && printError "Something went wrong while getting the CLOVER local revision!\n"
 	[ "$EDK2_Remote" == "$Unknown" ] && printError "Something went wrong while getting the EDK2 remote revision,\ncheck your internet connection!\n"
 	[ "$EDK2_Local" == "$Unknown" ] && printError "Something went wrong while getting the EDK2 local revision!\n"
-	echo
 	
+	# Checking if the local EDK2 revision is the suggested one or not
+	echo
 	if [ "${LOCAL_EDK2_REV}" == "${EDK2_REV}" ]; then
 		printMessage "The current local EDK2 revision is the suggested one (${EDK2_REV})."
 	else
