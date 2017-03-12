@@ -392,30 +392,22 @@ printCloverScriptRev() {
 
     if ping -c 1 github.com >> /dev/null 2>&1; then
         # Retrive and filter remote script version
-        if [[ "$DOWNLOADER_CMD" == wget ]]; then
-            RSDATA=$("${DOWNLOADER_PATH}/${DOWNLOADER_CMD}" $GITHUB -q -O -)
-        elif [[ "$DOWNLOADER_CMD" == curl ]]; then
-            RSDATA=$("${DOWNLOADER_PATH}/${DOWNLOADER_CMD}" -v --silent $GITHUB 2>&1)
-        else
-            return
-        fi
-		RSCRIPTVER='v'$(echo "${RSDATA}" | grep '^SCRIPTVER="v' | tr -cd '.0-9')
+		case "$DOWNLOADER_CMD" in
+			"wget") RSDATA=$("${DOWNLOADER_PATH}/${DOWNLOADER_CMD}" $GITHUB -q -O -);;
+			"curl") RSDATA=$("${DOWNLOADER_PATH}/${DOWNLOADER_CMD}" -v --silent $GITHUB 2>&1);;
+			*) return;;
+		esac
+		RSCRIPTVER=$(echo "${RSDATA}" | grep '^SCRIPTVER="v' | tr -cd '.0-9')
         LVALUE=$(echo $SCRIPTVER | tr -cd [:digit:])
         RVALUE=$(echo $RSCRIPTVER | tr -cd [:digit:])
 
 		printThickLine
         if IsNumericOnly $RVALUE; then
             # Compare local and remote script version
-            if [ $LVALUE -eq $RVALUE ]; then
-                SELF_UPDATE_OPT="NO"
-				printf "${SNameVer}\e[1;32m%*s\e[0m" 54 "No update available."
-            elif [ $LVALUE -gt $RVALUE ]; then
-                SELF_UPDATE_OPT="NO"
-				printf "${SNameVer}\e[1;33m%*s\e[0m" 54 "Wow, are you coming from the future?"
-            else
-                SELF_UPDATE_OPT="YES"
-				printf "${SNameVer}\e[1;5;33m%*s\e[0m" 54 "Update available ($RSCRIPTVER)"
-            fi
+			[ $LVALUE -ge $RVALUE ] && SELF_UPDATE_OPT="NO" || SELF_UPDATE_OPT="YES"
+            [ $LVALUE -eq $RVALUE ] && printf "${SNameVer}\e[1;32m%*s\e[0m" 54 "No update available."
+			[ $LVALUE -gt $RVALUE ] && printf "${SNameVer}\e[1;33m%*s\e[0m" 54 "Wow, are you coming from the future?"
+            [ $LVALUE -lt $RVALUE ] && printf "${SNameVer}\e[1;5;33m%*s\e[0m" 54 "Update available (v$RSCRIPTVER)"
         else
             printf "${SNameVer}\e[1;31m\n%s\e[0m" "Remote version unavailable due to unknown reasons!"
         fi
@@ -428,13 +420,15 @@ printCloverScriptRev() {
 # --------------------------------------
 printRevisions() {
 	local Clover_Remote Clover_Local EDK2_Remote EDK2_Local
+	local Unknown="\e[1;31munknown"
     # get the revisions
 	getRev "remote_local"
 	
-	[ -z "$REMOTE_REV" ] && { PING_RESPONSE="NO"; Clover_Remote="\e[1;31munknown"; } || { PING_RESPONSE="YES"; Clover_Remote="$REMOTE_REV"; }
-	[ -z "$LOCAL_REV" ] && Clover_Local="\e[1;31munknown" || Clover_Local="$LOCAL_REV"
-	[ -z "$REMOTE_EDK2_REV" ] && { PING_RESPONSE="NO"; EDK2_Remote="\e[1;31munknown"; } || { PING_RESPONSE="YES"; EDK2_Remote="$REMOTE_EDK2_REV"; }
-	[ -z "$LOCAL_EDK2_REV" ] && EDK2_Local="\e[1;31munknown" } || EDK2_Local="$LOCAL_EDK2_REV"
+	[[ -z "$REMOTE_REV" || -z "$REMOTE_EDK2_REV" ]] && PING_RESPONSE="NO" || PING_RESPONSE="YES"
+	[ -z "$REMOTE_REV" ] && Clover_Remote="$Unknown" || Clover_Remote="$REMOTE_REV"
+	[ -z "$LOCAL_REV" ] && Clover_Local="$Unknown" || Clover_Local="$LOCAL_REV"
+	[ -z "$REMOTE_EDK2_REV" ] && EDK2_Remote="$Unknown" || EDK2_Remote="$REMOTE_EDK2_REV"
+	[ -z "$LOCAL_EDK2_REV" ] && EDK2_Local="$Unknown" } || EDK2_Local="$LOCAL_EDK2_REV"
 	
 	[ "${Clover_Local}" == "${Clover_Remote}" ] && Clover_Local="\e[1;32m${Clover_Local}" || Clover_Local="\e[1;33m${Clover_Local}"
 	[ "${EDK2_Local}" == "${EDK2_Remote}" ] && EDK2_Local="\e[1;32m${EDK2_Local}" || EDK2_Local="\e[1;33m${EDK2_Local}"
@@ -442,10 +436,10 @@ printRevisions() {
 	printf "\e[1;32mCLOVER\tRemote revision: %b\t\e[1;32mLocal revision: %b\e[0m" "${Clover_Remote}" "${Clover_Local}"
 	printf "\n\e[1;32mEDK2\tRemote revision: %b\t\e[1;32mLocal revision: %b\e[0m\n" "${EDK2_Remote}" "${EDK2_Local}"
 	
-	[ "$Clover_Remote" == "\e[1;31munknown" ] && printError "Something went wrong while getting the CLOVER remote revision,\ncheck your internet connection!\n"
-	[ "$Clover_Local" == "\e[1;31munknown" ] && printError "Something went wrong while getting the CLOVER local revision!\n"
-	[ "$EDK2_Remote" == "\e[1;31munknown" ] && printError "Something went wrong while getting the EDK2 remote revision,\ncheck your internet connection!\n"
-	[ "$EDK2_Local" == "\e[1;31munknown" ] && printError "Something went wrong while getting the EDK2 local revision!\n"
+	[ "$Clover_Remote" == "$Unknown" ] && printError "Something went wrong while getting the CLOVER remote revision,\ncheck your internet connection!\n"
+	[ "$Clover_Local" == "$Unknown" ] && printError "Something went wrong while getting the CLOVER local revision!\n"
+	[ "$EDK2_Remote" == "$Unknown" ] && printError "Something went wrong while getting the EDK2 remote revision,\ncheck your internet connection!\n"
+	[ "$EDK2_Local" == "$Unknown" ] && printError "Something went wrong while getting the EDK2 local revision!\n"
 	echo
 	
 	if [ "${LOCAL_EDK2_REV}" == "${EDK2_REV}" ]; then
@@ -1582,6 +1576,7 @@ build() {
 
         if [[ "$PING_RESPONSE" == YES ]] && [[ "$BUILDER" != 'slice' ]]; then
             options+=("update Clover only (no building)")
+			options+=("update Clover + force edk2 update (no building)")
         fi
         if [[ "$BUILDER" == 'slice' ]]; then
             printf "   \e[1;97;104m EDK2 revision used r$EDK2_REV latest avaiable is r$REMOTE_EDK2_REV \e[0m\n"
@@ -1600,7 +1595,6 @@ build() {
             options+=("Back to Main Menu")
             options+=("Exit")
         else
-            options+=("update Clover + force edk2 update (no building)")
             options+=("run my script on the source")
             options+=("build existing revision (no update, for testing only)")
             options+=("build existing revision for release (no update, standard build)")
