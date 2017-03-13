@@ -275,11 +275,11 @@ restoreIFS() {
 }
 # --------------------------------------
 printThickLine() {
-    printf "%s\n" $( for i in {1..80}; do printf "="; done )
+    printf "%*s\n" 80 | tr " " "="
 }
 # --------------------------------------
 printLine() {
-    printf "\n%*s\n" 80 $( printf "<"; for i in {1..50}; do printf "-"; done )
+    printf "\n%*s\n" 80 $( printf "<%*s\n" 50 | tr " " "-" )
 }
 # --------------------------------------
 printHeader() {
