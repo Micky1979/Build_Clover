@@ -1,5 +1,5 @@
 #Build_Clover
-A script to build [CloverV2](https://sourceforge.net/p/cloverefiboot/code/HEAD/tree) bootloader under macOS X, Ubuntu 16.04+ and Debian Jessie 8.6+
+A script to build [Clover V2](https://sourceforge.net/p/cloverefiboot/code/HEAD/tree) bootloader under macOS / OS X, Ubuntu 16.04+ and Debian Jessie 8.6+
 
 ##Author
 Micky1979
@@ -58,5 +58,5 @@ Please enter your choice:
  11) Exit
 ```
 ##Other
-**Special thanks to the [InsanelyMac board](http://www.insanelymac.com/forum/topic/313240-build-clovercommand-another-script-to-build-standard-clover-or-customized/ "www.insanelymac.com/forum/topic/313240-build-clovercommand-another-script-to-build-standard-clover-or-customized/") and its members, who are testing the script and report issues.**
+**Special thanks to the [InsanelyMac board](http://www.insanelymac.com/forum/topic/313240-build-clovercommand-another-script-to-build-standard-clover-or-customized/) and its members, who are testing the script and report issues.**
 
