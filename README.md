@@ -16,7 +16,7 @@ Double _click_ the **Build_Clover.command** or _right click_ on the file, **Buil
 
 ``` bash
 ================================================================================
-Build_Clover script v4.3.2                                  No update available.
+Build_Clover script v4.3.3                                  No update available.
                              <--------------------------------------------------
 ================================================================================
 By Micky1979 based on Slice, Zenith432, STLVNUB, JrCs, cecekpawon, Needy,
