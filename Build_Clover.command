@@ -432,8 +432,8 @@ printRevisions() {
 	[ -z "$LOCAL_EDK2_REV" ] && EDK2_Local="$Unknown" } || EDK2_Local="$LOCAL_EDK2_REV"
 	
 	# Coloring the local revisions green (if they're equal to the remote revisions) or yellow (if they're not)
-	[ "${Clover_Local}" == "${Clover_Remote}" ] && Clover_Local="\e[1;32m${Clover_Local}" || Clover_Local="\e[1;33m${Clover_Local}"
-	[ "${EDK2_Local}" == "${EDK2_Remote}" ] && EDK2_Local="\e[1;32m${EDK2_Local}" || EDK2_Local="\e[1;33m${EDK2_Local}"
+	[ "${Clover_Local}" == "${Clover_Remote}" ] && Clover_Remote="\e[1;32m${Clover_Remote}" || Clover_Remote="\e[1;33m${Clover_Remote}"
+	[ "${EDK2_Local}" == "${EDK2_Remote}" ] && EDK2_Remote="\e[1;32m${EDK2_Remote}" || EDK2_Remote="\e[1;33m${EDK2_Remote}"
 	
 	# Printing the results on screen	
 	printf "\e[1;32mCLOVER\tRemote revision: %b\t\e[1;32mLocal revision: %b\e[0m" "${Clover_Remote}" "${Clover_Local}"
