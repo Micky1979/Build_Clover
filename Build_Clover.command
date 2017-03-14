@@ -1804,8 +1804,7 @@ build() {
 
     # show info about the running OS and its gcc
     if [[ "$SYSNAME" == Darwin ]]; then
-        printHeader "Running from: $( sw_vers -productVersion )"
-        printHeader "$( /usr/bin/xcodebuild -version)"
+        printHeader "Running from: macOS $(sw_vers -productVersion)\n$(/usr/bin/xcodebuild -version)"
     elif [[ "$SYSNAME" == Linux ]]; then
         if [[ -x "/usr/bin/lsb_release" ]]; then
             printHeader "Running from: $(lsb_release -sir | sed -e ':a;N;$!ba;s/\n/ /g')"
@@ -1815,7 +1814,10 @@ build() {
     else
         printHeader "Running from: Unknown OS"
     fi
-    printHeader "$( gcc -v )"
+	
+	printHeader "Compiler settings"
+	printf "\e[1;34m%s\e[0m" "$(gcc -v 2>&1)"
+	printLine
 
     if [[ "$BUILDER" != 'slice' ]]; then restoreClover; fi
 
