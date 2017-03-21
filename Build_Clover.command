@@ -393,21 +393,21 @@ printCloverScriptRev() {
     if ping -c 1 github.com >> /dev/null 2>&1; then
         # Retrive and filter remote script version
 		case "$DOWNLOADER_CMD" in
-			"wget") RSDATA=$("${DOWNLOADER_PATH}/${DOWNLOADER_CMD}" $GITHUB -q -O -);;
-			"curl") RSDATA=$("${DOWNLOADER_PATH}/${DOWNLOADER_CMD}" -v --silent $GITHUB 2>&1);;
+			"wget") RSDATA=$( "${DOWNLOADER_PATH}/${DOWNLOADER_CMD}" $GITHUB -q -O - );;
+			"curl") RSDATA=$( "${DOWNLOADER_PATH}/${DOWNLOADER_CMD}" -v --silent $GITHUB 2>&1 );;
 			*) return;;
 		esac
-		RSCRIPTVER=$(echo "${RSDATA}" | grep '^SCRIPTVER="v' | tr -cd '.0-9')
-        LVALUE=$(echo $SCRIPTVER | tr -cd [:digit:])
-        RVALUE=$(echo $RSCRIPTVER | tr -cd [:digit:])
+		RSCRIPTVER=$( echo "${RSDATA}" | grep '^SCRIPTVER="v' | tr -cd '.0-9' )
+        LVALUE=$( echo $SCRIPTVER | tr -cd [:digit:] )
+        RVALUE=$( echo $RSCRIPTVER | tr -cd [:digit:] )
 
 		printThickLine
         if IsNumericOnly $RVALUE; then
             # Compare local and remote script version
-			[ $LVALUE -ge $RVALUE ] && SELF_UPDATE_OPT="NO" || SELF_UPDATE_OPT="YES"
-            [ $LVALUE -eq $RVALUE ] && printf "${SNameVer}\e[1;32m%*s\e[0m" 54 "No update available."
-			[ $LVALUE -gt $RVALUE ] && printf "${SNameVer}\e[1;33m%*s\e[0m" 54 "Wow, are you coming from the future?"
-            [ $LVALUE -lt $RVALUE ] && printf "${SNameVer}\e[1;5;33m%*s\e[0m" 54 "Update available (v$RSCRIPTVER)"
+			[[ $LVALUE -ge $RVALUE ]] && SELF_UPDATE_OPT="NO" || SELF_UPDATE_OPT="YES"
+            [[ $LVALUE -eq $RVALUE ]] && printf "${SNameVer}\e[1;32m%*s\e[0m" 54 "No update available."
+			[[ $LVALUE -gt $RVALUE ]] && printf "${SNameVer}\e[1;33m%*s\e[0m" 54 "Wow, are you coming from the future?"
+            [[ $LVALUE -lt $RVALUE ]] && printf "${SNameVer}\e[1;5;33m%*s\e[0m" 54 "Update available (v$RSCRIPTVER)"
         else
             printf "${SNameVer}\e[1;31m\n%s\e[0m" "Remote version unavailable due to unknown reasons!"
         fi
@@ -426,28 +426,28 @@ printRevisions() {
 	
 	# Checking if the local and remote revisions are empty or not
 	[[ -z "$REMOTE_REV" || -z "$REMOTE_EDK2_REV" ]] && PING_RESPONSE="NO" || PING_RESPONSE="YES"
-	[ -z "$REMOTE_REV" ] && Clover_Remote="$Unknown" || Clover_Remote="$REMOTE_REV"
-	[ -z "$LOCAL_REV" ] && Clover_Local="$Unknown" || Clover_Local="$LOCAL_REV"
-	[ -z "$REMOTE_EDK2_REV" ] && EDK2_Remote="$Unknown" || EDK2_Remote="$REMOTE_EDK2_REV"
-	[ -z "$LOCAL_EDK2_REV" ] && EDK2_Local="$Unknown" } || EDK2_Local="$LOCAL_EDK2_REV"
+	[[ -z "$REMOTE_REV" ]] && Clover_Remote="$Unknown" || Clover_Remote="$REMOTE_REV"
+	[[ -z "$LOCAL_REV" ]] && Clover_Local="$Unknown" || Clover_Local="$LOCAL_REV"
+	[[ -z "$REMOTE_EDK2_REV" ]] && EDK2_Remote="$Unknown" || EDK2_Remote="$REMOTE_EDK2_REV"
+	[[ -z "$LOCAL_EDK2_REV" ]] && EDK2_Local="$Unknown" } || EDK2_Local="$LOCAL_EDK2_REV"
 	
 	# Coloring the local revisions green (if they're equal to the remote revisions) or yellow (if they're not)
-	[ "${Clover_Local}" == "${Clover_Remote}" ] && Clover_Remote="\e[1;32m${Clover_Remote}" || Clover_Remote="\e[1;33m${Clover_Remote}"
-	[ "${EDK2_Local}" == "${EDK2_Remote}" ] && EDK2_Remote="\e[1;32m${EDK2_Remote}" || EDK2_Remote="\e[1;33m${EDK2_Remote}"
+	[[ "${Clover_Local}" == "${Clover_Remote}" ]] && Clover_Remote="\e[1;32m${Clover_Remote}" || Clover_Remote="\e[1;33m${Clover_Remote}"
+	[[ "${EDK2_Local}" == "${EDK2_Remote}" ]] && EDK2_Remote="\e[1;32m${EDK2_Remote}" || EDK2_Remote="\e[1;33m${EDK2_Remote}"
 	
 	# Printing the results on screen	
 	printf "\e[1;32mCLOVER\tRemote revision: %b\t\e[1;32mLocal revision: %b\e[0m" "${Clover_Remote}" "${Clover_Local}"
 	printf "\n\e[1;32mEDK2\tRemote revision: %b\t\e[1;32mLocal revision: %b\e[0m\n" "${EDK2_Remote}" "${EDK2_Local}"
 	
 	# Printing the error messages in case the local and remote revisions are empty
-	[ "$Clover_Remote" == "$Unknown" ] && printError "Something went wrong while getting the CLOVER remote revision,\ncheck your internet connection!\n"
-	[ "$Clover_Local" == "$Unknown" ] && printError "Something went wrong while getting the CLOVER local revision!\n"
-	[ "$EDK2_Remote" == "$Unknown" ] && printError "Something went wrong while getting the EDK2 remote revision,\ncheck your internet connection!\n"
-	[ "$EDK2_Local" == "$Unknown" ] && printError "Something went wrong while getting the EDK2 local revision!\n"
+	[[ "$Clover_Remote" == "$Unknown" ]] && printError "Something went wrong while getting the CLOVER remote revision,\ncheck your internet connection!\n"
+	[[ "$Clover_Local" == "$Unknown" ]] && printError "Something went wrong while getting the CLOVER local revision!\n"
+	[[ "$EDK2_Remote" == "$Unknown" ]] && printError "Something went wrong while getting the EDK2 remote revision,\ncheck your internet connection!\n"
+	[[ "$EDK2_Local" == "$Unknown" ]] && printError "Something went wrong while getting the EDK2 local revision!\n"
 	
 	# Checking if the local EDK2 revision is the suggested one or not
 	echo
-	if [ "${LOCAL_EDK2_REV}" == "${EDK2_REV}" ]; then
+	if [[ "${LOCAL_EDK2_REV}" == "${EDK2_REV}" ]]; then
 		printMessage "The current local EDK2 revision is the suggested one (${EDK2_REV})."
 	else
 		printWarning "\e[5mThe current local EDK2 revision is not the suggested one (${EDK2_REV})!"
@@ -1146,26 +1146,26 @@ clover() {
             fi
         else
             case ${LOCAL_REV} in
-				"")	printHeader 'Clover local repo not found or damaged, downloading the latest revision'
+				"")		printHeader 'Clover local repo not found or damaged, downloading the latest revision'
 						rm -rf "${DIR_MAIN}"/edk2/Clover/* > /dev/null 2>&1
 						cmd="svn co -r $REMOTE_REV --non-interactive --trust-server-cert ${CLOVER_REP} ." ;;
             	*)		printHeader 'Updating Clover, using the latest revision'
-						cmd="svn up --accept tf" ;;
+						cmd="svn up --accept tf --non-interactive --trust-server-cert" ;;
 			esac
         fi
     else
-        if [[ -d "${DIR_MAIN}/edk2/Clover" ]] ; then
+        if [[ ! -d "${DIR_MAIN}/edk2/Clover" ]] ; then
+			printHeader "Downloading Clover, using the specific revision r${SUGGESTED_CLOVER_REV}"
+			mkdir -p "${DIR_MAIN}"/edk2/Clover
+            cmd="svn co -r $SUGGESTED_CLOVER_REV --non-interactive --trust-server-cert ${CLOVER_REP} ."
+        else
 			case ${LOCAL_REV} in
-				"")	printHeader "Clover local repo not found or damaged, downloading the specific revision r${SUGGESTED_CLOVER_REV}"
+				"")		printHeader "Clover local repo not found or damaged, downloading the specific revision r${SUGGESTED_CLOVER_REV}"
 						rm -rf "${DIR_MAIN}"/edk2/Clover/* > /dev/null 2>&1
 						cmd="svn co -r $SUGGESTED_CLOVER_REV --non-interactive --trust-server-cert ${CLOVER_REP} ." ;;
             	*)		printHeader "Updating Clover, using the specific revision r${SUGGESTED_CLOVER_REV}"
 						cmd="svn up --accept tf --non-interactive --trust-server-cert -r $SUGGESTED_CLOVER_REV" ;;
 			esac
-        else
-				printHeader "Downloading Clover, using the specific revision r${SUGGESTED_CLOVER_REV}"
-				mkdir -p "${DIR_MAIN}"/edk2/Clover
-                cmd="svn co -r $SUGGESTED_CLOVER_REV --non-interactive --trust-server-cert ${CLOVER_REP} ."
         fi
     fi
 
