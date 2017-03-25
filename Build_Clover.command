@@ -104,7 +104,82 @@ edk2array=(
             FatPkg
             BaseTools
             )
-# <----------------------------
+
+# default paths (don't touch these vars)
+# first check for our path
+if [[ "$MODE" == "S" ]]; then
+    export DIR_MAIN=${DIR_MAIN:-"${HOME}"/src}
+elif [[ "$MODE" == "R" ]]; then
+    # Rehabman wants the script path as the place for the edk2 source!
+    # check if $0 is a symlink
+    if [[ -L "${0}" ]]; then
+        if [[ "$SYSNAME" == Linux ]]; then
+            cd "$(dirname $(readlink -f ${0}))"
+        else
+            cd "$(dirname $(readlink ${0}))"
+        fi
+    else
+        cd "$(dirname ${0})"
+    fi
+    export DIR_MAIN="$(pwd)"/src
+
+    if [[ "${DIR_MAIN}" = "${DIR_MAIN%[[:space:]]*}" ]]; then
+        echo "good, no blank spaces in DIR_MAIN, continuing.."
+    else
+        clear
+        printError "Error: MODE=\"R\" require a path with no spaces in the middle, exiting!\n"
+        exit 1
+    fi
+else
+    clear
+    printError "Error: unsupported MODE\n"
+    exit 1
+fi
+
+SVN_STDERR_LOG="${DIR_MAIN}/svnLog.txt"
+CLOVERV2_PATH="${DIR_MAIN}/edk2/Clover/CloverPackage/CloverV2"
+PKG_PATH="${DIR_MAIN}/edk2/Clover/CloverPackage/package"
+LOCALIZABLE_FILE="${PKG_PATH}/Resources/templates/Localizable.strings"
+ebuildB="${DIR_MAIN}/edk2/Clover/ebuildBorg.sh"
+ebuild="${DIR_MAIN}/edk2/Clover/ebuild.sh"
+CLOVER_REP="svn://svn.code.sf.net/p/cloverefiboot/code"
+EDK2_REP="svn://svn.code.sf.net/p/edk2/code/trunk/edk2"
+# ---------------------------->
+# additional macro to compile Clover EFI
+macros=(
+        USE_APPLE_HFSPLUS_DRIVER
+        USE_BIOS_BLOCKIO
+        DISABLE_USB_SUPPORT
+        NO_GRUB_DRIVERS
+        NO_GRUB_DRIVERS_EMBEDDED
+        ONLY_SATA_0
+        DISABLE_UDMA_SUPPORT
+        ENABLE_VBIOS_PATCH_CLOVEREFI
+        ENABLE_PS2MOUSE_LEGACYBOOT
+        DEBUG_ON_SERIAL_PORT
+        ENABLE_SECURE_BOOT
+        USE_ION
+        DISABLE_USB_MASS_STORAGE
+        ENABLE_USB_OHCI
+        ENABLE_USB_XHCI
+        REAL_NVRAM
+        CHECK_FLAGS
+        )
+
+# tools_def.txt provide lto flags for GCC53 in linux
+if [[ "$SYSNAME" == Linux ]]; then
+    macros+=('DISABLE_LTO')
+fi
+
+# --------------------------------------
+# FUNCTIONS
+# --------------------------------------
+# usefull before/after creating an array
+# with custom separator
+restoreIFS() {
+    IFS=$' \t\n';
+}
+# --------------------------------------
 IsNumericOnly() {
     if [[ "${1}" =~ ^-?[0-9]+$ ]]; then
         return 0 # no, contains other or is empty
@@ -112,7 +187,7 @@ IsNumericOnly() {
         return 1 # yes is an integer (no matter for bash if there are zeroes at the beginning comparing it as integer)
     fi
 }
-# ---------------------------->
+# --------------------------------------
 pressAnyKey(){
     if [[ "${2}" != noclear ]]; then
         clear
@@ -121,7 +196,7 @@ pressAnyKey(){
     read -rsp $'Press any key to continue...\n' -n1 key
     clear
 }
-
+# --------------------------------------
 selfUpdate() {
     printHeader "SELF UPDATE"
     local SELF_PATH="${0}"
@@ -198,81 +273,6 @@ selfUpdate() {
     fi
     rm -f /tmp/Build_Clover.txt
 }
-# <----------------------------
-# default paths (don't touch these vars)
-# first check for our path
-if [[ "$MODE" == "S" ]]; then
-    export DIR_MAIN=${DIR_MAIN:-"${HOME}"/src}
-elif [[ "$MODE" == "R" ]]; then
-    # Rehabman wants the script path as the place for the edk2 source!
-    # check if $0 is a symlink
-    if [[ -L "${0}" ]]; then
-        if [[ "$SYSNAME" == Linux ]]; then
-            cd "$(dirname $(readlink -f ${0}))"
-        else
-            cd "$(dirname $(readlink ${0}))"
-        fi
-    else
-        cd "$(dirname ${0})"
-    fi
-    export DIR_MAIN="$(pwd)"/src
-
-    if [[ "${DIR_MAIN}" = "${DIR_MAIN%[[:space:]]*}" ]]; then
-        echo "good, no blank spaces in DIR_MAIN, continuing.."
-    else
-        clear
-        printError "Error: MODE=\"R\" require a path with no spaces in the middle, exiting!\n"
-        exit 1
-    fi
-else
-    clear
-    printError "Error: unsupported MODE\n"
-    exit 1
-fi
-
-SVN_STDERR_LOG="${DIR_MAIN}/svnLog.txt"
-CLOVERV2_PATH="${DIR_MAIN}/edk2/Clover/CloverPackage/CloverV2"
-PKG_PATH="${DIR_MAIN}/edk2/Clover/CloverPackage/package"
-LOCALIZABLE_FILE="${PKG_PATH}/Resources/templates/Localizable.strings"
-ebuildB="${DIR_MAIN}/edk2/Clover/ebuildBorg.sh"
-ebuild="${DIR_MAIN}/edk2/Clover/ebuild.sh"
-CLOVER_REP="svn://svn.code.sf.net/p/cloverefiboot/code"
-EDK2_REP="svn://svn.code.sf.net/p/edk2/code/trunk/edk2"
-# ---------------------------->
-# additional macro to compile Clover EFI
-macros=(
-        USE_APPLE_HFSPLUS_DRIVER
-        USE_BIOS_BLOCKIO
-        DISABLE_USB_SUPPORT
-        NO_GRUB_DRIVERS
-        NO_GRUB_DRIVERS_EMBEDDED
-        ONLY_SATA_0
-        DISABLE_UDMA_SUPPORT
-        ENABLE_VBIOS_PATCH_CLOVEREFI
-        ENABLE_PS2MOUSE_LEGACYBOOT
-        DEBUG_ON_SERIAL_PORT
-        ENABLE_SECURE_BOOT
-        USE_ION
-        DISABLE_USB_MASS_STORAGE
-        ENABLE_USB_OHCI
-        ENABLE_USB_XHCI
-        REAL_NVRAM
-        CHECK_FLAGS
-        )
-
-# tools_def.txt provide lto flags for GCC53 in linux
-if [[ "$SYSNAME" == Linux ]]; then
-    macros+=('DISABLE_LTO')
-fi
-
-# --------------------------------------
-# functions
-# --------------------------------------
-# usefull before/after creating an array
-# with custom separator
-restoreIFS() {
-    IFS=$' \t\n';
-}
 # --------------------------------------
 printThickLine() {
     printf "%*s\n" 80 | tr " " "="
@@ -300,13 +300,6 @@ printWarning() {
 printMessage() {
 printf "\e[1;32m${1}\e[0m\040"
 }
-# --------------------------------------
-# don't use sudo!
-if [[ $EUID -eq 0 ]]; then
-    echo
-    printError "\nThis script should not be run using sudo!!\n"
-    exit 1
-fi
 # --------------------------------------
 addSymlink() {
     local cmd="sudo ln -nfs"
@@ -518,17 +511,6 @@ aptInstall() {
     sudo -k
 }
 # --------------------------------------
-clear
-# print local Script revision with relative info
-printCloverScriptRev
-printHeader "By Micky1979 based on Slice, Zenith432, STLVNUB, JrCs, cecekpawon, Needy,\ncvad, Rehabman, philip_petev, ErmaC\n\nSupported OSes: macOS X, Ubuntu (16.04/16.10), Debian Jessie (8.4/8.5/8.6/8.7)"
-
-if [[ "$GITHUB" == *"Test_Script_dont_use.command"* ]];then
-    printError "This script is for testing only and may be outdated,\n"
-    printError "use the regular one at:\n"
-    printError "http://www.insanelymac.com/forum/files/download/589-build-clovercommand/\n"
-fi
-# ---------------------------->
 # Upgrage SVN working copy
 svnUpgrade () {
     # make sure that a svn working directory exists
@@ -556,6 +538,7 @@ svnUpgrade () {
 		fi
 	fi
 }
+# --------------------------------------
 # Remote and local revisions
 getRev() {
     # for svn 1.9 and higher
@@ -608,10 +591,6 @@ getRev() {
         fi
     fi
 }
-# print the remote and the local revision
-if [[ -d "${DIR_MAIN}"/edk2 ]]; then printRevisions; fi;
-
-# ---------------------------->
 # --------------------------------------
 selectArch () {
     restoreIFS
@@ -819,12 +798,6 @@ checkXcode () {
 
     restoreIFS
 }
-# --------------------------------------
-if [[ "$SYSNAME" == Darwin ]]; then
-    checkXcode
-else
-    BUILDTOOL="GCC53" # ovverride, no chance to use Xcode in linux :-)
-fi
 # --------------------------------------
 doSomething() {
 # $1 = option
@@ -1247,7 +1220,7 @@ needNASM() {
 
     return $needInstall
 }
-
+# --------------------------------------
 isNASMGood() {
     # nasm should be greater or equal to 2.12.02 to be good building Clover.
     # There was a bad macho relocation in outmacho.c, fixed by Zenith432
@@ -1297,7 +1270,6 @@ isNASMGood() {
 }
 # --------------------------------------
 ebuildBorg () {
-
     if [[ "$MOD_PKG_FLAG" != YES ]]; then
         return
     fi
@@ -1380,7 +1352,7 @@ ebuildBorg () {
     fi
     set -e
 }
-
+# --------------------------------------
 restoreClover () {
     if [[ -f "${LOCALIZABLE_FILE}.back" ]]; then
         mv -f "${LOCALIZABLE_FILE}.back" "${LOCALIZABLE_FILE}"
@@ -1954,5 +1926,34 @@ build() {
 }
 
 # --------------------------------------
+# MAIN CODE
+# --------------------------------------
+
+# don't use sudo!
+if [[ $EUID -eq 0 ]]; then
+    printError "\nThis script should not be run using sudo!!\n\n"
+    exit 1
+fi
+
+clear
+
+# print local Script revision with relative info
+printCloverScriptRev
+printHeader "By Micky1979 based on Slice, Zenith432, STLVNUB, JrCs, cecekpawon, Needy,\ncvad, Rehabman, philip_petev, ErmaC\n\nSupported OSes: macOS X, Ubuntu (16.04/16.10), Debian Jessie (8.4/8.5/8.6/8.7)"
+
+if [[ "$GITHUB" == *"Test_Script_dont_use.command"* ]];then
+    printError "This script is for testing only and may be outdated,\n"
+    printError "use the regular one at:\n"
+    printError "http://www.insanelymac.com/forum/files/download/589-build-clovercommand/\n"
+fi
+
+# print the remote and the local revision
+if [[ -d "${DIR_MAIN}"/edk2 ]]; then printRevisions; fi;
+
+if [[ "$SYSNAME" == Darwin ]]; then
+    checkXcode
+else
+    BUILDTOOL="GCC53" # ovverride, no chance to use Xcode in linux :-)
+fi
 
 build
