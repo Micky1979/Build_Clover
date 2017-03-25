@@ -589,9 +589,12 @@ getRev() {
         # Local
         if [[ -d "${DIR_MAIN}"/edk2/Clover/.svn ]]; then
             LOCAL_REV=$(svn info "${DIR_MAIN}"/edk2/Clover | grep '^Revision:' | tr -cd [:digit:])
-			LOCAL_EDK2_REV=$(svn info "${DIR_MAIN}"/edk2 | grep '^Revision:' | tr -cd [:digit:])
         else
             LOCAL_REV=""
+        fi
+        if [[ -d "${DIR_MAIN}"/edk2/.svn ]]; then
+			LOCAL_EDK2_REV=$(svn info "${DIR_MAIN}"/edk2 | grep '^Revision:' | tr -cd [:digit:])
+        else
 			LOCAL_EDK2_REV=""
         fi
     fi
