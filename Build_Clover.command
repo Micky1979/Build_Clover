@@ -36,7 +36,7 @@ GNU="GCC49"        # GCC49 GCC53
 BUILDTOOL="$XCODE" # XCODE or GNU?      (use $GNU to use GNU gcc, $XCODE to use the choosen Xcode version)
 # in Linux this get overrided and GCC53 used anyway!
 # --------------------------------------
-SCRIPTVER="v4.3.5"
+SCRIPTVER="v4.3.6"
 export LC_ALL=C
 SYSNAME="$( uname )"
 
@@ -429,7 +429,7 @@ printRevisions() {
 	[[ -z "$REMOTE_REV" ]] && Clover_Remote="$Unknown" || Clover_Remote="$REMOTE_REV"
 	[[ -z "$LOCAL_REV" ]] && Clover_Local="$Unknown" || Clover_Local="$LOCAL_REV"
 	[[ -z "$REMOTE_EDK2_REV" ]] && EDK2_Remote="$Unknown" || EDK2_Remote="$REMOTE_EDK2_REV"
-	[[ -z "$LOCAL_EDK2_REV" ]] && EDK2_Local="$Unknown" } || EDK2_Local="$LOCAL_EDK2_REV"
+	[[ -z "$LOCAL_EDK2_REV" ]] && EDK2_Local="$Unknown" || EDK2_Local="$LOCAL_EDK2_REV"
 	
 	# Coloring the local revisions green (if they're equal to the remote revisions) or yellow (if they're not)
 	[[ "${Clover_Local}" == "${Clover_Remote}" ]] && Clover_Remote="\e[1;32m${Clover_Remote}" || Clover_Remote="\e[1;33m${Clover_Remote}"
@@ -606,7 +606,7 @@ getRev() {
     fi
 }
 # print the remote and the local revision
-printRevisions
+if [[ -d "${DIR_MAIN}"/edk2 ]]; then printRevisions; fi;
 
 # ---------------------------->
 # --------------------------------------
@@ -1829,7 +1829,7 @@ build() {
     if [[ "$BUILD_FLAG" == NO ]]; then
         clear
         # print updated remote and local revision
-        printRevisions
+        if [[ -d "${DIR_MAIN}"/edk2 ]]; then printRevisions; fi;
         build
     fi
 
