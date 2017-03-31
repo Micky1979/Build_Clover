@@ -80,6 +80,7 @@ START_BUILD=""
 TIMES=0
 ForceEDK2Update=0 # cause edk2 to be re-updated again if > 0 (handeled by the script in more places)
 SYMLINKPATH='/usr/local/bin/buildclover'
+SCRIPT_ABS_PATH="$( cd $( dirname ${0} ) && echo $( pwd ) )/$( basename ${0} )"
 
 DOWNLOADER_CMD=""
 DOWNLOADER_PATH=""
@@ -302,26 +303,15 @@ printf "\e[1;32m${1}\e[0m\040"
 }
 # --------------------------------------
 addSymlink() {
-    local cmd="sudo ln -nfs"
     clear
     if [[ ! -d "$(dirname $SYMLINKPATH)" ]]; then
         printError "$(dirname $SYMLINKPATH) does not exist, cannot add a symlink..\n"
         pressAnyKey '\n'
         build
     fi
-
-    if [[ -L "${0}" ]]; then
-        if [[ "$SYSNAME" == Linux ]]; then
-            cmd="$cmd $(readlink -f ${0}) $SYMLINKPATH"
-        else
-            cmd="$cmd $(readlink ${0}) $SYMLINKPATH"
-        fi
-    else
-        cmd="$cmd ${0} $SYMLINKPATH"
-    fi
-
     if [[ "$USER" != root ]]; then echo "type your password to add the symlink:"; fi
-    eval "${cmd}"
+	[[ -d "${SYMLINKPATH}" ]] && sudo rm -rf "${SYMLINKPATH}" # just in case there's a folder with the same name
+    eval "sudo ln -nfs \"${SCRIPT_ABS_PATH}\" $SYMLINKPATH"
     if [[ $? -ne 0 ]] ; then
         printError "\no_Ops, something wrong, cannot add the symlink..\n"
         pressAnyKey '\n'
@@ -1523,31 +1513,15 @@ build() {
         if [[ ! -f "$SYMLINKPATH" ]]; then
             options+=("add \"buildclover\" symlink to $(dirname $SYMLINKPATH)")
         else
-            #  ...but may point to another script..
-            local scriptPath="${0}"
-            local symPath=""
-            if [[ -L "${0}" ]]; then
-                if [[ "$SYSNAME" == Linux ]]; then
-                    scriptPath="$(readlink -f ${0})"
-                else
-                    scriptPath="$(readlink ${0})"
-                fi
-            fi
-
-            if [[ ! -L "$SYMLINKPATH" ]]; then
-                # not a symlink..
-                options+=("restore \"buildclover\" symlink")
-            else
-                if [[ "$SYSNAME" == Linux ]]; then
-                    symPath="$(readlink -f ${SYMLINKPATH}))"
-                else
-                    symPath="$(readlink ${SYMLINKPATH}))"
-                fi
-                if [[ "${scriptPath}" != "$(readlink ${SYMLINKPATH})" ]]; then
-                    # script path mismatch..
-                    options+=("update \"buildclover\" symlink")
-                fi
-            fi
+			# such file exists, but is it really symlink
+			if [[ -L "$SYMLINKPATH" ]]; then
+				[[ "$SYSNAME" == Linux ]] && symPath="$(readlink -f ${SYMLINKPATH})" || symPath="$(readlink ${SYMLINKPATH})"
+				# is that symlink pointing to the currently running script
+				[[ "$symPath" != "$SCRIPT_ABS_PATH" ]] && options+=("update \"buildclover\" symlink")
+			else
+				# not a symlink
+				options+=("restore \"buildclover\" symlink")
+			fi
         fi
 
         if [[ "$SELF_UPDATE_OPT" == YES ]]; then
