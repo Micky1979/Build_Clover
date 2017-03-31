@@ -80,7 +80,7 @@ START_BUILD=""
 TIMES=0
 ForceEDK2Update=0 # cause edk2 to be re-updated again if > 0 (handeled by the script in more places)
 SYMLINKPATH='/usr/local/bin/buildclover'
-SCRIPT_ABS_PATH="$( cd $( dirname ${0} ) && echo $( pwd ) )/$( basename ${0} )"
+SCRIPT_ABS_PATH=""
 
 DOWNLOADER_CMD=""
 DOWNLOADER_PATH=""
@@ -177,6 +177,19 @@ fi
 # --------------------------------------
 # usefull before/after creating an array
 # with custom separator
+FindScriptPath () {
+	local s_path s_name l_path
+	local s_orig=$(which "${0}")
+	if [[ -L "$s_orig" ]]; then
+		 [[ "$SYSNAME" == Linux ]] && l_path=$(readlink -f "$s_orig") || l_path=$(readlink "$s_orig")
+		 s_path=$(dirname "$l_path")
+		 s_name=$(basename "$l_path")
+	else
+		 s_path=$(dirname "$s_orig")
+		 s_name=$(basename "$s_orig")
+	fi
+	SCRIPT_ABS_PATH=$( cd "${s_path}" && pwd )/"${s_name}"
+}
 restoreIFS() {
     IFS=$' \t\n';
 }
@@ -1510,6 +1523,7 @@ build() {
         local options=()
 
         # add the option to link the script
+		FindScriptPath
         if [[ ! -f "$SYMLINKPATH" ]]; then
             options+=("add \"buildclover\" symlink to $(dirname $SYMLINKPATH)")
         else
