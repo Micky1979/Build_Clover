@@ -361,7 +361,7 @@ initialChecks() {
         # check whether at least one of curl or wget are installed
         [[ ! -x $(which wget) && ! -x $(which curl) ]] && depend="$depend wget"
 
-		[[ "$depend" != "" ]] && aptInstall "$depend"
+		[[ "$depend" != "" ]] && { clear; aptInstall "$depend"; }
 
         # set the donloader command path
         if [[ -x $(which wget) ]]; then
