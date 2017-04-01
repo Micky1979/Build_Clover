@@ -190,6 +190,7 @@ FindScriptPath () {
 	fi
 	SCRIPT_ABS_PATH=$( cd "${s_path}" && pwd )/"${s_name}"
 }
+# --------------------------------------
 restoreIFS() {
     IFS=$' \t\n';
 }
@@ -327,12 +328,12 @@ addSymlink() {
     eval "sudo ln -nfs \"${SCRIPT_ABS_PATH}\" $SYMLINKPATH"
     if [[ $? -ne 0 ]] ; then
         printError "\no_Ops, something wrong, cannot add the symlink..\n"
-        pressAnyKey '\n'
+        pressAnyKey '\n' noclear
         sudo -k && build
     else
         echo "now is possible to open the Terminal and type \"buildclover\""
         echo "to simply run Build_Clover.command.."
-        pressAnyKey '..the script will be closed to allow you to do that!\n'
+        pressAnyKey '..the script will be closed to allow you to do that!\n' noclear
         sudo -k && exit 0
     fi
 }
