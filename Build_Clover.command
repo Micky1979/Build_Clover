@@ -36,7 +36,7 @@ GNU="GCC49"        # GCC49 GCC53
 BUILDTOOL="$XCODE" # XCODE or GNU?      (use $GNU to use GNU gcc, $XCODE to use the choosen Xcode version)
 # in Linux this get overrided and GCC53 used anyway!
 # --------------------------------------
-SCRIPTVER="v4.3.8"
+SCRIPTVER="v4.3.9"
 export LC_ALL=C
 SYSNAME="$( uname )"
 
@@ -340,25 +340,28 @@ addSymlink() {
 # --------------------------------------
 initialChecks() {
     if [[ "$SYSNAME" == Linux ]]; then
+		local depend=""
         if [[ "$(uname -m)" != x86_64 ]]; then
             printError "\nBuild_Clover.command is tested only on x86_64 architecture, aborting..\n"
             exit 1
         fi
 
         # check if the Universally Unique ID library - headers are installed
-        if [[ "$(apt-cache policy uuid-dev | grep 'Installed: (none)')" =~ 'Installed: (none)' ]]; then
-            aptInstall uuid-dev
-        fi
+        [[ "$(apt-cache policy uuid-dev | grep 'Installed: (none)')" =~ 'Installed: (none)' ]] && depend="uuid-dev"
+
         # check if subversion is installed
-        if [[ ! -x $(which svn) ]]; then
-            aptInstall subversion
-        fi
+        [[ ! -x $(which svn) ]] && depend="$depend subversion"
+
+        # check if python is installed
+        [[ ! -x $(which python) ]] && depend="$depend python"
+
+        # check if gcc is installed
+        [[ ! -x $(which gcc) ]] && depend="$depend build-essential"
 
         # check whether at least one of curl or wget are installed
-        if [[ ! -x $(which wget) ]] && [[ ! -x $(which curl) ]]; then
-            # ok both of them are no currently installed, we prefear wget
-            aptInstall wget
-        fi
+        [[ ! -x $(which wget) && ! -x $(which curl) ]] && depend="$depend wget"
+
+		[[ "$depend" != "" ]] && aptInstall "$depend"
 
         # set the donloader command path
         if [[ -x $(which wget) ]]; then
@@ -380,6 +383,7 @@ initialChecks() {
 # --------------------------------------
 printCloverScriptRev() {
     initialChecks
+	clear
     local LVALUE
     local RVALUE
     local SVERSION
@@ -505,7 +509,7 @@ aptInstall() {
     Y | y)
         if [[ "$USER" != root ]]; then echo "type your password to install:"; fi
         sudo apt-get update 	
-        sudo apt-get install "${1}"
+        sudo apt-get install $1
     ;;
     *)
         printError "Build_Clover cannot go ahead without it/them, process aborted!\n"
@@ -1524,7 +1528,6 @@ build() {
         local options=()
 
         # add the option to link the script
-		FindScriptPath
         if [[ ! -f "$SYMLINKPATH" ]]; then
             options+=("add \"buildclover\" symlink to $(dirname $SYMLINKPATH)")
         else
@@ -1924,7 +1927,7 @@ if [[ $EUID -eq 0 ]]; then
     exit 1
 fi
 
-clear
+FindScriptPath
 
 # print local Script revision with relative info
 printCloverScriptRev
