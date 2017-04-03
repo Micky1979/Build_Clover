@@ -347,21 +347,21 @@ initialChecks() {
         fi
 
         # check if the Universally Unique ID library - headers are installed
-        [[ "$(apt-cache policy uuid-dev | grep 'Installed: (none)')" =~ 'Installed: (none)' ]] && depend="uuid-dev"
+        [[ "$(apt-cache policy uuid-dev | grep 'Installed: (none)')" =~ 'Installed: (none)' ]] && depend+=" uuid-dev"
 
         # check if subversion is installed
-        [[ ! -x $(which svn) ]] && depend="$depend subversion"
+        [[ ! -x $(which svn) ]] && depend+=" subversion"
 
         # check if python is installed
-        [[ ! -x $(which python) ]] && depend="$depend python"
+        [[ ! -x $(which python) ]] && depend+=" python"
 
         # check if gcc is installed
-        [[ ! -x $(which gcc) ]] && depend="$depend build-essential"
+        [[ ! -x $(which gcc) ]] && depend+=" build-essential"
 
         # check whether at least one of curl or wget are installed
-        [[ ! -x $(which wget) && ! -x $(which curl) ]] && depend="$depend wget"
+        [[ ! -x $(which wget) && ! -x $(which curl) ]] && depend+=" wget"
 
-		[[ "$depend" != "" ]] && { clear; aptInstall "$depend"; }
+		if [[ "$depend" != "" ]]; then clear; aptInstall "$depend"; fi
 
         # set the donloader command path
         if [[ -x $(which wget) ]]; then
@@ -499,7 +499,7 @@ aptInstall() {
         return
     fi
     printWarning "Build_Clover need this:\n"
-    printError "${1}\n"
+    printError "${1:1}\n"
     printWarning "..to be installed, but was not found.\n"
     printWarning "Would you allow to install it? (Y/N)\n"
 	
@@ -509,7 +509,7 @@ aptInstall() {
     Y | y)
         if [[ "$USER" != root ]]; then echo "type your password to install:"; fi
         sudo apt-get update 	
-        sudo apt-get install $1
+        sudo apt-get install$1
     ;;
     *)
         printError "Build_Clover cannot go ahead without it/them, process aborted!\n"
