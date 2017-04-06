@@ -31,19 +31,19 @@ printf '\e[8;34;90t'
 # --------------------------------------
 # preferred build tool (gnu or darwin)
 # --------------------------------------
-XCODE="XCODE5"     # XCODE32
-GNU="GCC49"        # GCC49 GCC53
+XCODE="XCODE5"     # XCODE32, XCODE5
+GNU="GCC49"        # GCC49, GCC53
 BUILDTOOL="$XCODE" # XCODE or GNU?      (use $GNU to use GNU gcc, $XCODE to use the choosen Xcode version)
 # in Linux this get overrided and GCC53 used anyway!
 # --------------------------------------
-SCRIPTVER="v4.2.8"
+SCRIPTVER="v4.4.0 test"
 export LC_ALL=C
 SYSNAME="$( uname )"
 
 BUILDER=$USER # don't touch!
 # <----------------------------
 # Preferences:
-EDK2_REV="23836"   # or any revision supported by Slice (otherwise no claim please)
+EDK2_REV="24132"   # or any revision supported by Slice (otherwise no claim please)
 
 # "SUGGESTED_CLOVER_REV" is used to force the script to updated at the specified revision:
 # REQUIRED is a known edk2 revision (EDK2_REV="XXXXX") compatible with the "/Clover/Patches_for_EDK2" coming with
@@ -80,6 +80,7 @@ START_BUILD=""
 TIMES=0
 ForceEDK2Update=0 # cause edk2 to be re-updated again if > 0 (handeled by the script in more places)
 SYMLINKPATH='/usr/local/bin/buildclover'
+SCRIPT_ABS_PATH=""
 
 DOWNLOADER_CMD=""
 DOWNLOADER_PATH=""
@@ -104,7 +105,96 @@ edk2array=(
             FatPkg
             BaseTools
             )
-# <----------------------------
+
+# default paths (don't touch these vars)
+# first check for our path
+if [[ "$MODE" == "S" ]]; then
+    export DIR_MAIN=${DIR_MAIN:-"${HOME}"/src}
+elif [[ "$MODE" == "R" ]]; then
+    # Rehabman wants the script path as the place for the edk2 source!
+    # check if $0 is a symlink
+    if [[ -L "${0}" ]]; then
+        if [[ "$SYSNAME" == Linux ]]; then
+            cd "$(dirname $(readlink -f ${0}))"
+        else
+            cd "$(dirname $(readlink ${0}))"
+        fi
+    else
+        cd "$(dirname ${0})"
+    fi
+    export DIR_MAIN="$(pwd)"/src
+
+    if [[ "${DIR_MAIN}" = "${DIR_MAIN%[[:space:]]*}" ]]; then
+        echo "good, no blank spaces in DIR_MAIN, continuing.."
+    else
+        clear
+        printError "Error: MODE=\"R\" require a path with no spaces in the middle, exiting!\n"
+        exit 1
+    fi
+else
+    clear
+    printError "Error: unsupported MODE\n"
+    exit 1
+fi
+
+SVN_STDERR_LOG="${DIR_MAIN}/svnLog.txt"
+CLOVERV2_PATH="${DIR_MAIN}/edk2/Clover/CloverPackage/CloverV2"
+PKG_PATH="${DIR_MAIN}/edk2/Clover/CloverPackage/package"
+LOCALIZABLE_FILE="${PKG_PATH}/Resources/templates/Localizable.strings"
+ebuildB="${DIR_MAIN}/edk2/Clover/ebuildBorg.sh"
+ebuild="${DIR_MAIN}/edk2/Clover/ebuild.sh"
+CLOVER_REP="svn://svn.code.sf.net/p/cloverefiboot/code"
+EDK2_REP="svn://svn.code.sf.net/p/edk2/code/trunk/edk2"
+# ---------------------------->
+# additional macro to compile Clover EFI
+macros=(
+        USE_APPLE_HFSPLUS_DRIVER
+        USE_BIOS_BLOCKIO
+        DISABLE_USB_SUPPORT
+        NO_GRUB_DRIVERS
+        NO_GRUB_DRIVERS_EMBEDDED
+        ONLY_SATA_0
+        DISABLE_UDMA_SUPPORT
+        ENABLE_VBIOS_PATCH_CLOVEREFI
+        ENABLE_PS2MOUSE_LEGACYBOOT
+        DEBUG_ON_SERIAL_PORT
+        ENABLE_SECURE_BOOT
+        USE_ION
+        DISABLE_USB_MASS_STORAGE
+        ENABLE_USB_OHCI
+        ENABLE_USB_XHCI
+        REAL_NVRAM
+        CHECK_FLAGS
+        )
+
+# tools_def.txt provide lto flags for GCC53 in linux
+if [[ "$SYSNAME" == Linux ]]; then
+    macros+=('DISABLE_LTO')
+fi
+
+# --------------------------------------
+# FUNCTIONS
+# --------------------------------------
+# usefull before/after creating an array
+# with custom separator
+FindScriptPath () {
+	local s_path s_name l_path
+	local s_orig=$(which "${0}")
+	if [[ -L "$s_orig" ]]; then
+		 [[ "$SYSNAME" == Linux ]] && l_path=$(readlink -f "$s_orig") || l_path=$(readlink "$s_orig")
+		 s_path=$(dirname "$l_path")
+		 s_name=$(basename "$l_path")
+	else
+		 s_path=$(dirname "$s_orig")
+		 s_name=$(basename "$s_orig")
+	fi
+	SCRIPT_ABS_PATH=$( cd "${s_path}" && pwd )/"${s_name}"
+}
+# --------------------------------------
+restoreIFS() {
+    IFS=$' \t\n';
+}
+# --------------------------------------
 IsNumericOnly() {
     if [[ "${1}" =~ ^-?[0-9]+$ ]]; then
         return 0 # no, contains other or is empty
@@ -112,7 +202,7 @@ IsNumericOnly() {
         return 1 # yes is an integer (no matter for bash if there are zeroes at the beginning comparing it as integer)
     fi
 }
-# ---------------------------->
+# --------------------------------------
 pressAnyKey(){
     if [[ "${2}" != noclear ]]; then
         clear
@@ -121,7 +211,7 @@ pressAnyKey(){
     read -rsp $'Press any key to continue...\n' -n1 key
     clear
 }
-
+# --------------------------------------
 selfUpdate() {
     printHeader "SELF UPDATE"
     local SELF_PATH="${0}"
@@ -198,161 +288,80 @@ selfUpdate() {
     fi
     rm -f /tmp/Build_Clover.txt
 }
-# <----------------------------
-# default paths (don't touch these vars)
-# first check for our path
-if [[ "$MODE" == "S" ]]; then
-    export DIR_MAIN=${DIR_MAIN:-"${HOME}"/src}
-elif [[ "$MODE" == "R" ]]; then
-    # Rehabman wants the script path as the place for the edk2 source!
-    # check if $0 is a symlink
-    if [[ -L "${0}" ]]; then
-        if [[ "$SYSNAME" == Linux ]]; then
-            cd "$(dirname $(readlink -f ${0}))"
-        else
-            cd "$(dirname $(readlink ${0}))"
-        fi
-    else
-        cd "$(dirname ${0})"
-    fi
-    export DIR_MAIN="$(pwd)"/src
-
-    if [[ "${DIR_MAIN}" = "${DIR_MAIN%[[:space:]]*}" ]]; then
-        echo "good, no blank spaces in DIR_MAIN, continuing.."
-    else
-        clear
-        printError "Error: MODE=\"R\" require a path with no spaces in the middle, exiting!\n"
-        exit 1
-    fi
-else
-    clear
-    printError "Error: unsupported MODE\n"
-    exit 1
-fi
-
-SVN_STDERR_LOG="${DIR_MAIN}/svnLog.txt"
-CLOVERV2_PATH="${DIR_MAIN}/edk2/Clover/CloverPackage/CloverV2"
-PKG_PATH="${DIR_MAIN}/edk2/Clover/CloverPackage/package"
-LOCALIZABLE_FILE="${PKG_PATH}/Resources/templates/Localizable.strings"
-ebuildB="${DIR_MAIN}/edk2/Clover/ebuildBorg.sh"
-ebuild="${DIR_MAIN}/edk2/Clover/ebuild.sh"
-CLOVER_REP="svn://svn.code.sf.net/p/cloverefiboot/code"
-EDK2_REP="svn://svn.code.sf.net/p/edk2/code/trunk/edk2"
-# ---------------------------->
-# additional macro to compile Clover EFI
-macros=(
-        USE_APPLE_HFSPLUS_DRIVER
-        USE_BIOS_BLOCKIO
-        DISABLE_USB_SUPPORT
-        NO_GRUB_DRIVERS
-        NO_GRUB_DRIVERS_EMBEDDED
-        ONLY_SATA_0
-        DISABLE_UDMA_SUPPORT
-        ENABLE_VBIOS_PATCH_CLOVEREFI
-        ENABLE_PS2MOUSE_LEGACYBOOT
-        DEBUG_ON_SERIAL_PORT
-        ENABLE_SECURE_BOOT
-        USE_ION
-        DISABLE_USB_MASS_STORAGE
-        ENABLE_USB_OHCI
-        ENABLE_USB_XHCI
-        REAL_NVRAM
-        CHECK_FLAGS
-        )
-
-# tools_def.txt provide lto flags for GCC53 in linux
-if [[ "$SYSNAME" == Linux ]]; then
-    macros+=('DISABLE_LTO')
-fi
-# <----------------------------
-# Separators lines
-ThickLine='==============================================================================='
-Line='                          <----------------------------------------------------'
 # --------------------------------------
-# functions
+printThickLine() {
+    printf "%*s\n" 80 | tr " " "="
+}
 # --------------------------------------
-# usefull before/after creating an array
-# with custom separator
-restoreIFS() {
-    IFS=$' \t\n';
+printLine() {
+    printf "\n%*s\n" 80 $( printf "<%*s\n" 50 | tr " " "-" )
 }
 # --------------------------------------
 printHeader() {
-    echo "${ThickLine}"
-    printf "\033[1;34m${1}\033[0m\n"
-    echo "${Line}"
+    printThickLine
+    printf "\e[1;34m${1}\e[0m"
+    printLine
 }
 # --------------------------------------
 printError() {
-    printf "\033[1;31m${1}\033[0m"
+    printf "\e[1;31m${1}\e[0m"
 #    exit 1
 }
 # --------------------------------------
 printWarning() {
-    printf "\033[1;33m${1}\033[0m"
+    printf "\e[1;33m${1}\e[0m"
 }
 # --------------------------------------
-# don't use sudo!
-if [[ $EUID -eq 0 ]]; then
-    echo
-    printError "\nThis script should not be run using sudo!!\n"
-    exit 1
-fi
+printMessage() {
+printf "\e[1;32m${1}\e[0m\040"
+}
 # --------------------------------------
 addSymlink() {
-    local cmd="sudo ln -nfs"
     clear
     if [[ ! -d "$(dirname $SYMLINKPATH)" ]]; then
         printError "$(dirname $SYMLINKPATH) does not exist, cannot add a symlink..\n"
         pressAnyKey '\n'
         build
     fi
-
-    if [[ -L "${0}" ]]; then
-        if [[ "$SYSNAME" == Linux ]]; then
-            cmd="$cmd $(readlink -f ${0}) $SYMLINKPATH"
-        else
-            cmd="$cmd $(readlink ${0}) $SYMLINKPATH"
-        fi
-    else
-        cmd="$cmd ${0} $SYMLINKPATH"
-    fi
-
     if [[ "$USER" != root ]]; then echo "type your password to add the symlink:"; fi
-    eval "${cmd}"
+	[[ -d "${SYMLINKPATH}" ]] && sudo rm -rf "${SYMLINKPATH}" # just in case there's a folder with the same name
+    eval "sudo ln -nfs \"${SCRIPT_ABS_PATH}\" $SYMLINKPATH"
     if [[ $? -ne 0 ]] ; then
         printError "\no_Ops, something wrong, cannot add the symlink..\n"
-        pressAnyKey '\n'
+        pressAnyKey '\n' noclear
         sudo -k && build
     else
         echo "now is possible to open the Terminal and type \"buildclover\""
         echo "to simply run Build_Clover.command.."
-        pressAnyKey '..the script will be closed to allow you to do that!\n'
+        pressAnyKey '..the script will be closed to allow you to do that!\n' noclear
         sudo -k && exit 0
     fi
 }
 # --------------------------------------
 initialChecks() {
     if [[ "$SYSNAME" == Linux ]]; then
+		local depend=""
         if [[ "$(uname -m)" != x86_64 ]]; then
             printError "\nBuild_Clover.command is tested only on x86_64 architecture, aborting..\n"
             exit 1
         fi
 
         # check if the Universally Unique ID library - headers are installed
-        if [[ "$(apt-cache policy uuid-dev | grep 'Installed: (none)')" =~ 'Installed: (none)' ]]; then
-            aptInstall uuid-dev
-        fi
+        [[ "$(apt-cache policy uuid-dev | grep 'Installed: (none)')" =~ 'Installed: (none)' ]] && depend="uuid-dev"
+
         # check if subversion is installed
-        if [[ ! -x $(which svn) ]]; then
-            aptInstall subversion
-        fi
+        [[ ! -x $(which svn) ]] && depend="$depend subversion"
+
+        # check if python is installed
+        [[ ! -x $(which python) ]] && depend="$depend python"
+
+        # check if gcc is installed
+        [[ ! -x $(which gcc) ]] && depend="$depend build-essential"
 
         # check whether at least one of curl or wget are installed
-        if [[ ! -x $(which wget) ]] && [[ ! -x $(which curl) ]]; then
-            # ok both of them are no currently installed, we prefear wget
-            aptInstall wget
-        fi
+        [[ ! -x $(which wget) && ! -x $(which curl) ]] && depend="$depend wget"
+
+		[[ "$depend" != "" ]] && { clear; aptInstall "$depend"; }
 
         # set the donloader command path
         if [[ -x $(which wget) ]]; then
@@ -374,83 +383,79 @@ initialChecks() {
 # --------------------------------------
 printCloverScriptRev() {
     initialChecks
+	clear
     local LVALUE
     local RVALUE
     local SVERSION
     local RSCRIPTVER
+	local RSDATA
+	local SNameVer="\e[1;34mBuild_Clover script ${SCRIPTVER}\e[0m"
 
     if ping -c 1 github.com >> /dev/null 2>&1; then
         # Retrive and filter remote script version
-        if [[ "$DOWNLOADER_CMD" == wget ]]; then
-            RSCRIPTVER='v'$("${DOWNLOADER_PATH}/${DOWNLOADER_CMD}" $GITHUB -q -O - | grep '^SCRIPTVER="v' | tr -cd '.0-9')
-        elif [[ "$DOWNLOADER_CMD" == curl ]]; then
-            RSCRIPTVER='v'$("${DOWNLOADER_PATH}/${DOWNLOADER_CMD}" -v --silent $GITHUB 2>&1 | grep '^SCRIPTVER="v' | tr -cd '.0-9')
-        else
-            return
-        fi
+		case "$DOWNLOADER_CMD" in
+			"wget") RSDATA=$( "${DOWNLOADER_PATH}/${DOWNLOADER_CMD}" $GITHUB -q -O - );;
+			"curl") RSDATA=$( "${DOWNLOADER_PATH}/${DOWNLOADER_CMD}" -v --silent $GITHUB 2>&1 );;
+			*) return;;
+		esac
+		RSCRIPTVER=$( echo "${RSDATA}" | grep '^SCRIPTVER="v' | tr -cd '.0-9' )
+        LVALUE=$( echo $SCRIPTVER | tr -cd [:digit:] )
+        RVALUE=$( echo $RSCRIPTVER | tr -cd [:digit:] )
 
-        LVALUE=$(echo $SCRIPTVER | tr -cd [:digit:])
-        RVALUE=$(echo $RSCRIPTVER | tr -cd [:digit:])
-
+		printThickLine
         if IsNumericOnly $RVALUE; then
             # Compare local and remote script version
-            if [ $LVALUE -eq $RVALUE ]; then
-                SELF_UPDATE_OPT="NO"
-                SVERSION="\033[1;32m${2}${SCRIPTVER}\033[0m\040 is the latest version avaiable"
-            elif [ $LVALUE -gt $RVALUE ]; then
-                SELF_UPDATE_OPT="NO"
-                SVERSION="${SCRIPTVER} (wow, you coming from the future?)"
-            else
-                SELF_UPDATE_OPT="YES"
-                SVERSION="${SCRIPTVER} a new version $RSCRIPTVER is available for download"
-            fi
+			[[ $LVALUE -ge $RVALUE ]] && SELF_UPDATE_OPT="NO" || SELF_UPDATE_OPT="YES"
+            [[ $LVALUE -eq $RVALUE ]] && printf "${SNameVer}\e[1;32m%*s\e[0m" 54 "No update available."
+			[[ $LVALUE -gt $RVALUE ]] && printf "${SNameVer}\e[1;33m%*s\e[0m" 49 "Wow, are you coming from the future?"
+            [[ $LVALUE -lt $RVALUE ]] && printf "${SNameVer}\e[1;5;33m%*s\e[0m" 54 "Update available (v$RSCRIPTVER)"
         else
-            printError "Build_Clover script ${SCRIPTVER}\n(remote version unavailable due to unknown reasons)\n"
+            printf "${SNameVer}\e[1;31m\n%s\e[0m" "Remote version unavailable due to unknown reasons!"
         fi
     else
-        printError "Build_Clover script ${SCRIPTVER}\n(remote version unavailable because\ngithub is unreachable, check your internet connection)\n"
+		printThickLine
+        printf "${SNameVer}\e[1;31m\n%s\n%s\e[0m" "Remote version unavailable, because GitHub is unreachable," "check your internet connection!"
     fi
-    printHeader "Build_Clover script $SVERSION"
+	printLine
 }
 # --------------------------------------
-printCloverRev() {
-    # get the revisions
-    getRev "remote_local"
-
-    # Remote
-    if [ -z "${REMOTE_REV}" ]; then
-        PING_RESPONSE="NO"
-        REMOTE_REV="Something went wrong while getting the remote revision, check your internet connection!"
-        printError "$REMOTE_REV"
-        printf "\n"
-        # Local
-        if [ -z "${LOCAL_REV}" ]; then
-            LOCAL_REV="Something went wrong while getting the local revision!"
-            printError "$LOCAL_REV"
-        else
-            LOCAL_REV="${LOCAL_REV}"
-            printWarning "${2}${LOCAL_REV}"
-        fi
-    else
-        PING_RESPONSE="YES"
-        REMOTE_REV="${REMOTE_REV}"
-        printf "\033[1;32m${1}${REMOTE_REV}\033[0m\040"
-        # Local
-        if [ -z "${LOCAL_REV}" ]; then
-            LOCAL_REV="\nSomething went wrong while getting the local revision!"
-            printError "$LOCAL_REV"
-        else
-            LOCAL_REV="${LOCAL_REV}"
-            if [ "${LOCAL_REV}" == "${REMOTE_REV}" ]; then
-                printf "\033[1;32m${2}${LOCAL_REV}\033[0m\040"
-            else
-                printWarning "${2}${LOCAL_REV}"
-            fi
-        fi
-    fi
-
-    printf "\n"
-    echo "${Line}"
+printRevisions() {
+	local Clover_Remote Clover_Local EDK2_Remote EDK2_Local
+	local Unknown="\e[1;31munknown"
+    # Getting the Clover and EDK2 revisions
+	getRev "remote_local"
+	
+	# Checking if the local and remote revisions are empty or not
+	[[ -z "$REMOTE_REV" || -z "$REMOTE_EDK2_REV" ]] && PING_RESPONSE="NO" || PING_RESPONSE="YES"
+	[[ -z "$REMOTE_REV" ]] && Clover_Remote="$Unknown" || Clover_Remote="$REMOTE_REV"
+	[[ -z "$LOCAL_REV" ]] && Clover_Local="$Unknown" || Clover_Local="$LOCAL_REV"
+	[[ -z "$REMOTE_EDK2_REV" ]] && EDK2_Remote="$Unknown" || EDK2_Remote="$REMOTE_EDK2_REV"
+	[[ -z "$LOCAL_EDK2_REV" ]] && EDK2_Local="$Unknown" || EDK2_Local="$LOCAL_EDK2_REV"
+	
+	# Coloring the local revisions green (if they're equal to the remote revisions) or yellow (if they're not)
+	[[ "${Clover_Local}" == "${Clover_Remote}" ]] && Clover_Remote="\e[1;32m${Clover_Remote}" || Clover_Remote="\e[1;33m${Clover_Remote}"
+	[[ "${EDK2_Local}" == "${EDK2_Remote}" ]] && EDK2_Remote="\e[1;32m${EDK2_Remote}" || EDK2_Remote="\e[1;33m${EDK2_Remote}"
+	
+	# Printing the results on screen	
+	printf "\e[1;32mCLOVER\tRemote revision: %b\t\e[1;32mLocal revision: %b\e[0m" "${Clover_Remote}" "${Clover_Local}"
+	printf "\n\e[1;32mEDK2\tRemote revision: %b\t\e[1;32mLocal revision: %b\e[0m\n" "${EDK2_Remote}" "${EDK2_Local}"
+	
+	# Printing the error messages in case the local and remote revisions are empty
+	[[ "$Clover_Remote" == "$Unknown" ]] && printError "Something went wrong while getting the CLOVER remote revision,\ncheck your internet connection!\n"
+	[[ "$Clover_Local" == "$Unknown" ]] && printError "Something went wrong while getting the CLOVER local revision!\n"
+	[[ "$EDK2_Remote" == "$Unknown" ]] && printError "Something went wrong while getting the EDK2 remote revision,\ncheck your internet connection!\n"
+	[[ "$EDK2_Local" == "$Unknown" ]] && printError "Something went wrong while getting the EDK2 local revision!\n"
+	
+	# Checking if the local EDK2 revision is the suggested one or not
+	echo
+	if [[ "${LOCAL_EDK2_REV}" == "${EDK2_REV}" ]]; then
+		printMessage "The current local EDK2 revision is the suggested one (${EDK2_REV})."
+	else
+		printWarning "\e[5mThe current local EDK2 revision is not the suggested one (${EDK2_REV})!"
+		printWarning "\nIt's recommended to change it to the suggested one,"
+		printWarning "\nusing the \e[1;32mupdate Clover + force edk2 update\e[1;33m option!"
+	fi
+	printLine
 }
 # --------------------------------------
 downloader(){
@@ -496,7 +501,7 @@ aptInstall() {
     printWarning "Build_Clover need this:\n"
     printError "${1}\n"
     printWarning "..to be installed, but was not found.\n"
-    printWarning "would you allow to install it? (Y/N)\n"
+    printWarning "Would you allow to install it? (Y/N)\n"
 	
     read answer
 
@@ -504,7 +509,7 @@ aptInstall() {
     Y | y)
         if [[ "$USER" != root ]]; then echo "type your password to install:"; fi
         sudo apt-get update 	
-        sudo apt-get install "${1}"
+        sudo apt-get install $1
     ;;
     *)
         printError "Build_Clover cannot go ahead without it/them, process aborted!\n"
@@ -514,17 +519,6 @@ aptInstall() {
     sudo -k
 }
 # --------------------------------------
-clear
-# print local Script revision with relative info
-printCloverScriptRev
-printHeader "By Micky1979 based on Slice, Zenith432, STLVNUB, JrCs, cecekpawon, Needy,\ncvad, Rehabman, philip_petev, ErmaC\n\nSupported OSes: macOS X, Ubuntu (16.04/16.10), Debian Jessie (8.4/8.5/8.6/8.7)"
-
-if [[ "$GITHUB" == *"Test_Script_dont_use.command"* ]];then
-    printError "This script is for testing only and may be outdated,\n"
-    printError "use the regular one at:\n"
-    printError "http://www.insanelymac.com/forum/files/download/589-build-clovercommand/\n"
-fi
-# ---------------------------->
 # Upgrage SVN working copy
 svnUpgrade () {
     # make sure that a svn working directory exists
@@ -552,6 +546,7 @@ svnUpgrade () {
 		fi
 	fi
 }
+# --------------------------------------
 # Remote and local revisions
 getRev() {
     # for svn 1.9 and higher
@@ -578,6 +573,7 @@ getRev() {
         fi
     else
         REMOTE_REV=""
+		REMOTE_EDK2_REV=""
     fi
 
     if [[ ${Arg} == *"local"* ]]; then
@@ -585,7 +581,12 @@ getRev() {
         if [[ -d "${DIR_MAIN}"/edk2/Clover/.svn ]]; then
             LOCAL_REV=$(svn info "${DIR_MAIN}"/edk2/Clover | grep '^Revision:' | tr -cd [:digit:])
         else
-            LOCAL_REV="0"
+            LOCAL_REV=""
+        fi
+        if [[ -d "${DIR_MAIN}"/edk2/.svn ]]; then
+			LOCAL_EDK2_REV=$(svn info "${DIR_MAIN}"/edk2 | grep '^Revision:' | tr -cd [:digit:])
+        else
+			LOCAL_EDK2_REV=""
         fi
     fi
     if [[ ${Arg} == *"basetools"* ]]; then
@@ -594,13 +595,10 @@ getRev() {
         elif [[ -d "${DIR_MAIN}"/edk2/BaseTools/.git ]]; then
             BaseToolsRev=$(git svn find-rev git-svn "${DIR_MAIN}"/edk2/BaseTools | tr -cd [:digit:])
         else
-            BaseToolsRev="0"
+            BaseToolsRev=""
         fi
     fi
 }
-# print the remote and the local revision
-printCloverRev "Remote revision: " "Local revision: "
-# ---------------------------->
 # --------------------------------------
 selectArch () {
     restoreIFS
@@ -623,7 +621,7 @@ selectArch () {
     do
         case "${op}" in
         'Standard x64 only')
-            printf "\033[1;36m\t ${count}) ${op}\033[0m\n"
+            printf "\e[1;36m\t ${count}) ${op}\e[0m\n"
         ;;
         *)
             printf "\t $count) ${op}\n"
@@ -701,6 +699,7 @@ showInfo () {
     printf "switch back to gcc 4,9 (GCC49).\n"
     printf "UPDATE: actually using XCODE5 LTO is disabled anyway due to problems coming with\n"
     printf "Xcode 8 and new version of clang.\n"
+    printf "UPDATE: switch to XCODE8 toolchain for newer Xcode.\n"
     echo
     printf "Since v3.5 Build_Clover.command is able to build Clover in Ubuntu 16.04 +\n"
     printf "using the built-in gcc and installing some dependecies like nasm, subversion,\n"
@@ -746,7 +745,7 @@ showInfo () {
     printf "Warning using the \"R\" mode of this script to create the src folder\n"
     printf "outside the Home folder:\n"
     printf "Blank spaces in the path are not allowed because it will auto-fail!\n"
-    echo "${Line}"
+    printLine
     pressAnyKey '' noclear
     build
 }
@@ -799,21 +798,17 @@ checkXcode () {
     esac
 
     case "$BUILDTOOL" in
-    XCODE5)
+    XCODE5 | XCODE8)
         if [[ "$NEW_FLAG" == NO ]]; then
             LTO_FLAG="--no-lto"
+        else
+            BUILDTOOL="XCODE8" # override to XCODE8 toolchain!
         fi
     ;;
     esac
 
     restoreIFS
 }
-# --------------------------------------
-if [[ "$SYSNAME" == Darwin ]]; then
-    checkXcode
-else
-    BUILDTOOL="GCC53" # ovverride, no chance to use Xcode in linux :-)
-fi
 # --------------------------------------
 doSomething() {
 # $1 = option
@@ -915,7 +910,7 @@ svnWithErrorCheck() {
     if [[ -n "${2}" ]] && [[ "${3}" != once ]];then
     	if grep -q "Tree conflict can only be resolved to 'working' state" "${SVN_STDERR_LOG}" || \
                 grep -q "Node remains in conflict" "${SVN_STDERR_LOG}"; then
-    		printWarning "calling svn resolve..\n"
+    		printWarning "Calling svn resolve..\n"
             svnWithErrorCheck "svn resolve ${2}" "${2}" once "${1}"
         fi
     fi
@@ -930,7 +925,7 @@ svnWithErrorCheck() {
 
     if [ "${ErrCount}" -ge "1" ];then
         echo
-        printError "an error was encountered syncing the repository:\n"
+        printError "An error was encountered syncing the repository:\n"
         echo "------------------------------"
         echo "$( cat ${SVN_STDERR_LOG} )"
         echo
@@ -951,17 +946,17 @@ IsLinkOnline() {
     fi
 
     ((TIMES+=1))
-    printf "\033[1;35mchecking..\033[0m"
+    printf "\e[1;35mchecking..\e[0m"
     svn info "${1}" > /dev/null
     if [ $? -eq 0 ]; then
-        printf "\033[1;32mavailable, continuing..\033[0m\n"
+        printf "\e[1;32mavailable, continuing..\e[0m\n"
         TIMES=0
         return 1 # Success!
     else
         if [ $TIMES -ge 5 ]; then
-            printError "\nError: unable to access ${$1} after $TIMES attempts:";
-            printError "       Build_Clover go to fail voluntarily to avoid problems,";
-            printError "       check your internet connection or retry later!";
+            printError "\nError: unable to access ${1} after $TIMES attempts.";
+            printError "\nBuild_Clover go to fail voluntarily to avoid problems,";
+            printError "\ncheck your internet connection or retry later!\n\n";
             return 0
         else
             # retry..
@@ -1095,14 +1090,14 @@ edk2() {
     svnWithErrorCheck "svn --depth empty co $revision --non-interactive --trust-server-cert $EDK2_REP ."
 
     echo
-    printf "\033[1;34medksetup.sh:\033[0m\n"
+    printf "\e[1;34medksetup.sh:\e[0m\n"
     IsLinkOnline $EDK2_REP/edksetup.sh
     svnWithErrorCheck "svn update --accept tf --non-interactive --trust-server-cert $revision edksetup.sh"
 
     for d in "${edk2array[@]}"
     do
         if [[ "$d" != "Source" ]] && [[ "$d" != "Scripts" ]]; then
-            printf "\033[1;34m${d}:\033[0m\n"
+            printf "\e[1;34m${d}:\e[0m\n"
             TIMES=0
             IsLinkOnline "$EDK2_REP/${d}"
             cd "${DIR_MAIN}"/edk2
@@ -1138,26 +1133,26 @@ clover() {
             fi
         else
             case ${LOCAL_REV} in
-				"0")	printHeader 'Clover local repo not found or damaged, downloading the latest revision'
+				"")		printHeader 'Clover local repo not found or damaged, downloading the latest revision'
 						rm -rf "${DIR_MAIN}"/edk2/Clover/* > /dev/null 2>&1
 						cmd="svn co -r $REMOTE_REV --non-interactive --trust-server-cert ${CLOVER_REP} ." ;;
             	*)		printHeader 'Updating Clover, using the latest revision'
-						cmd="svn up --accept tf" ;;
+						cmd="svn up --accept tf --non-interactive --trust-server-cert" ;;
 			esac
         fi
     else
-        if [[ -d "${DIR_MAIN}/edk2/Clover" ]] ; then
+        if [[ ! -d "${DIR_MAIN}/edk2/Clover" ]] ; then
+			printHeader "Downloading Clover, using the specific revision r${SUGGESTED_CLOVER_REV}"
+			mkdir -p "${DIR_MAIN}"/edk2/Clover
+            cmd="svn co -r $SUGGESTED_CLOVER_REV --non-interactive --trust-server-cert ${CLOVER_REP} ."
+        else
 			case ${LOCAL_REV} in
-				"0")	printHeader "Clover local repo not found or damaged, downloading the specific revision r${SUGGESTED_CLOVER_REV}"
+				"")		printHeader "Clover local repo not found or damaged, downloading the specific revision r${SUGGESTED_CLOVER_REV}"
 						rm -rf "${DIR_MAIN}"/edk2/Clover/* > /dev/null 2>&1
 						cmd="svn co -r $SUGGESTED_CLOVER_REV --non-interactive --trust-server-cert ${CLOVER_REP} ." ;;
             	*)		printHeader "Updating Clover, using the specific revision r${SUGGESTED_CLOVER_REV}"
 						cmd="svn up --accept tf --non-interactive --trust-server-cert -r $SUGGESTED_CLOVER_REV" ;;
 			esac
-        else
-				printHeader "Downloading Clover, using the specific revision r${SUGGESTED_CLOVER_REV}"
-				mkdir -p "${DIR_MAIN}"/edk2/Clover
-                cmd="svn co -r $SUGGESTED_CLOVER_REV --non-interactive --trust-server-cert ${CLOVER_REP} ."
         fi
     fi
 
@@ -1236,7 +1231,7 @@ needNASM() {
 
     return $needInstall
 }
-
+# --------------------------------------
 isNASMGood() {
     # nasm should be greater or equal to 2.12.02 to be good building Clover.
     # There was a bad macho relocation in outmacho.c, fixed by Zenith432
@@ -1286,7 +1281,6 @@ isNASMGood() {
 }
 # --------------------------------------
 ebuildBorg () {
-
     if [[ "$MOD_PKG_FLAG" != YES ]]; then
         return
     fi
@@ -1369,7 +1363,7 @@ ebuildBorg () {
     fi
     set -e
 }
-
+# --------------------------------------
 restoreClover () {
     if [[ -f "${LOCALIZABLE_FILE}.back" ]]; then
         mv -f "${LOCALIZABLE_FILE}.back" "${LOCALIZABLE_FILE}"
@@ -1498,9 +1492,9 @@ showMacros() {
 
     printf 'actual macros defined: '
     if [[ ( "${#DEFINED_MACRO} " < 1 ) ]] ; then
-        printf "\e[1;30mno one\033[0m\n"
+        printf "\e[1;30mno one\e[0m\n"
     else
-        printf "\033[1;36m\n${DEFINED_MACRO}\033[0m\n"
+        printf "\e[1;36m\n${DEFINED_MACRO}\e[0m\n"
     fi
 
     echo
@@ -1540,31 +1534,15 @@ build() {
         if [[ ! -f "$SYMLINKPATH" ]]; then
             options+=("add \"buildclover\" symlink to $(dirname $SYMLINKPATH)")
         else
-            #  ...but may point to another script..
-            local scriptPath="${0}"
-            local symPath=""
-            if [[ -L "${0}" ]]; then
-                if [[ "$SYSNAME" == Linux ]]; then
-                    scriptPath="$(readlink -f ${0})"
-                else
-                    scriptPath="$(readlink ${0})"
-                fi
-            fi
-
-            if [[ ! -L "$SYMLINKPATH" ]]; then
-                # not a symlink..
-                options+=("restore \"buildclover\" symlink")
-            else
-                if [[ "$SYSNAME" == Linux ]]; then
-                    symPath="$(readlink -f ${SYMLINKPATH}))"
-                else
-                    symPath="$(readlink ${SYMLINKPATH}))"
-                fi
-                if [[ "${scriptPath}" != "$(readlink ${SYMLINKPATH})" ]]; then
-                    # script path mismatch..
-                    options+=("update \"buildclover\" symlink")
-                fi
-            fi
+			# such file exists, but is it really symlink
+			if [[ -L "$SYMLINKPATH" ]]; then
+				[[ "$SYSNAME" == Linux ]] && symPath="$(readlink -f ${SYMLINKPATH})" || symPath="$(readlink ${SYMLINKPATH})"
+				# is that symlink pointing to the currently running script
+				[[ "$symPath" != "$SCRIPT_ABS_PATH" ]] && options+=("update \"buildclover\" symlink")
+			else
+				# not a symlink
+				options+=("restore \"buildclover\" symlink")
+			fi
         fi
 
         if [[ "$SELF_UPDATE_OPT" == YES ]]; then
@@ -1573,9 +1551,10 @@ build() {
 
         if [[ "$PING_RESPONSE" == YES ]] && [[ "$BUILDER" != 'slice' ]]; then
             options+=("update Clover only (no building)")
+			options+=("update Clover + force edk2 update (no building)")
         fi
         if [[ "$BUILDER" == 'slice' ]]; then
-            printf "   \e[90m EDK2 revision used r$EDK2_REV latest avaiable is r$REMOTE_EDK2_REV \e[0m\n"
+            printf "   \e[1;97;104m EDK2 revision used r$EDK2_REV latest avaiable is r$REMOTE_EDK2_REV \e[0m\n"
             set +e
             options+=("build with ./ebuild.sh -nb")
             options+=("build with ./ebuild.sh --module=rEFIt_UEFI/refit.inf")
@@ -1591,7 +1570,6 @@ build() {
             options+=("Back to Main Menu")
             options+=("Exit")
         else
-            options+=("update Clover + force edk2 update (no building)")
             options+=("run my script on the source")
             options+=("build existing revision (no update, for testing only)")
             options+=("build existing revision for release (no update, standard build)")
@@ -1610,13 +1588,13 @@ build() {
             | "add \"buildclover\" symlink to $(dirname $SYMLINKPATH)" \
             | "restore \"buildclover\" symlink" \
             | "update \"buildclover\" symlink")
-                printf "\033[1;31m ${count}) ${opt}\033[0m\n"
+                printf "\e[1;31m ${count}) ${opt}\e[0m\n"
             ;;
             "build existing revision for release (no update, standard build)" \
             | "update Clover + force edk2 update (no building)" \
             | "build all for Release" \
             | "build binaries with FORCEREBUILD (boot3, 6 and 7 also)")
-                printf "\033[1;36m ${count}) ${opt}\033[0m\n"
+                printf "\e[1;36m ${count}) ${opt}\e[0m\n"
             ;;
             *)
                 printf " ${count}) ${opt}\n"
@@ -1691,27 +1669,27 @@ build() {
             cd "${DIR_MAIN}"/edk2/Clover
             START_BUILD=$(date)
             printHeader 'boot6'
-            ./ebuild.sh -x64 -D NO_GRUB_DRIVERS_EMBEDDED -D CHECK_FLAGS -t XCODE5
+            ./ebuild.sh -x64 -D NO_GRUB_DRIVERS_EMBEDDED -D CHECK_FLAGS -t $BUILDTOOL
             printHeader 'boot7'
-            ./ebuild.sh -mc --no-usb -D NO_GRUB_DRIVERS_EMBEDDED -D CHECK_FLAGS -t XCODE5
+            ./ebuild.sh -mc --no-usb -D NO_GRUB_DRIVERS_EMBEDDED -D CHECK_FLAGS -t $BUILDTOOL
             echo && printf "build started at:\n${START_BUILD}\nfinished at\n$(date)\n\nDone!\n"
         ;;
         "build binaries with -fr (boot6 and 7)")
             cd "${DIR_MAIN}"/edk2/Clover
             START_BUILD=$(date)
             printHeader 'boot6'
-            ./ebuild.sh -fr -x64 -D NO_GRUB_DRIVERS_EMBEDDED -D CHECK_FLAGS -t XCODE5
+            ./ebuild.sh -fr -x64 -D NO_GRUB_DRIVERS_EMBEDDED -D CHECK_FLAGS -t $BUILDTOOL
             printHeader 'boot7'
-            ./ebuild.sh -fr -mc --no-usb -D NO_GRUB_DRIVERS_EMBEDDED -D CHECK_FLAGS -t XCODE5
+            ./ebuild.sh -fr -mc --no-usb -D NO_GRUB_DRIVERS_EMBEDDED -D CHECK_FLAGS -t $BUILDTOOL
             echo && printf "build started at:\n${START_BUILD}\nfinished at\n$(date)\n\nDone!\n"
         ;;
         "build boot6/7 with -fr --std-ebda")
             cd "${DIR_MAIN}"/edk2/Clover
             START_BUILD=$(date)
             printHeader 'boot6'
-            ./ebuild.sh -fr -x64 --std-ebda -D NO_GRUB_DRIVERS_EMBEDDED -D CHECK_FLAGS -t XCODE5
+            ./ebuild.sh -fr -x64 --std-ebda -D NO_GRUB_DRIVERS_EMBEDDED -D CHECK_FLAGS -t $BUILDTOOL
             printHeader 'boot7'
-            ./ebuild.sh -fr -mc --std-ebda --no-usb -D NO_GRUB_DRIVERS_EMBEDDED -D CHECK_FLAGS -t XCODE5
+            ./ebuild.sh -fr -mc --std-ebda --no-usb -D NO_GRUB_DRIVERS_EMBEDDED -D CHECK_FLAGS -t $BUILDTOOL
             echo && printf "build started at:\n${START_BUILD}\nfinished at\n$(date)\n\nDone!\n"
         ;;
         "build pkg")
@@ -1739,9 +1717,9 @@ build() {
             cd "${DIR_MAIN}"/edk2/Clover
             START_BUILD=$(date)
             printHeader 'boot6'
-            ./ebuild.sh -fr -x64 -D NO_GRUB_DRIVERS_EMBEDDED -D CHECK_FLAGS -t XCODE5
+            ./ebuild.sh -fr -x64 -D NO_GRUB_DRIVERS_EMBEDDED -D CHECK_FLAGS -t $BUILDTOOL
             printHeader 'boot7'
-            ./ebuild.sh -fr -mc --no-usb -D NO_GRUB_DRIVERS_EMBEDDED -D CHECK_FLAGS -t XCODE5
+            ./ebuild.sh -fr -mc --no-usb -D NO_GRUB_DRIVERS_EMBEDDED -D CHECK_FLAGS -t $BUILDTOOL
 
             cd "${DIR_MAIN}"/edk2/Clover/CloverPackage
             make clean
@@ -1796,8 +1774,7 @@ build() {
 
     # show info about the running OS and its gcc
     if [[ "$SYSNAME" == Darwin ]]; then
-        printHeader "Running from: $( sw_vers -productVersion )"
-        printHeader "$( /usr/bin/xcodebuild -version)"
+        printHeader "Running from: macOS $(sw_vers -productVersion)\n$(/usr/bin/xcodebuild -version)"
     elif [[ "$SYSNAME" == Linux ]]; then
         if [[ -x "/usr/bin/lsb_release" ]]; then
             printHeader "Running from: $(lsb_release -sir | sed -e ':a;N;$!ba;s/\n/ /g')"
@@ -1807,7 +1784,10 @@ build() {
     else
         printHeader "Running from: Unknown OS"
     fi
-    printHeader "$( gcc -v )"
+	
+	printHeader "Compiler settings"
+	printf "\e[1;34m%s\e[0m" "$(gcc -v 2>&1)"
+	printLine
 
     if [[ "$BUILDER" != 'slice' ]]; then restoreClover; fi
 
@@ -1819,7 +1799,7 @@ build() {
     if [[ "$BUILD_FLAG" == NO ]]; then
         clear
         # print updated remote and local revision
-        printCloverRev "Remote revision: " "Local revision: "
+        if [[ -d "${DIR_MAIN}"/edk2 ]]; then printRevisions; fi;
         build
     fi
 
@@ -1834,7 +1814,7 @@ build() {
     ;;
     GCC53)
         printHeader "BUILDTOOL is $BUILDTOOL"
-        if [[ "$SYSNAME" == Darwin ]]; then "${DIR_MAIN}"/edk2/Clover/build_gcc5.sh; fi
+        if [[ "$SYSNAME" == Darwin ]]; then "${DIR_MAIN}"/edk2/Clover/build_gcc6.sh; fi
     ;;
     XCODE*)
         exportXcodePaths
@@ -1941,5 +1921,34 @@ build() {
 }
 
 # --------------------------------------
+# MAIN CODE
+# --------------------------------------
+
+# don't use sudo!
+if [[ $EUID -eq 0 ]]; then
+    printError "\nThis script should not be run using sudo!!\n\n"
+    exit 1
+fi
+
+FindScriptPath
+
+# print local Script revision with relative info
+printCloverScriptRev
+printHeader "By Micky1979 based on Slice, Zenith432, STLVNUB, JrCs, cecekpawon, Needy,\ncvad, Rehabman, philip_petev, ErmaC\n\nSupported OSes: macOS X, Ubuntu (16.04/16.10), Debian Jessie (8.4/8.5/8.6/8.7)"
+
+if [[ "$GITHUB" == *"Test_Script_dont_use.command"* ]];then
+    printError "This script is for testing only and may be outdated,\n"
+    printError "use the regular one at:\n"
+    printError "http://www.insanelymac.com/forum/files/download/589-build-clovercommand/\n"
+fi
+
+# print the remote and the local revision
+if [[ -d "${DIR_MAIN}"/edk2 ]]; then printRevisions; fi;
+
+if [[ "$SYSNAME" == Darwin ]]; then
+    checkXcode
+else
+    BUILDTOOL="GCC53" # ovverride, no chance to use Xcode in linux :-)
+fi
 
 build
