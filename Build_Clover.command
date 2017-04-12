@@ -1889,7 +1889,7 @@ build() {
         else
 	    # use xdg-open to use default filemanager for ALL linux.
             #nautilus "${CLOVERV2_PATH}" > /dev/null
-	    xdg-open "${CLOVERV2_PATH}" > /dev/null
+	    [[ -x $(which xdg-open) ]] && xdg-open "${CLOVERV2_PATH}" > /dev/null
 	fi
     fi
 
@@ -1921,6 +1921,7 @@ fi
 # print the remote and the local revision
 if [[ -d "${DIR_MAIN}"/edk2 ]]; then printRevisions; fi;
 
+# Setting the build tool (Xcode or GCC)
 case "$SYSNAME" in
 "Darwin" )
 	case "$Build_Tool" in
