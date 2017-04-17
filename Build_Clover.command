@@ -1908,6 +1908,17 @@ if [[ $EUID -eq 0 ]]; then printError "\nThis script should not be run using sud
 
 FindScriptPath
 
+# Setting the build tool (Xcode or GCC)
+if [[ "$SYSNAME" == Darwin ]]; then
+	case "$Build_Tool" in
+	"XCODE" | "xcode" )	checkXcode; BUILDTOOL="$XCODE";;
+	"GNU" | "gnu" )		[[ "$GNU" == "" ]] && BUILDTOOL="GCC53" || BUILDTOOL="$GNU";;
+	* )					printError "Wrong build tool: $Build_Tool. It should be \"XCODE\" or \"GNU\" !!!"; exit 1;;
+	esac
+else
+	[[ "$GNU" == "" ]] && BUILDTOOL="GCC53" || BUILDTOOL="$GNU"
+fi
+
 # print local Script revision with relative info
 printCloverScriptRev
 printHeader "By Micky1979 based on Slice, Zenith432, STLVNUB, JrCs, cecekpawon, Needy,\ncvad, Rehabman, philip_petev, ErmaC\n\nSupported OSes: macOS X, Ubuntu (16.04/16.10), Debian Jessie (8.4/8.5/8.6/8.7)"
@@ -1920,19 +1931,5 @@ fi
 
 # print the remote and the local revision
 if [[ -d "${DIR_MAIN}"/edk2 ]]; then printRevisions; fi;
-
-# Setting the build tool (Xcode or GCC)
-case "$SYSNAME" in
-"Darwin" )
-	case "$Build_Tool" in
-	"XCODE" | "xcode" )	checkXcode
-						BUILDTOOL="$XCODE";;
-	"GNU" | "gnu" )		[[ "$GNU" == "" ]] && BUILDTOOL="GCC53" || BUILDTOOL="$GNU";;
-	* )		printError "Wrong build tool: $Build_Tool. It should be \"XCODE\" or \"GNU\" !!!"
-			exit 1;;
-	esac;;
-"Linux" )
-	[[ "$GNU" == "" ]] && BUILDTOOL="GCC53" || BUILDTOOL="$GNU";;
-esac
 
 build
