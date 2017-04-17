@@ -31,12 +31,12 @@ printf '\e[8;34;90t'
 # --------------------------------------
 # preferred build tool (gnu or darwin)
 # --------------------------------------
-XCODE="XCODE5"     # XCODE32
-GNU="GCC49"        # GCC49 GCC53
-BUILDTOOL="$XCODE" # XCODE or GNU?      (use $GNU to use GNU gcc, $XCODE to use the choosen Xcode version)
+XCODE=""			# empty by default, overrides the auto-detected XCODE toolchain, possible values: XCODE32 XCODE5 XCODE8
+GNU=""				# empty by default (GCC53 is used if not defined), override the GCC toolchain, possible values: GCC49 GCC53
+Build_Tool="XCODE"	# Build tool. Possible values: XCODE or GNU. DO NOT USE ANY OTHER VALUES HERE !
 # in Linux this get overrided and GCC53 used anyway!
 # --------------------------------------
-SCRIPTVER="v4.3.9"
+SCRIPTVER="v4.4.0"
 export LC_ALL=C
 SYSNAME="$( uname )"
 
@@ -70,7 +70,6 @@ NASM_PREFERRED="2.12.02"
 FORCEREBUILD=""
 UPDATE_FLAG="YES"
 BUILD_FLAG="NO"
-NEW_FLAG="YES"
 LTO_FLAG=""        # default for Xcode >= 7.3, will automatically adjusted for older ones
 MOD_PKG_FLAG="YES" # used only when you add custom macros. Does nothing for normal build.
 ARCH="IA32_X64"    # will ask if you want IA32 (deprecated) or X64 only
@@ -347,21 +346,21 @@ initialChecks() {
         fi
 
         # check if the Universally Unique ID library - headers are installed
-        [[ "$(apt-cache policy uuid-dev | grep 'Installed: (none)')" =~ 'Installed: (none)' ]] && depend="uuid-dev"
+        [[ "$(apt-cache policy uuid-dev | grep 'Installed: (none)')" =~ 'Installed: (none)' ]] && depend+=" uuid-dev"
 
         # check if subversion is installed
-        [[ ! -x $(which svn) ]] && depend="$depend subversion"
+        [[ ! -x $(which svn) ]] && depend+=" subversion"
 
         # check if python is installed
-        [[ ! -x $(which python) ]] && depend="$depend python"
+        [[ ! -x $(which python) ]] && depend+=" python"
 
-        # check if gcc is installed
-        [[ ! -x $(which gcc) ]] && depend="$depend build-essential"
+        # check if gcc or is installed. As a workaround for Linux Mint, it checks for g++ as well
+        [[ ! -x $(which gcc) || ! -x $(which g++) ]] && depend+=" build-essential"
 
         # check whether at least one of curl or wget are installed
-        [[ ! -x $(which wget) && ! -x $(which curl) ]] && depend="$depend wget"
+        [[ ! -x $(which wget) && ! -x $(which curl) ]] && depend+=" wget"
 
-		[[ "$depend" != "" ]] && { clear; aptInstall "$depend"; }
+		if [[ "$depend" != "" ]]; then clear; aptInstall "$depend"; fi
 
         # set the donloader command path
         if [[ -x $(which wget) ]]; then
@@ -499,7 +498,7 @@ aptInstall() {
         return
     fi
     printWarning "Build_Clover need this:\n"
-    printError "${1}\n"
+    printError "${1:1}\n"
     printWarning "..to be installed, but was not found.\n"
     printWarning "Would you allow to install it? (Y/N)\n"
 	
@@ -509,7 +508,7 @@ aptInstall() {
     Y | y)
         if [[ "$USER" != root ]]; then echo "type your password to install:"; fi
         sudo apt-get update 	
-        sudo apt-get install $1
+        sudo apt-get install$1
     ;;
     *)
         printError "Build_Clover cannot go ahead without it/them, process aborted!\n"
@@ -761,50 +760,33 @@ pathmunge () {
 }
 # --------------------------------------
 checkXcode () {
-    if [[ ! -x /usr/bin/gcc ]]; then
-        printError "Xcode clt not found, exiting!\n"
-        exit 1
-    fi
+	if [[ ! -x /usr/bin/gcc ]]; then printError "Xcode clt not found, exiting!\n"; exit 1; fi
 
-    if [[ ! -x /usr/bin/xcodebuild ]]; then
-        printError "xcodebuild not found, exiting!\n"
-        exit 1
-    fi
+	if [[ ! -x /usr/bin/xcodebuild ]]; then printError "xcodebuild not found, exiting!\n"; exit 1; fi
 
-    # disabling lto if Xcode is older than 7.3
-    IFS='.'; local array=($( /usr/bin/xcodebuild -version | grep 'Xcode' | awk '{print $NF}' ))
-    case "${#array[@]}" in
-    "1")
-        if [ "${array[0]}" -lt "8" ]; then
-            NEW_FLAG="NO"
-        else
-            NEW_FLAG="YES"
-        fi
-    ;;
-    "2" | "3")
-        if [ "${array[0]}" -eq "7" ] && [ "${array[1]}" -ge "3" ]; then
-            NEW_FLAG="YES"
-        elif [ "${array[0]}" -ge "8" ]; then
-            NEW_FLAG="YES"
-        else
-            NEW_FLAG="NO"
-        fi
-    ;;
-    *)
-        printError "Unknown Xcode version format, exiting!\n"
-        exit 1
-    ;;
-    esac
-
-    case "$BUILDTOOL" in
-    XCODE5)
-        if [[ "$NEW_FLAG" == NO ]]; then
-            LTO_FLAG="--no-lto"
-        fi
-    ;;
-    esac
-
-    restoreIFS
+	# Autodetect the Xcode version if no specific version is set (XCODE) and disable LTO if Xcode is version 7.2.x or earlier
+	if [[ "$XCODE" == "" ]]; then
+		IFS='.'; local array=($( /usr/bin/xcodebuild -version | grep 'Xcode' | awk '{print $NF}' ))
+		case "${#array[@]}" in
+		"1")	if [ "${array[0]}" -lt "8" ]; then # Xcode 7 and earlier
+					LTO_FLAG="--no-lto"
+					XCODE="XCODE5"
+				else # Xcode 8 and later
+					XCODE="XCODE8"
+				fi;;
+		"2" | "3")	if [ "${array[0]}" -eq "7" ] && [ "${array[1]}" -ge "3" ]; then # Xcode 7.3.x and 7.4.x
+						XCODE="XCODE5"
+					elif [ "${array[0]}" -ge "8" ]; then # Xcode 8.0.x and later
+						XCODE="XCODE8"
+					else # Xcode 7.2.x and earlier
+						LTO_FLAG="--no-lto"
+						XCODE="XCODE5"
+					fi;;
+		*)	printError "Unknown Xcode version format, exiting!\n"
+			exit 1;;
+		esac
+		restoreIFS
+	fi
 }
 # --------------------------------------
 doSomething() {
@@ -1907,7 +1889,7 @@ build() {
         else
 	    # use xdg-open to use default filemanager for ALL linux.
             #nautilus "${CLOVERV2_PATH}" > /dev/null
-	    xdg-open "${CLOVERV2_PATH}" > /dev/null
+	    [[ -x $(which xdg-open) ]] && xdg-open "${CLOVERV2_PATH}" > /dev/null
 	fi
     fi
 
@@ -1922,30 +1904,32 @@ build() {
 # --------------------------------------
 
 # don't use sudo!
-if [[ $EUID -eq 0 ]]; then
-    printError "\nThis script should not be run using sudo!!\n\n"
-    exit 1
-fi
+if [[ $EUID -eq 0 ]]; then printError "\nThis script should not be run using sudo!!\n\n"; exit 1; fi
 
 FindScriptPath
+
+# Setting the build tool (Xcode or GCC)
+if [[ "$SYSNAME" == Darwin ]]; then
+	case "$Build_Tool" in
+	"XCODE" | "xcode" )	checkXcode; BUILDTOOL="$XCODE";;
+	"GNU" | "gnu" )		[[ "$GNU" == "" ]] && BUILDTOOL="GCC53" || BUILDTOOL="$GNU";;
+	* )					printError "Wrong build tool: $Build_Tool. It should be \"XCODE\" or \"GNU\" !!!"; exit 1;;
+	esac
+else
+	[[ "$GNU" == "" ]] && BUILDTOOL="GCC53" || BUILDTOOL="$GNU"
+fi
 
 # print local Script revision with relative info
 printCloverScriptRev
 printHeader "By Micky1979 based on Slice, Zenith432, STLVNUB, JrCs, cecekpawon, Needy,\ncvad, Rehabman, philip_petev, ErmaC\n\nSupported OSes: macOS X, Ubuntu (16.04/16.10), Debian Jessie (8.4/8.5/8.6/8.7)"
 
 if [[ "$GITHUB" == *"Test_Script_dont_use.command"* ]];then
-    printError "This script is for testing only and may be outdated,\n"
-    printError "use the regular one at:\n"
-    printError "http://www.insanelymac.com/forum/files/download/589-build-clovercommand/\n"
+	printError "This script is for testing only and may be outdated,\n"
+	printError "use the regular one at:\n"
+	printError "http://www.insanelymac.com/forum/files/download/589-build-clovercommand/\n"
 fi
 
 # print the remote and the local revision
 if [[ -d "${DIR_MAIN}"/edk2 ]]; then printRevisions; fi;
-
-if [[ "$SYSNAME" == Darwin ]]; then
-    checkXcode
-else
-    BUILDTOOL="GCC53" # ovverride, no chance to use Xcode in linux :-)
-fi
 
 build
