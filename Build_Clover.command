@@ -36,7 +36,7 @@ GNU=""				# empty by default (GCC53 is used if not defined), override the GCC to
 Build_Tool="XCODE"	# Build tool. Possible values: XCODE or GNU. DO NOT USE ANY OTHER VALUES HERE !
 # in Linux this get overrided and GCC53 used anyway!
 # --------------------------------------
-SCRIPTVER="v4.4.1"
+SCRIPTVER="v4.4.2"
 export LC_ALL=C
 SYSNAME="$( uname )"
 
@@ -383,11 +383,7 @@ initialChecks() {
 printCloverScriptRev() {
     initialChecks
 	clear
-    local LVALUE
-    local RVALUE
-    local SVERSION
-    local RSCRIPTVER
-	local RSDATA
+    local LVALUE RVALUE SVERSION RSCRIPTVER RSDATA
 	local SNameVer="\e[1;34mBuild_Clover script ${SCRIPTVER}\e[0m"
 
     if ping -c 1 github.com >> /dev/null 2>&1; then
@@ -766,26 +762,17 @@ checkXcode () {
 
 	# Autodetect the Xcode version if no specific version is set (XCODE) and disable LTO if Xcode is version 7.2.x or earlier
 	if [[ "$XCODE" == "" ]]; then
-		IFS='.'; local array=($( /usr/bin/xcodebuild -version | grep 'Xcode' | awk '{print $NF}' ))
-		case "${#array[@]}" in
-		"1")	if [ "${array[0]}" -lt "8" ]; then # Xcode 7 and earlier
-					LTO_FLAG="--no-lto"
-					XCODE="XCODE5"
-				else # Xcode 8 and later
-					XCODE="XCODE8"
-				fi;;
-		"2" | "3")	if [ "${array[0]}" -eq "7" ] && [ "${array[1]}" -ge "3" ]; then # Xcode 7.3.x and 7.4.x
-						XCODE="XCODE5"
-					elif [ "${array[0]}" -ge "8" ]; then # Xcode 8.0.x and later
-						XCODE="XCODE8"
-					else # Xcode 7.2.x and earlier
-						LTO_FLAG="--no-lto"
-						XCODE="XCODE5"
-					fi;;
-		*)	printError "Unknown Xcode version format, exiting!\n"
-			exit 1;;
+		local xcversion=$(/usr/bin/xcodebuild -version | grep 'Xcode' | awk '{print $NF}')
+		case "$xcversion" in
+			[1-6]* | 7 | 7.[0-2]*)
+				XCODE="XCODE5"; LTO_FLAG="--no-lto";;
+			7.[34]*)
+				XCODE="XCODE5";;
+			8*)
+				XCODE="XCODE8";;
+			*)
+				printError "Unknown Xcode version format, exiting!\n"; exit 1;;
 		esac
-		restoreIFS
 	fi
 }
 # --------------------------------------
