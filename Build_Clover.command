@@ -1595,27 +1595,27 @@ build() {
             cd "${DIR_MAIN}"/edk2/Clover
             START_BUILD=$(date)
             printHeader 'boot6'
-            ./ebuild.sh -x64 -D NO_GRUB_DRIVERS_EMBEDDED -D CHECK_FLAGS -t XCODE5
+            ./ebuild.sh -x64 -D NO_GRUB_DRIVERS_EMBEDDED -D CHECK_FLAGS -t $BUILDTOOL
             printHeader 'boot7'
-            ./ebuild.sh -mc --no-usb -D NO_GRUB_DRIVERS_EMBEDDED -D CHECK_FLAGS -t XCODE5
+            ./ebuild.sh -mc --no-usb -D NO_GRUB_DRIVERS_EMBEDDED -D CHECK_FLAGS -t $BUILDTOOL
             echo && printf "build started at:\n${START_BUILD}\nfinished at\n$(date)\n\nDone!\n"
         ;;
         "build binaries with -fr (boot6 and 7)")
             cd "${DIR_MAIN}"/edk2/Clover
             START_BUILD=$(date)
             printHeader 'boot6'
-            ./ebuild.sh -fr -x64 -D NO_GRUB_DRIVERS_EMBEDDED -D CHECK_FLAGS -t XCODE5
+            ./ebuild.sh -fr -x64 -D NO_GRUB_DRIVERS_EMBEDDED -D CHECK_FLAGS -t $BUILDTOOL
             printHeader 'boot7'
-            ./ebuild.sh -fr -mc --no-usb -D NO_GRUB_DRIVERS_EMBEDDED -D CHECK_FLAGS -t XCODE5
+            ./ebuild.sh -fr -mc --no-usb -D NO_GRUB_DRIVERS_EMBEDDED -D CHECK_FLAGS -t $BUILDTOOL
             echo && printf "build started at:\n${START_BUILD}\nfinished at\n$(date)\n\nDone!\n"
         ;;
         "build boot6/7 with -fr --std-ebda")
             cd "${DIR_MAIN}"/edk2/Clover
             START_BUILD=$(date)
             printHeader 'boot6'
-            ./ebuild.sh -fr -x64 --std-ebda -D NO_GRUB_DRIVERS_EMBEDDED -D CHECK_FLAGS -t XCODE5
+            ./ebuild.sh -fr -x64 --std-ebda -D NO_GRUB_DRIVERS_EMBEDDED -D CHECK_FLAGS -t $BUILDTOOL
             printHeader 'boot7'
-            ./ebuild.sh -fr -mc --std-ebda --no-usb -D NO_GRUB_DRIVERS_EMBEDDED -D CHECK_FLAGS -t XCODE5
+            ./ebuild.sh -fr -mc --std-ebda --no-usb -D NO_GRUB_DRIVERS_EMBEDDED -D CHECK_FLAGS -t $BUILDTOOL
             echo && printf "build started at:\n${START_BUILD}\nfinished at\n$(date)\n\nDone!\n"
         ;;
         "build pkg")
@@ -1643,9 +1643,9 @@ build() {
             cd "${DIR_MAIN}"/edk2/Clover
             START_BUILD=$(date)
             printHeader 'boot6'
-            ./ebuild.sh -fr -x64 -D NO_GRUB_DRIVERS_EMBEDDED -D CHECK_FLAGS -t XCODE5
+            ./ebuild.sh -fr -x64 -D NO_GRUB_DRIVERS_EMBEDDED -D CHECK_FLAGS -t $BUILDTOOL
             printHeader 'boot7'
-            ./ebuild.sh -fr -mc --no-usb -D NO_GRUB_DRIVERS_EMBEDDED -D CHECK_FLAGS -t XCODE5
+            ./ebuild.sh -fr -mc --no-usb -D NO_GRUB_DRIVERS_EMBEDDED -D CHECK_FLAGS -t $BUILDTOOL
 
             cd "${DIR_MAIN}"/edk2/Clover/CloverPackage
             make clean
