@@ -36,7 +36,7 @@ GNU=""				# empty by default (GCC53 is used if not defined), override the GCC to
 Build_Tool="XCODE"	# Build tool. Possible values: XCODE or GNU. DO NOT USE ANY OTHER VALUES HERE !
 # in Linux this get overrided and GCC53 used anyway!
 # --------------------------------------
-SCRIPTVER="v4.4.2"
+SCRIPTVER="v4.4.3"
 export LC_ALL=C
 SYSNAME="$( uname )"
 
@@ -66,7 +66,7 @@ BUILD_ISO="NO"  # YES if you want the iso
 FAST_UPDATE="NO" # or FAST_UPDATE="YES" # no check, faster
 # ---------------------------->
 # default behavior (don't touch these vars)
-NASM_PREFERRED="2.12.02"
+NASM_PREFERRED="2.13.01"
 FORCEREBUILD=""
 UPDATE_FLAG="YES"
 BUILD_FLAG="NO"
@@ -1202,7 +1202,7 @@ isNASMGood() {
     2.12.0[2-9]* | 2.12.[1-9]* | 2.1[3-9]* | 2.[2-9]* | [3-9]* | [1-9][1-9]*)
 		result=0;;
     *)
-		echo "Unknown NASM version!";;
+		printWarning "Unknown or unsupported NASM version found in ${1}...\n\n";;
     esac
 	
     return $result
