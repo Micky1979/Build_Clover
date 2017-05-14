@@ -1202,7 +1202,7 @@ isNASMGood() {
     2.12.0[2-9]* | 2.12.[1-9]* | 2.1[3-9]* | 2.[2-9]* | [3-9]* | [1-9][1-9]*)
 		result=0;;
     *)
-		printWarning "Unknown or unsupported NASM version found in ${1}...\n\n";;
+		printWarning "Unknown or unsupported NASM version found at:\n${1}\nDownloading the preferred one (${NASM_PREFERRED})...\n\n";;
     esac
 	
     return $result
