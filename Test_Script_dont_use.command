@@ -31,19 +31,19 @@ printf '\e[8;34;90t'
 # --------------------------------------
 # preferred build tool (gnu or darwin)
 # --------------------------------------
-XCODE="XCODE5"     # XCODE32, XCODE5
-GNU="GCC49"        # GCC49, GCC53
-BUILDTOOL="$XCODE" # XCODE or GNU?      (use $GNU to use GNU gcc, $XCODE to use the choosen Xcode version)
+XCODE=""			# empty by default, overrides the auto-detected XCODE toolchain, possible values: XCODE32 XCODE5 XCODE8
+GNU=""				# empty by default (GCC53 is used if not defined), override the GCC toolchain, possible values: GCC49 GCC53
+Build_Tool="XCODE"	# Build tool. Possible values: XCODE or GNU. DO NOT USE ANY OTHER VALUES HERE !
 # in Linux this get overrided and GCC53 used anyway!
 # --------------------------------------
-SCRIPTVER="v4.4.0 test"
+SCRIPTVER="v4.4.3"
 export LC_ALL=C
 SYSNAME="$( uname )"
 
 BUILDER=$USER # don't touch!
 # <----------------------------
 # Preferences:
-EDK2_REV="24132"   # or any revision supported by Slice (otherwise no claim please)
+EDK2_REV="24552"   # or any revision supported by Slice (otherwise no claim please)
 
 # "SUGGESTED_CLOVER_REV" is used to force the script to updated at the specified revision:
 # REQUIRED is a known edk2 revision (EDK2_REV="XXXXX") compatible with the "/Clover/Patches_for_EDK2" coming with
@@ -68,9 +68,9 @@ FAST_UPDATE="NO" # or FAST_UPDATE="YES" # no check, faster
 # default behavior (don't touch these vars)
 NASM_PREFERRED="2.12.02"
 FORCEREBUILD=""
+MAKEPKG_CMD="make pkg"
 UPDATE_FLAG="YES"
 BUILD_FLAG="NO"
-NEW_FLAG="YES"
 LTO_FLAG=""        # default for Xcode >= 7.3, will automatically adjusted for older ones
 MOD_PKG_FLAG="YES" # used only when you add custom macros. Does nothing for normal build.
 ARCH="IA32_X64"    # will ask if you want IA32 (deprecated) or X64 only
@@ -347,21 +347,21 @@ initialChecks() {
         fi
 
         # check if the Universally Unique ID library - headers are installed
-        [[ "$(apt-cache policy uuid-dev | grep 'Installed: (none)')" =~ 'Installed: (none)' ]] && depend="uuid-dev"
+        [[ "$(apt-cache policy uuid-dev | grep 'Installed: (none)')" =~ 'Installed: (none)' ]] && depend+=" uuid-dev"
 
         # check if subversion is installed
-        [[ ! -x $(which svn) ]] && depend="$depend subversion"
+        [[ ! -x $(which svn) ]] && depend+=" subversion"
 
         # check if python is installed
-        [[ ! -x $(which python) ]] && depend="$depend python"
+        [[ ! -x $(which python) ]] && depend+=" python"
 
-        # check if gcc is installed
-        [[ ! -x $(which gcc) ]] && depend="$depend build-essential"
+        # check if gcc or is installed. As a workaround for Linux Mint, it checks for g++ as well
+        [[ ! -x $(which gcc) || ! -x $(which g++) ]] && depend+=" build-essential"
 
         # check whether at least one of curl or wget are installed
-        [[ ! -x $(which wget) && ! -x $(which curl) ]] && depend="$depend wget"
+        [[ ! -x $(which wget) && ! -x $(which curl) ]] && depend+=" wget"
 
-		[[ "$depend" != "" ]] && { clear; aptInstall "$depend"; }
+		if [[ "$depend" != "" ]]; then clear; aptInstall "$depend"; fi
 
         # set the donloader command path
         if [[ -x $(which wget) ]]; then
@@ -384,11 +384,7 @@ initialChecks() {
 printCloverScriptRev() {
     initialChecks
 	clear
-    local LVALUE
-    local RVALUE
-    local SVERSION
-    local RSCRIPTVER
-	local RSDATA
+    local LVALUE RVALUE SVERSION RSCRIPTVER RSDATA
 	local SNameVer="\e[1;34mBuild_Clover script ${SCRIPTVER}\e[0m"
 
     if ping -c 1 github.com >> /dev/null 2>&1; then
@@ -407,7 +403,7 @@ printCloverScriptRev() {
             # Compare local and remote script version
 			[[ $LVALUE -ge $RVALUE ]] && SELF_UPDATE_OPT="NO" || SELF_UPDATE_OPT="YES"
             [[ $LVALUE -eq $RVALUE ]] && printf "${SNameVer}\e[1;32m%*s\e[0m" 54 "No update available."
-			[[ $LVALUE -gt $RVALUE ]] && printf "${SNameVer}\e[1;33m%*s\e[0m" 49 "Wow, are you coming from the future?"
+			[[ $LVALUE -gt $RVALUE ]] && printf "${SNameVer}\e[1;33m%*s\e[0m" 54 "Wow, are you coming from the future?"
             [[ $LVALUE -lt $RVALUE ]] && printf "${SNameVer}\e[1;5;33m%*s\e[0m" 54 "Update available (v$RSCRIPTVER)"
         else
             printf "${SNameVer}\e[1;31m\n%s\e[0m" "Remote version unavailable due to unknown reasons!"
@@ -499,7 +495,7 @@ aptInstall() {
         return
     fi
     printWarning "Build_Clover need this:\n"
-    printError "${1}\n"
+    printError "${1:1}\n"
     printWarning "..to be installed, but was not found.\n"
     printWarning "Would you allow to install it? (Y/N)\n"
 	
@@ -509,7 +505,7 @@ aptInstall() {
     Y | y)
         if [[ "$USER" != root ]]; then echo "type your password to install:"; fi
         sudo apt-get update 	
-        sudo apt-get install $1
+        sudo apt-get install$1
     ;;
     *)
         printError "Build_Clover cannot go ahead without it/them, process aborted!\n"
@@ -653,6 +649,73 @@ selectArch () {
         selectArch "invalid choice!"
     ;;
     esac
+
+    # Clover r4072 is the actual revision on Sun 14 2017
+    # if Clover's dev will accept changes proposed to create a slim pkg,
+    # than 4072 must be changed to allow slim pkg to only revisions that real support this functionality
+    if [ "$LOCAL_REV" -ge "4072" ]; then
+        slimPKG
+    fi
+}
+# --------------------------------------
+slimPKG () {
+    MAKEPKG_CMD="make pkg"
+    restoreIFS
+    archs=(
+            'Standard'
+            'slim pkg that skip themes and CloverThemeManager.app'
+            'slim pkg that skip themes and CloverThemeManager.app, updater and PrefPanel'
+            'slim pkg UEFI only, without RC Scripts, themes & CTM, updater and PrefPanel'
+            'Back to Select architecture menu'
+            'Exit'
+          )
+
+    clear
+    printHeader "Select the desired pkg type"
+
+    if [ -n "$1" ]; then
+        echo "$1" && echo
+    fi
+    local count=1
+    for op in "${archs[@]}"
+    do
+        case "${op}" in
+        'Standard')
+            printf "\e[1;36m\t ${count}) ${op}\e[0m\n"
+        ;;
+        *)
+            printf "\t $count) ${op}\n"
+        ;;
+        esac
+
+        ((count+=1))
+    done
+
+    printf '? ' && read opt
+
+    case $opt in
+    1)
+        MAKEPKG_CMD="make pkg"
+    ;;
+    2)
+        MAKEPKG_CMD="make slimpkg1"
+    ;;
+    3)
+        MAKEPKG_CMD="make slimpkg2"
+    ;;
+    4)
+        MAKEPKG_CMD="make slimpkg3"
+        ;;
+    5)
+        clear && selectArch
+    ;;
+    6)
+        exit 0;
+    ;;
+    *)
+        slimPKG "invalid choice!"
+    ;;
+    esac
 }
 # --------------------------------------
 cleanCloverV2 () {
@@ -699,7 +762,6 @@ showInfo () {
     printf "switch back to gcc 4,9 (GCC49).\n"
     printf "UPDATE: actually using XCODE5 LTO is disabled anyway due to problems coming with\n"
     printf "Xcode 8 and new version of clang.\n"
-    printf "UPDATE: switch to XCODE8 toolchain for newer Xcode.\n"
     echo
     printf "Since v3.5 Build_Clover.command is able to build Clover in Ubuntu 16.04 +\n"
     printf "using the built-in gcc and installing some dependecies like nasm, subversion,\n"
@@ -762,52 +824,24 @@ pathmunge () {
 }
 # --------------------------------------
 checkXcode () {
-    if [[ ! -x /usr/bin/gcc ]]; then
-        printError "Xcode clt not found, exiting!\n"
-        exit 1
-    fi
+	if [[ ! -x /usr/bin/gcc ]]; then printError "Xcode clt not found, exiting!\n"; exit 1; fi
 
-    if [[ ! -x /usr/bin/xcodebuild ]]; then
-        printError "xcodebuild not found, exiting!\n"
-        exit 1
-    fi
+	if [[ ! -x /usr/bin/xcodebuild ]]; then printError "xcodebuild not found, exiting!\n"; exit 1; fi
 
-    # disabling lto if Xcode is older than 7.3
-    IFS='.'; local array=($( /usr/bin/xcodebuild -version | grep 'Xcode' | awk '{print $NF}' ))
-    case "${#array[@]}" in
-    "1")
-        if [ "${array[0]}" -lt "8" ]; then
-            NEW_FLAG="NO"
-        else
-            NEW_FLAG="YES"
-        fi
-    ;;
-    "2" | "3")
-        if [ "${array[0]}" -eq "7" ] && [ "${array[1]}" -ge "3" ]; then
-            NEW_FLAG="YES"
-        elif [ "${array[0]}" -ge "8" ]; then
-            NEW_FLAG="YES"
-        else
-            NEW_FLAG="NO"
-        fi
-    ;;
-    *)
-        printError "Unknown Xcode version format, exiting!\n"
-        exit 1
-    ;;
-    esac
-
-    case "$BUILDTOOL" in
-    XCODE5 | XCODE8)
-        if [[ "$NEW_FLAG" == NO ]]; then
-            LTO_FLAG="--no-lto"
-        else
-            BUILDTOOL="XCODE8" # override to XCODE8 toolchain!
-        fi
-    ;;
-    esac
-
-    restoreIFS
+	# Autodetect the Xcode version if no specific version is set (XCODE) and disable LTO if Xcode is version 7.2.x or earlier
+	if [[ "$XCODE" == "" ]]; then
+		local xcversion=$(/usr/bin/xcodebuild -version | grep 'Xcode' | awk '{print $NF}')
+		case "$xcversion" in
+			[1-6]* | 7 | 7.[0-2]*)
+				XCODE="XCODE5"; LTO_FLAG="--no-lto";;
+			7.[34]*)
+				XCODE="XCODE5";;
+			8*)
+				XCODE="XCODE8";;
+			*)
+				printError "Unknown Xcode version format, exiting!\n"; exit 1;;
+		esac
+	fi
 }
 # --------------------------------------
 doSomething() {
@@ -1669,27 +1703,27 @@ build() {
             cd "${DIR_MAIN}"/edk2/Clover
             START_BUILD=$(date)
             printHeader 'boot6'
-            ./ebuild.sh -x64 -D NO_GRUB_DRIVERS_EMBEDDED -D CHECK_FLAGS -t $BUILDTOOL
+            ./ebuild.sh -x64 -D NO_GRUB_DRIVERS_EMBEDDED -D CHECK_FLAGS -t XCODE5
             printHeader 'boot7'
-            ./ebuild.sh -mc --no-usb -D NO_GRUB_DRIVERS_EMBEDDED -D CHECK_FLAGS -t $BUILDTOOL
+            ./ebuild.sh -mc --no-usb -D NO_GRUB_DRIVERS_EMBEDDED -D CHECK_FLAGS -t XCODE5
             echo && printf "build started at:\n${START_BUILD}\nfinished at\n$(date)\n\nDone!\n"
         ;;
         "build binaries with -fr (boot6 and 7)")
             cd "${DIR_MAIN}"/edk2/Clover
             START_BUILD=$(date)
             printHeader 'boot6'
-            ./ebuild.sh -fr -x64 -D NO_GRUB_DRIVERS_EMBEDDED -D CHECK_FLAGS -t $BUILDTOOL
+            ./ebuild.sh -fr -x64 -D NO_GRUB_DRIVERS_EMBEDDED -D CHECK_FLAGS -t XCODE5
             printHeader 'boot7'
-            ./ebuild.sh -fr -mc --no-usb -D NO_GRUB_DRIVERS_EMBEDDED -D CHECK_FLAGS -t $BUILDTOOL
+            ./ebuild.sh -fr -mc --no-usb -D NO_GRUB_DRIVERS_EMBEDDED -D CHECK_FLAGS -t XCODE5
             echo && printf "build started at:\n${START_BUILD}\nfinished at\n$(date)\n\nDone!\n"
         ;;
         "build boot6/7 with -fr --std-ebda")
             cd "${DIR_MAIN}"/edk2/Clover
             START_BUILD=$(date)
             printHeader 'boot6'
-            ./ebuild.sh -fr -x64 --std-ebda -D NO_GRUB_DRIVERS_EMBEDDED -D CHECK_FLAGS -t $BUILDTOOL
+            ./ebuild.sh -fr -x64 --std-ebda -D NO_GRUB_DRIVERS_EMBEDDED -D CHECK_FLAGS -t XCODE5
             printHeader 'boot7'
-            ./ebuild.sh -fr -mc --std-ebda --no-usb -D NO_GRUB_DRIVERS_EMBEDDED -D CHECK_FLAGS -t $BUILDTOOL
+            ./ebuild.sh -fr -mc --std-ebda --no-usb -D NO_GRUB_DRIVERS_EMBEDDED -D CHECK_FLAGS -t XCODE5
             echo && printf "build started at:\n${START_BUILD}\nfinished at\n$(date)\n\nDone!\n"
         ;;
         "build pkg")
@@ -1717,9 +1751,9 @@ build() {
             cd "${DIR_MAIN}"/edk2/Clover
             START_BUILD=$(date)
             printHeader 'boot6'
-            ./ebuild.sh -fr -x64 -D NO_GRUB_DRIVERS_EMBEDDED -D CHECK_FLAGS -t $BUILDTOOL
+            ./ebuild.sh -fr -x64 -D NO_GRUB_DRIVERS_EMBEDDED -D CHECK_FLAGS -t XCODE5
             printHeader 'boot7'
-            ./ebuild.sh -fr -mc --no-usb -D NO_GRUB_DRIVERS_EMBEDDED -D CHECK_FLAGS -t $BUILDTOOL
+            ./ebuild.sh -fr -mc --no-usb -D NO_GRUB_DRIVERS_EMBEDDED -D CHECK_FLAGS -t XCODE5
 
             cd "${DIR_MAIN}"/edk2/Clover/CloverPackage
             make clean
@@ -1897,7 +1931,7 @@ build() {
         fi
         if [[ "$BUILD_PKG" == YES ]]; then
             printHeader 'MAKE PKG'
-            make pkg
+            eval "$MAKEPKG_CMD"
         fi
 
         if [[ "$BUILD_ISO" == YES ]]; then
@@ -1910,14 +1944,14 @@ build() {
         else
 	    # use xdg-open to use default filemanager for ALL linux.
             #nautilus "${CLOVERV2_PATH}" > /dev/null
-	    xdg-open "${CLOVERV2_PATH}" > /dev/null
+	    [[ -x $(which xdg-open) ]] && xdg-open "${CLOVERV2_PATH}" > /dev/null
 	fi
     fi
 
     if [[ "$BUILDER" != 'slice' ]]; then restoreClover; fi
     printHeader "build started at:\n${START_BUILD}\nfinished at\n$(date)\n\nDone!\n"
     printf '\e[3;0;0t'
-    exit 0
+    build
 }
 
 # --------------------------------------
@@ -1925,30 +1959,32 @@ build() {
 # --------------------------------------
 
 # don't use sudo!
-if [[ $EUID -eq 0 ]]; then
-    printError "\nThis script should not be run using sudo!!\n\n"
-    exit 1
-fi
+if [[ $EUID -eq 0 ]]; then printError "\nThis script should not be run using sudo!!\n\n"; exit 1; fi
 
 FindScriptPath
+
+# Setting the build tool (Xcode or GCC)
+if [[ "$SYSNAME" == Darwin ]]; then
+	case "$Build_Tool" in
+	"XCODE" | "xcode" )	checkXcode; BUILDTOOL="$XCODE";;
+	"GNU" | "gnu" )		[[ "$GNU" == "" ]] && BUILDTOOL="GCC53" || BUILDTOOL="$GNU";;
+	* )					printError "Wrong build tool: $Build_Tool. It should be \"XCODE\" or \"GNU\" !!!"; exit 1;;
+	esac
+else
+	[[ "$GNU" == "" ]] && BUILDTOOL="GCC53" || BUILDTOOL="$GNU"
+fi
 
 # print local Script revision with relative info
 printCloverScriptRev
 printHeader "By Micky1979 based on Slice, Zenith432, STLVNUB, JrCs, cecekpawon, Needy,\ncvad, Rehabman, philip_petev, ErmaC\n\nSupported OSes: macOS X, Ubuntu (16.04/16.10), Debian Jessie (8.4/8.5/8.6/8.7)"
 
 if [[ "$GITHUB" == *"Test_Script_dont_use.command"* ]];then
-    printError "This script is for testing only and may be outdated,\n"
-    printError "use the regular one at:\n"
-    printError "http://www.insanelymac.com/forum/files/download/589-build-clovercommand/\n"
+	printError "This script is for testing only and may be outdated,\n"
+	printError "use the regular one at:\n"
+	printError "http://www.insanelymac.com/forum/files/download/589-build-clovercommand/\n"
 fi
 
 # print the remote and the local revision
 if [[ -d "${DIR_MAIN}"/edk2 ]]; then printRevisions; fi;
-
-if [[ "$SYSNAME" == Darwin ]]; then
-    checkXcode
-else
-    BUILDTOOL="GCC53" # ovverride, no chance to use Xcode in linux :-)
-fi
 
 build
