@@ -66,7 +66,7 @@ BUILD_ISO="NO"  # YES if you want the iso
 FAST_UPDATE="NO" # or FAST_UPDATE="YES" # no check, faster
 # ---------------------------->
 # default behavior (don't touch these vars)
-NASM_PREFERRED="2.12.02"
+NASM_PREFERRED="2.13.01"
 FORCEREBUILD=""
 MAKEPKG_CMD="make pkg"
 UPDATE_FLAG="YES"
@@ -189,10 +189,6 @@ FindScriptPath () {
 		 s_name=$(basename "$s_orig")
 	fi
 	SCRIPT_ABS_PATH=$( cd "${s_path}" && pwd )/"${s_name}"
-}
-# --------------------------------------
-restoreIFS() {
-    IFS=$' \t\n';
 }
 # --------------------------------------
 IsNumericOnly() {
@@ -597,7 +593,6 @@ getRev() {
 }
 # --------------------------------------
 selectArch () {
-    restoreIFS
     archs=(
             'Standard x64 only'
             'ia32 and x64 (ia32 is deprecated)'
@@ -847,7 +842,6 @@ doSomething() {
 # $3 = first argument
 # $4 = second argument
 # $5 = ... and so on
-    restoreIFS
     local cmd=""
 
     case "$1" in
@@ -1196,7 +1190,6 @@ clover() {
 }
 # --------------------------------------
 needGETTEXT() {
-    restoreIFS
     local gettextPath=""
     local gettextArray=( $(which -a gettext) )
     local needInstall=1
@@ -1219,7 +1212,6 @@ needGETTEXT() {
 # nasm should be found in NASM_PREFIX
 # otherwise auto installed!
 needNASM() {
-    restoreIFS
     local nasmPath=""
     local nasmArray=( $(which -a nasm) )
     local needInstall=1
@@ -1268,46 +1260,16 @@ isNASMGood() {
     # There was a bad macho relocation in outmacho.c, fixed by Zenith432
     # and accepted by nasm devel during 2.12.rcxx (release candidate)
 
-    IFS='.';
     result=1
+    local nasmver=$( "${1}" -v | grep 'NASM version' | awk '{print $3}' )
 
-    local array=($( "${1}" -v | grep 'NASM version' | awk '{print $3}' ))
-
-    local index0=0; local index1=0; local index2=0
-
-    # we accept rc versions too (with outmacho.c fix):
-    # http://www.nasm.us/pub/nasm/releasebuilds/
-
-    if [ "${#array[@]}" -eq 2 ];then
-        index0="$(echo ${array[0]} | egrep -o '^[^rc]+')"
-        index1="$(echo ${array[1]} | egrep -o '^[^rc]+')"
-    fi
-    if [ "${#array[@]}" -eq 3 ];then
-        index0="$(echo ${array[0]} | egrep -o '^[^rc]+')"
-        index1="$(echo ${array[1]} | egrep -o '^[^rc]+')"
-        index2="$(echo ${array[2]} | egrep -o '^[^rc]+')"
-    fi
-
-    for comp in ${array[@]}
-    do
-        if ! IsNumericOnly $comp; then restoreIFS && echo "invalid nasm version component: \"$comp\"" && return $result;fi
-    done
-
-    case "${#array[@]}" in
-    "2") # two components like "2.12"
-        if [ "${index0}" -ge "3" ]; then result=0; fi # index0 > 3 good!
-        if [ "${index0}" -eq "2" ] && [ "${index1}" -gt "12" ]; then result=0; fi # index0 = 2 and index1 > 12 good!
-    ;;
-    "3") # three components like "2.12.02"
-        if [ "${index0}" -ge "3" ]; then result=0; fi # index0 > 3 good!
-        if [ "${index0}" -eq "2" ] && [ "${index1}" -gt "12" ]; then result=0; fi # index0 = 2 and index1 > 12 good!
-        if [ "${index0}" -eq "2" ] && [ "${index1}" -eq "12" ] && [ "${index2}" -ge "2" ]; then result=0; fi
-    ;;
-    *) # don' know a version of nasm with 1 component or > 3
-        echo "Unknown nasm version format (${1}), expected 2 or three components.."
-    ;;
+    case "$nasmver" in
+    2.12.0[2-9]* | 2.12.[1-9]* | 2.1[3-9]* | 2.[2-9]* | [3-9]* | [1-9][1-9]*)
+		result=0;;
+    *)
+		printWarning "Unknown or unsupported NASM version found at:\n${1}\nDownloading the preferred one (${NASM_PREFERRED})...\n\n";;
     esac
-    restoreIFS
+	
     return $result
 }
 # --------------------------------------
@@ -1494,7 +1456,6 @@ buildEssentials() {
 # --------------------------------------
 showMacros() {
     clear
-    restoreIFS
 
     CUSTOM_BUILD="YES"
 
@@ -1610,7 +1571,6 @@ build() {
             options+=("Exit")
         fi
 
-        restoreIFS
         local count=1
         for opt in "${options[@]}"
         do
@@ -1700,27 +1660,27 @@ build() {
             cd "${DIR_MAIN}"/edk2/Clover
             START_BUILD=$(date)
             printHeader 'boot6'
-            ./ebuild.sh -x64 -D NO_GRUB_DRIVERS_EMBEDDED -D CHECK_FLAGS -t XCODE5
+            ./ebuild.sh -x64 -D NO_GRUB_DRIVERS_EMBEDDED -D CHECK_FLAGS -t $BUILDTOOL
             printHeader 'boot7'
-            ./ebuild.sh -mc --no-usb -D NO_GRUB_DRIVERS_EMBEDDED -D CHECK_FLAGS -t XCODE5
+            ./ebuild.sh -mc --no-usb -D NO_GRUB_DRIVERS_EMBEDDED -D CHECK_FLAGS -t $BUILDTOOL
             echo && printf "build started at:\n${START_BUILD}\nfinished at\n$(date)\n\nDone!\n"
         ;;
         "build binaries with -fr (boot6 and 7)")
             cd "${DIR_MAIN}"/edk2/Clover
             START_BUILD=$(date)
             printHeader 'boot6'
-            ./ebuild.sh -fr -x64 -D NO_GRUB_DRIVERS_EMBEDDED -D CHECK_FLAGS -t XCODE5
+            ./ebuild.sh -fr -x64 -D NO_GRUB_DRIVERS_EMBEDDED -D CHECK_FLAGS -t $BUILDTOOL
             printHeader 'boot7'
-            ./ebuild.sh -fr -mc --no-usb -D NO_GRUB_DRIVERS_EMBEDDED -D CHECK_FLAGS -t XCODE5
+            ./ebuild.sh -fr -mc --no-usb -D NO_GRUB_DRIVERS_EMBEDDED -D CHECK_FLAGS -t $BUILDTOOL
             echo && printf "build started at:\n${START_BUILD}\nfinished at\n$(date)\n\nDone!\n"
         ;;
         "build boot6/7 with -fr --std-ebda")
             cd "${DIR_MAIN}"/edk2/Clover
             START_BUILD=$(date)
             printHeader 'boot6'
-            ./ebuild.sh -fr -x64 --std-ebda -D NO_GRUB_DRIVERS_EMBEDDED -D CHECK_FLAGS -t XCODE5
+            ./ebuild.sh -fr -x64 --std-ebda -D NO_GRUB_DRIVERS_EMBEDDED -D CHECK_FLAGS -t $BUILDTOOL
             printHeader 'boot7'
-            ./ebuild.sh -fr -mc --std-ebda --no-usb -D NO_GRUB_DRIVERS_EMBEDDED -D CHECK_FLAGS -t XCODE5
+            ./ebuild.sh -fr -mc --std-ebda --no-usb -D NO_GRUB_DRIVERS_EMBEDDED -D CHECK_FLAGS -t $BUILDTOOL
             echo && printf "build started at:\n${START_BUILD}\nfinished at\n$(date)\n\nDone!\n"
         ;;
         "build pkg")
@@ -1748,9 +1708,9 @@ build() {
             cd "${DIR_MAIN}"/edk2/Clover
             START_BUILD=$(date)
             printHeader 'boot6'
-            ./ebuild.sh -fr -x64 -D NO_GRUB_DRIVERS_EMBEDDED -D CHECK_FLAGS -t XCODE5
+            ./ebuild.sh -fr -x64 -D NO_GRUB_DRIVERS_EMBEDDED -D CHECK_FLAGS -t $BUILDTOOL
             printHeader 'boot7'
-            ./ebuild.sh -fr -mc --no-usb -D NO_GRUB_DRIVERS_EMBEDDED -D CHECK_FLAGS -t XCODE5
+            ./ebuild.sh -fr -mc --no-usb -D NO_GRUB_DRIVERS_EMBEDDED -D CHECK_FLAGS -t $BUILDTOOL
 
             cd "${DIR_MAIN}"/edk2/Clover/CloverPackage
             make clean
