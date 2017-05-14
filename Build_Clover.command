@@ -36,7 +36,7 @@ GNU=""				# empty by default (GCC53 is used if not defined), override the GCC to
 Build_Tool="XCODE"	# Build tool. Possible values: XCODE or GNU. DO NOT USE ANY OTHER VALUES HERE !
 # in Linux this get overrided and GCC53 used anyway!
 # --------------------------------------
-SCRIPTVER="v4.4.2"
+SCRIPTVER="v4.4.3"
 export LC_ALL=C
 SYSNAME="$( uname )"
 
@@ -68,6 +68,7 @@ FAST_UPDATE="NO" # or FAST_UPDATE="YES" # no check, faster
 # default behavior (don't touch these vars)
 NASM_PREFERRED="2.12.02"
 FORCEREBUILD=""
+MAKEPKG_CMD="make pkg"
 UPDATE_FLAG="YES"
 BUILD_FLAG="NO"
 LTO_FLAG=""        # default for Xcode >= 7.3, will automatically adjusted for older ones
@@ -646,6 +647,70 @@ selectArch () {
     ;;
     *)
         selectArch "invalid choice!"
+    ;;
+    esac
+
+    if [ "$LOCAL_REV" -ge "4073" ]; then
+        slimPKG
+    fi
+}
+# --------------------------------------
+slimPKG () {
+    MAKEPKG_CMD="make pkg"
+    restoreIFS
+    archs=(
+            'Standard'
+            'slim pkg that skip themes and CloverThemeManager.app'
+            'slim pkg that skip themes and CloverThemeManager.app, updater and PrefPanel'
+            'slim pkg UEFI only, without RC Scripts, themes & CTM, updater and PrefPanel'
+            'Back to Select architecture menu'
+            'Exit'
+          )
+
+    clear
+    printHeader "Select the desired pkg type"
+
+    if [ -n "$1" ]; then
+        echo "$1" && echo
+    fi
+    local count=1
+    for op in "${archs[@]}"
+    do
+        case "${op}" in
+        'Standard')
+            printf "\e[1;36m\t ${count}) ${op}\e[0m\n"
+        ;;
+        *)
+            printf "\t $count) ${op}\n"
+        ;;
+        esac
+
+        ((count+=1))
+    done
+
+    printf '? ' && read opt
+
+    case $opt in
+    1)
+        MAKEPKG_CMD="make pkg"
+    ;;
+    2)
+        MAKEPKG_CMD="make slimpkg1"
+    ;;
+    3)
+        MAKEPKG_CMD="make slimpkg2"
+    ;;
+    4)
+        MAKEPKG_CMD="make slimpkg3"
+        ;;
+    5)
+        clear && selectArch
+    ;;
+    6)
+        exit 0;
+    ;;
+    *)
+        slimPKG "invalid choice!"
     ;;
     esac
 }
@@ -1863,7 +1928,7 @@ build() {
         fi
         if [[ "$BUILD_PKG" == YES ]]; then
             printHeader 'MAKE PKG'
-            make pkg
+            eval "$MAKEPKG_CMD"
         fi
 
         if [[ "$BUILD_ISO" == YES ]]; then
@@ -1883,7 +1948,7 @@ build() {
     if [[ "$BUILDER" != 'slice' ]]; then restoreClover; fi
     printHeader "build started at:\n${START_BUILD}\nfinished at\n$(date)\n\nDone!\n"
     printf '\e[3;0;0t'
-    exit 0
+    build
 }
 
 # --------------------------------------
