@@ -650,10 +650,7 @@ selectArch () {
     ;;
     esac
 
-    # Clover r4072 is the actual revision on Sun 14 2017
-    # if Clover's dev will accept changes proposed to create a slim pkg,
-    # than 4072 must be changed to allow slim pkg to only revisions that real support this functionality
-    if [ "$LOCAL_REV" -ge "4072" ]; then
+    if [ "$LOCAL_REV" -ge "4073" ]; then
         slimPKG
     fi
 }
