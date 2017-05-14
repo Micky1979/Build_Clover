@@ -36,7 +36,7 @@ GNU=""				# empty by default (GCC53 is used if not defined), override the GCC to
 Build_Tool="XCODE"	# Build tool. Possible values: XCODE or GNU. DO NOT USE ANY OTHER VALUES HERE !
 # in Linux this get overrided and GCC53 used anyway!
 # --------------------------------------
-SCRIPTVER="v4.4.3"
+SCRIPTVER="v4.4.4"
 export LC_ALL=C
 SYSNAME="$( uname )"
 
