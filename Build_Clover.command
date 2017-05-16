@@ -36,7 +36,7 @@ GNU=""				# empty by default (GCC53 is used if not defined), override the GCC to
 Build_Tool="XCODE"	# Build tool. Possible values: XCODE or GNU. DO NOT USE ANY OTHER VALUES HERE !
 # in Linux this get overrided and GCC53 used anyway!
 # --------------------------------------
-SCRIPTVER="v4.4.5"
+SCRIPTVER="v4.4.6"
 export LC_ALL=C
 SYSNAME="$( uname )"
 
@@ -85,11 +85,6 @@ SCRIPT_ABS_PATH=""
 DOWNLOADER_CMD=""
 DOWNLOADER_PATH=""
 GITHUB='https://raw.githubusercontent.com/Micky1979/Build_Clover/master/Build_Clover.command'
-
-# Native HFSPlus
-HFSPLUS64='https://github.com/JrCs/CloverGrowerPro/raw/master/Files/HFSPlus/X64/HFSPlus.efi'
-HFSPLUS32='https://github.com/STLVNUB/CloverGrower/raw/master/Files/HFSPlus/ia32/HFSPlus.efi'
-ADD_HFSPLUS="YES"
 
 SELF_UPDATE_OPT="NO" # show hide selfUpdate option
 PING_RESPONSE="NO" # show hide option with connection dependency
@@ -1523,68 +1518,6 @@ backupBoot7MCP79() {
     fi
 }
 # --------------------------------------
-addHFSPLUS() {
-    local driversON="${CLOVERV2_PATH}/EFI/CLOVER"
-    local add32=0
-    local add64=0
-
-    case "$1" in
-    IA32_X64)
-        printHeader 'Adding HFSPlus-64.efi and HFSPlus-32.efi'
-        add64=1
-        add32=1
-    ;;
-    X64)
-        printHeader 'Adding HFSPlus-64.efi'
-        add64=1
-    ;;
-    IA32)
-        printHeader 'Adding HFSPlus-32.efi'
-        add32=1
-    ;;
-    esac
-
-    if [[ ! -f "${DIR_DOWNLOADS}/HFSPlus/x64/HFSPlus.efi" ]] && [ "$add64" -eq 1 ]; then
-        mkdir -p "${DIR_DOWNLOADS}/HFSPlus/x64"
-        downloader "$HFSPLUS64" "HFSPlus.efi" "${DIR_DOWNLOADS}/HFSPlus/x64"
-    fi
-
-    if [ "$add64" -eq 1 ]; then
-        if [[ -f "${DIR_DOWNLOADS}/HFSPlus/x64/HFSPlus.efi" ]];then
-            if [[ -d "${driversON}/drivers64UEFI" ]];then
-                cp -R "${DIR_DOWNLOADS}/HFSPlus/x64/HFSPlus.efi" "${driversON}/drivers64UEFI/HFSPlus-64.efi"
-                echo "HFSPlus-64.efi copied in ../drivers64UEFI"
-                fi
-            if [[ -d "${driversON}/drivers64" ]];then
-                cp -R "${DIR_DOWNLOADS}/HFSPlus/x64/HFSPlus.efi" "${driversON}/drivers64/HFSPlus-64.efi"
-                echo "HFSPlus-64.efi copied in ../drivers64"
-            fi
-        else
-            echo "failed to download HFSPlus.efi 64bit"
-        fi
-    fi
-
-    if [[ ! -f "${DIR_DOWNLOADS}/HFSPlus/ia32/HFSPlus.efi" ]] && [ "$add32" -eq 1 ]; then
-        mkdir -p "${DIR_DOWNLOADS}/HFSPlus/ia32"
-        downloader "$HFSPLUS32" "HFSPlus.efi" "${DIR_DOWNLOADS}/HFSPlus/ia32"
-    fi
-
-    if [ "$add32" -eq 1 ]; then
-        if [[ -f "${DIR_DOWNLOADS}/HFSPlus/ia32/HFSPlus.efi" ]];then
-            if [[ -d "${driversON}/drivers32UEFI" ]];then
-                cp -R "${DIR_DOWNLOADS}/HFSPlus/ia32/HFSPlus.efi" "${driversON}/drivers32UEFI/HFSPlus-32.efi"
-                echo "HFSPlus-32.efi copied in ../drivers32UEFI"
-            fi
-            if [[ -d "${driversON}/drivers32" ]];then
-                cp -R "${DIR_DOWNLOADS}/HFSPlus/ia32/HFSPlus.efi" "${driversON}/drivers32/HFSPlus-32.efi"
-                echo "HFSPlus-32.efi copied in ../drivers32"
-            fi
-        else
-            echo "failed to download HFSPlus.efi 32bit"
-        fi
-    fi
-}
-# --------------------------------------
 build() {
     if [[ -d "${DIR_MAIN}/edk2/Clover/.svn" ]] ; then
         echo 'Please enter your choice: '
@@ -1947,10 +1880,6 @@ build() {
             doSomething --run-script ./ebuild.sh -ia32 -fr ${DEFINED_MACRO} $LTO_FLAG -t $BUILDTOOL
         ;;
         esac
-    fi
-
-    if [[ "$ADD_HFSPLUS" == YES ]]; then
-        addHFSPLUS "$ARCH"
     fi
 
     if [[ "$SYSNAME" == Darwin ]]; then
