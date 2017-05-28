@@ -999,7 +999,7 @@ if [[ -z "$SUGGESTED_CLOVER_REV" ]]; then
 	IsLinkOnline ${CLOVER_REP}
 	getRev "remote"
 	echo
-	if [[ ! -d "${DIR_MAIN}/edk2/Clover" ]] ; then
+	if [[ ! -d "${DIR_MAIN}/edk2/Clover" ]]; then
 		printHeader 'Downloading Clover, using the latest revision'
 		if IsNumericOnly "${REMOTE_REV}"; then
 			mkdir -p "${DIR_MAIN}"/edk2/Clover
@@ -1009,13 +1009,13 @@ if [[ -z "$SUGGESTED_CLOVER_REV" ]]; then
 			exit 1
 		fi
 	else
-		if [[ "${LOCAL_REV}" == ""]]; then
+		if [[ "${LOCAL_REV}" == "" ]]; then
 			printHeader 'Clover local repo not found or damaged, downloading the latest revision'
 			rm -rf "${DIR_MAIN}"/edk2/Clover/* > /dev/null 2>&1
-			cmd="svn co -r $REMOTE_REV --non-interactive --trust-server-cert ${CLOVER_REP} .";;
+			cmd="svn co -r $REMOTE_REV --non-interactive --trust-server-cert ${CLOVER_REP} ."
 		else
 			printHeader 'Updating Clover, using the latest revision'
-			cmd="svn up --accept tf --non-interactive --trust-server-cert";;
+			cmd="svn up --accept tf --non-interactive --trust-server-cert"
 		fi
 	fi
 else
@@ -1027,10 +1027,10 @@ else
 		if [[ "${LOCAL_REV}" == "" ]]; then
 			printHeader "Clover local repo not found or damaged, downloading the specific revision r${SUGGESTED_CLOVER_REV}"
 			rm -rf "${DIR_MAIN}"/edk2/Clover/* > /dev/null 2>&1
-			cmd="svn co -r $SUGGESTED_CLOVER_REV --non-interactive --trust-server-cert ${CLOVER_REP} ." ;;
+			cmd="svn co -r $SUGGESTED_CLOVER_REV --non-interactive --trust-server-cert ${CLOVER_REP} ."
 		else 
 			printHeader "Updating Clover, using the specific revision r${SUGGESTED_CLOVER_REV}"
-			cmd="svn up --accept tf --non-interactive --trust-server-cert -r $SUGGESTED_CLOVER_REV" ;;
+			cmd="svn up --accept tf --non-interactive --trust-server-cert -r $SUGGESTED_CLOVER_REV"
 		fi
 	fi
 fi
