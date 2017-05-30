@@ -174,6 +174,11 @@ if [[ "$SYSNAME" == Linux ]]; then macros+=('DISABLE_LTO'); fi
 # --------------------------------------
 # FUNCTIONS
 # --------------------------------------
+CleanExit () {
+if [[ -f /tmp/Build_Clover.tmp ]]; then rm -f /tmp/Build_Clover.tmp; fi
+exit 0
+}
+# --------------------------------------
 FindScriptPath () {
 	local s_path s_name l_path
 	local s_orig=$(which "${0}")
@@ -200,80 +205,40 @@ clear
 }
 # --------------------------------------
 selfUpdate() {
-    printHeader "SELF UPDATE"
-    local SELF_PATH="${0}"
-    local cmd=""
-    local newScriptRev=""
-    local currScriptRev=$(echo $SCRIPTVER | tr -cd [:digit:]) # in case of beta suffix
-    local newScript=""
+printHeader "SELF UPDATE"
+local SELF_PATH="${0}"
 
-    case $1 in
-    wget)
-        cmd='${DOWNLOADER_PATH}/wget $GITHUB -q -O -'
-    ;;
-    curl)
-        cmd='${DOWNLOADER_PATH}/curl -L $GITHUB'
-    ;;
-    *)
-        printError "selfUpdate(): invalid cmd!\n"
-        return
-    ;;
-    esac
-
-    newScript=$(eval $cmd)
-
-    # don't fail if no script is avail
-    if [ -n "${newScript}" ]; then
-        echo "${newScript}" > /tmp/Build_Clover.txt
-        newScript=$(cat /tmp/Build_Clover.txt)
-        newScriptRev=$(cat /tmp/Build_Clover.txt | grep 'SCRIPTVER=' | tr -cd [:digit:])
-
-        if IsNumericOnly $currScriptRev && IsNumericOnly $newScriptRev; then
-            if [ "$newScriptRev" -gt "$currScriptRev" ]; then
-                # we have a new script, prompt the user
-                printf "\na new Build_Clover.command is available,\n"
-                echo "do you want to overwrite the script? (Y/n)\n"
-                read answer
-
-                case $answer in
-                Y | y)
-                    # get the line containing MODE variable and replace with what is currently in old script:
-                    local lineVarNum=$(cat /tmp/Build_Clover.txt | grep -n '^MODE="' | awk -F ":" '{print $1}')
-
-                    if [[ "$MODE" == "R" ]]; then
-                        if IsNumericOnly $lineVarNum; then
-                            if [[ "$SYSNAME" == Linux ]]; then
-                                sed -i "${lineVarNum}s/.*/MODE=\"R\"/" /tmp/Build_Clover.txt
-                            else
-                                sed -i "" "${lineVarNum}s/.*/MODE=\"R\"/" /tmp/Build_Clover.txt
-                            fi
-                            cat /tmp/Build_Clover.txt > "${SELF_PATH}"
-                            echo "done!"
-                            rm -f /tmp/Build_Clover.txt
-                            exec "${SELF_PATH}"
-                        else
-                            cat /tmp/Build_Clover.txt > "${SELF_PATH}"
-                            echo "Warning: was not possible to ensure that MODE var was correctly set,"
-                            echo "so apply your changes (if any) and re run the new script"
-                            rm -f /tmp/Build_Clover.txt
-                            exit 0
-                        fi
-                    else
-                        cat /tmp/Build_Clover.txt > "${SELF_PATH}"
-                        echo "done!"
-                        rm -f /tmp/Build_Clover.txt
-                        exec "${SELF_PATH}"
-                    fi
-                ;;
-                esac
-            else
-                pressAnyKey 'your script is up to date,\n'
-            fi
-        fi
-    else
-        pressAnyKey 'was not possible to retrieve updates for Build_Clover.command,'
-    fi
-    rm -f /tmp/Build_Clover.txt
+printf "\nA new Build_Clover.command is available,\n"
+printf "do you want to overwrite the script? (Y/n): "
+read answer
+case $answer in
+	Y | y)
+		if [[ -f /tmp/Build_Clover.tmp ]]; then
+			# get the line containing MODE variable and replace with what is currently in old script:
+			local lineVarNum=$(cat /tmp/Build_Clover.tmp | grep -n '^MODE="' | awk -F ":" '{print $1}')
+			if [[ "$MODE" == "R" ]]; then
+				if IsNumericOnly $lineVarNum; then
+					if [[ "$SYSNAME" == Linux ]]; then
+						sed -i "${lineVarNum}s/.*/MODE=\"R\"/" /tmp/Build_Clover.tmp
+					else
+						sed -i "" "${lineVarNum}s/.*/MODE=\"R\"/" /tmp/Build_Clover.tmp
+					fi
+					cat /tmp/Build_Clover.tmp > "${SELF_PATH}"
+					exec "${SELF_PATH}"
+				else
+					cat /tmp/Build_Clover.tmp > "${SELF_PATH}"
+					echo "Warning: was not possible to ensure that MODE var was correctly set,"
+					echo "so apply your changes (if any) and re run the new script"
+					CleanExit
+				fi
+			else
+				cat /tmp/Build_Clover.tmp > "${SELF_PATH}"
+				exec "${SELF_PATH}"
+			fi
+		else
+			pressAnyKey 'Was not possible to update Build_Clover.command,'
+		fi;;
+esac
 }
 # --------------------------------------
 printThickLine() {
@@ -321,7 +286,7 @@ else
 	echo "now is possible to open the Terminal and type \"buildclover\""
 	echo "to simply run Build_Clover.command.."
 	pressAnyKey '..the script will be closed to allow you to do that!\n' noclear
-	sudo -k && exit 0
+	sudo -k && CleanExit
 fi
 }
 # --------------------------------------
@@ -370,12 +335,8 @@ local SNameVer="\e[1;34mBuild_Clover script ${SCRIPTVER}\e[0m"
 
 if ping -c 1 github.com >> /dev/null 2>&1; then
 	# Retrive and filter remote script version
-	case "$DOWNLOADER_CMD" in
-		"wget" ) RSDATA=$( "${DOWNLOADER_PATH}/${DOWNLOADER_CMD}" $GITHUB -q -O - );;
-		"curl" ) RSDATA=$( "${DOWNLOADER_PATH}/${DOWNLOADER_CMD}" -v --silent $GITHUB 2>&1 );;
-		*) return;;
-	esac
-	RSCRIPTVER=$( echo "${RSDATA}" | grep '^SCRIPTVER="v' | tr -cd '.0-9' )
+	downloader "$GITHUB" "Build_Clover.tmp" "/tmp"
+	RSCRIPTVER=$( cat /tmp/Build_Clover.tmp | grep '^SCRIPTVER="v' | tr -cd '.0-9' )
 	LVALUE=$( echo $SCRIPTVER | tr -cd [:digit:] )
 	RVALUE=$( echo $RSCRIPTVER | tr -cd [:digit:] )
 
@@ -453,8 +414,8 @@ suggestedFilename="${2}"
 downloadLocation="${3}"
 
 case "$DOWNLOADER_CMD" in
-	wget ) cmd="${DOWNLOADER_PATH}/${DOWNLOADER_CMD} -O ${downloadLocation}/${suggestedFilename} ${downloadlink}";;
-	curl ) cmd="${DOWNLOADER_PATH}/${DOWNLOADER_CMD} -o ${downloadLocation}/${suggestedFilename} -LOk ${downloadlink}";;
+	wget ) cmd="${DOWNLOADER_PATH}/${DOWNLOADER_CMD} -O ${downloadLocation}/${suggestedFilename} -q ${downloadlink}";;
+	curl ) cmd="${DOWNLOADER_PATH}/${DOWNLOADER_CMD} -o ${downloadLocation}/${suggestedFilename} -sLOk ${downloadlink}";;
 	* ) printError "\nNo curl nor wget are installed! Install one of them and retry..\n"; exit 1;;
 esac
 
@@ -578,7 +539,7 @@ case $opt in
 	2 ) ARCH="IA32_X64";;
 	3 ) ARCH="IA32";;
 	4 ) clear && BUILDER=$USER && build;;
-	5 ) exit 0;;
+	5 ) CleanExit;;
 	* ) selectArch "invalid choice!";;
 esac
 if [[ "$SYSNAME" == Darwin ]] && [ "$LOCAL_REV" -ge "4073" ]; then slimPKG; fi
@@ -613,7 +574,7 @@ case $opt in
 	3 ) MAKEPKG_CMD="make slimpkg2";;
 	4 ) MAKEPKG_CMD="make slimpkg3";;
 	5 ) clear && selectArch;;
-	6 ) exit 0;;
+	6 ) CleanExit;;
 	* ) slimPKG "invalid choice!";;
 esac
 }
@@ -1398,15 +1359,7 @@ if [[ -d "${DIR_MAIN}/edk2/Clover/.svn" ]] ; then
 		"add \"buildclover\" symlink to $(dirname $SYMLINKPATH)" \
 		| "restore \"buildclover\" symlink" \
 		| "update \"buildclover\" symlink" ) addSymlink;;
-		"update Build_Clover.command" )
-			if [[ "$DOWNLOADER_CMD" == wget ]]; then
-				selfUpdate wget
-			elif [[ "$DOWNLOADER_CMD" == curl ]]; then
-				selfUpdate curl
-			else
-				printError "\nNo curl nor wget are installed! Install one of them and retry..\n" && exit 1
-			fi
-			build;;
+		"update Build_Clover.command" ) selfUpdate; build;;
 		"enter Developers mode (only for devs)" )
 			clear
 			if [[ -d "${DIR_MAIN}/edk2/Clover" ]] ; then
@@ -1515,11 +1468,11 @@ if [[ -d "${DIR_MAIN}/edk2/Clover/.svn" ]] ; then
 				build
 			else
 				printHeader "add the script you want to run here.."
-				exit 0
+				CleanExit
 			fi;;
 		"info and limitations about this script" ) showInfo;;
 		"Back to Main Menu" ) clear && BUILDER=$USER && build;;
-		"Exit" ) exit 0;;
+		"Exit" ) CleanExit;;
 		* ) clear && echo "invalid option!!" && build;;
 	esac
 fi
@@ -1651,7 +1604,7 @@ build
 # --------------------------------------
 # don't use sudo!
 if [[ $EUID -eq 0 ]]; then printError "\nThis script should not be run using sudo!!\n\n"; exit 1; fi
-
+if [[ -f /tmp/Build_Clover.tmp ]]; then rm -f /tmp/Build_Clover.tmp; fi
 FindScriptPath
 
 # Setting the build tool (Xcode or GCC)
