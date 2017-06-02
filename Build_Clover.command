@@ -206,8 +206,6 @@ clear
 # --------------------------------------
 selfUpdate() {
 printHeader "SELF UPDATE"
-local SELF_PATH="${0}"
-
 printf "\nA new Build_Clover.command is available,\n"
 printf "do you want to overwrite the script? (Y/n): "
 read answer
@@ -223,17 +221,17 @@ case $answer in
 					else
 						sed -i "" "${lineVarNum}s/.*/MODE=\"R\"/" /tmp/Build_Clover.tmp
 					fi
-					cat /tmp/Build_Clover.tmp > "${SELF_PATH}"
-					exec "${SELF_PATH}"
+					cat /tmp/Build_Clover.tmp > "${SCRIPT_ABS_PATH}"
+					exec "${SCRIPT_ABS_PATH}"
 				else
-					cat /tmp/Build_Clover.tmp > "${SELF_PATH}"
+					cat /tmp/Build_Clover.tmp > "${SCRIPT_ABS_PATH}"
 					echo "Warning: was not possible to ensure that MODE var was correctly set,"
 					echo "so apply your changes (if any) and re run the new script"
 					CleanExit
 				fi
 			else
-				cat /tmp/Build_Clover.tmp > "${SELF_PATH}"
-				exec "${SELF_PATH}"
+				cat /tmp/Build_Clover.tmp > "${SCRIPT_ABS_PATH}"
+				exec "${SCRIPT_ABS_PATH}"
 			fi
 		else
 			pressAnyKey 'Was not possible to update Build_Clover.command,'
