@@ -333,7 +333,7 @@ local SNameVer="\e[1;34mBuild_Clover script ${SCRIPTVER}\e[0m"
 
 if ping -c 1 github.com >> /dev/null 2>&1; then
 	# Retrive and filter remote script version
-	downloader "$GITHUB" "Build_Clover.tmp" "/tmp"
+	downloader "$GITHUB" "/tmp" "Build_Clover.tmp"
 	RSCRIPTVER=$( cat /tmp/Build_Clover.tmp | grep '^SCRIPTVER="v' | tr -cd '.0-9' )
 	LVALUE=$( echo $SCRIPTVER | tr -cd [:digit:] )
 	RVALUE=$( echo $RSCRIPTVER | tr -cd [:digit:] )
@@ -396,30 +396,21 @@ printRevisions() {
 # --------------------------------------
 downloader(){
 #$1 link
-#$2 file name
-#$3 path (where will be saved)
+#$2 path (where will be saved)
+#$3 file name
 local cmd=""
-local downloadlink=""
-local suggestedFilename=""
-local downloadLocation=""
-
-if [ -z "${1}" ]; then printError "\nError: downloader() require 3 argument!!\n" && exit 1; fi
-if [ -z "${2}" ]; then printError "\nError: downloader() require a suggested file name\n" && exit 1; fi
-if [ -z "${3}" ] || [[ ! -d "${3}" ]]; then printError "\nError: downloader() require the download path!!\n" && exit 1; fi
-
-downloadlink="${1}"
-suggestedFilename="${2}"
-downloadLocation="${3}"
-
 case "$DOWNLOADER_CMD" in
-	wget ) cmd="${DOWNLOADER_PATH}/${DOWNLOADER_CMD} -O ${downloadLocation}/${suggestedFilename} -q ${downloadlink}";;
-	curl ) cmd="${DOWNLOADER_PATH}/${DOWNLOADER_CMD} -o ${downloadLocation}/${suggestedFilename} -sLOk ${downloadlink}";;
+	wget )	cmd="${DOWNLOADER_PATH}/${DOWNLOADER_CMD} -q ${1}";;
+	curl )	cmd="${DOWNLOADER_PATH}/${DOWNLOADER_CMD} -sLk ${1}";;
 	* ) printError "\nNo curl nor wget are installed! Install one of them and retry..\n"; exit 1;;
 esac
-
-# default behavior = replace existing download!
-if [[ -d "${downloadLocation}/${suggestedFilename}" ]]; then rm -rf "${downloadLocation}/${suggestedFilename}"; fi
-
+if [[ ! -z "${2}" && ! -z "${3}" && -d "${2}" ]]; then
+	case "$DOWNLOADER_CMD" in
+		wget ) cmd+=" -O ${2}/${3}";;
+		curl ) cmd+=" -o ${2}/${3}";;
+	esac
+	if [[ -d "${2}/${3}" ]]; then rm -rf "${2}/${3}"; fi
+fi
 eval "${cmd}"
 }
 # --------------------------------------
@@ -866,7 +857,7 @@ echo
 #local BaseToolsRev="unknown"
 # Set BaseToolsRev to unknown
 if [ ! -z "$BaseToolsRev" ]; then BaseToolsRev="unknown"; fi
-	local revision="-r $EDK2_REV"
+local revision="-r $EDK2_REV"
 if [[ ! -d "${DIR_MAIN}/edk2" ]]; then
 	printHeader 'Downloading edk2'
 	mkdir -p "${DIR_MAIN}"/edk2
@@ -881,24 +872,14 @@ if [ "$ForceEDK2Update" -eq "1979" ]; then
 fi
 # update only relevant pkgs of edk2 needed by Clover
 # keep them from update.sh used by Slice..
-local cmd=""
 local updatelink="https://sourceforge.net/p/cloverefiboot/code/HEAD/tree/update.sh?format=raw"
-
-if [[ "$DOWNLOADER_CMD" == wget ]]; then
-	cmd="${DOWNLOADER_PATH}/${DOWNLOADER_CMD} $updatelink -q -O -"
-elif [[ "$DOWNLOADER_CMD" == curl ]]; then
-	cmd="${DOWNLOADER_PATH}/${DOWNLOADER_CMD} -L $updatelink"
-else
-	printError "\nNo curl nor wget are installed! Install one of them and retry..\n" && exit 1
-fi
-
 local edk2ArrayOnline=(
-	$( eval "${cmd}" | grep 'cd ..' | sed -e 's/^cd ..\///' | sed -e 's/\/$//' | sed -e '/Clover/d' \
+	$( downloader "$updatelink" | grep 'cd ..' | sed -e 's/^cd ..\///' | sed -e 's/\/$//' | sed -e '/Clover/d' \
 	| sed -e 's:BaseTools/Conf:BaseTools:g' )
 )
 
 # use only if populated, otherwise use the static "edk2array"
-if [ "${#edk2ArrayOnline[@]}" -ge "1" ]; then edk2array="${edk2ArrayOnline}"; fi
+if [ "${#edk2ArrayOnline[@]}" -ge "1" ]; then unset -v edk2array; edk2array=( "${edk2ArrayOnline[@]}" ); fi
 
 # check if we have all already there and updated at the specified revision..
 # 'Scripts' and 'Source' are not present in edk2. maybe are Slice's stuff
@@ -1167,16 +1148,14 @@ if [[ ! -f "${NASM_PREFIX}"nasm ]] || [[ ! -x "${NASM_PREFIX}"nasm ]] || ! isNAS
 	FORCEREBUILD="-fr" #the path to nasm can now be different in generated make files: it is safe to autogen it again!
 	mkdir -p "${DIR_DOWNLOADS}"/source.download
 	# NASM_PREFIX (the folder) can be writable or not, but also NASM_PREFIX can be writable and an old nasm inside it not writable because owned by root!
+	cd "${DIR_DOWNLOADS}"/source.download
 
 	if [[ "$SYSNAME" == Linux ]]; then
-		mkdir -p "${DIR_DOWNLOADS}"/source.download
-		downloader "http://www.nasm.us/pub/nasm/releasebuilds/${NASM_PREFERRED}/nasm-${NASM_PREFERRED}.tar.gz" "${NASM_PREFERRED}.tar.gz" "${DIR_DOWNLOADS}/source.download"
-		cd "${DIR_DOWNLOADS}"/source.download
+		downloader "http://www.nasm.us/pub/nasm/releasebuilds/${NASM_PREFERRED}/nasm-${NASM_PREFERRED}.tar.gz" "${DIR_DOWNLOADS}/source.download" "${NASM_PREFERRED}.tar.gz"
 		tar -zxf "${NASM_PREFERRED}".tar.gz
 		cd "${DIR_DOWNLOADS}/source.download/nasm-${NASM_PREFERRED}"
 		./configure --prefix="${PREFIX}" 1> /dev/null 2> "${DIR_LOGS}"/nasm-"${NASM_PREFERRED}".config.log.txt
 		make CC=gcc 1> /dev/null 2> "${DIR_LOGS}"/nasm-"${NASM_PREFERRED}".make.log.txt
-
 		if ([[ ! -e "${NASM_PREFIX}"nasm ]] && ! IsPathWritable "${NASM_PREFIX}") || ([[ -e "${NASM_PREFIX}"nasm ]] && ! IsPathWritable "${NASM_PREFIX}"nasm); then
 			echo
 			echo "installing nasm to ${NASM_PREFIX} require sudo because"
@@ -1187,11 +1166,8 @@ if [[ ! -f "${NASM_PREFIX}"nasm ]] || [[ ! -x "${NASM_PREFIX}"nasm ]] || ! isNAS
 			make install 1> /dev/null 2> "${DIR_LOGS}"/nasm-"${NASM_PREFERRED}".install.log.txt
 		fi
 	elif [[ "$SYSNAME" == Darwin ]]; then
-		mkdir -p "${DIR_DOWNLOADS}"/source.download
-		downloader "http://www.nasm.us/pub/nasm/releasebuilds/${NASM_PREFERRED}/macosx/nasm-${NASM_PREFERRED}-macosx.zip" "${NASM_PREFERRED}.zip" "${DIR_DOWNLOADS}/source.download"
-		cd "${DIR_DOWNLOADS}"/source.download
+		downloader "http://www.nasm.us/pub/nasm/releasebuilds/${NASM_PREFERRED}/macosx/nasm-${NASM_PREFERRED}-macosx.zip" "${DIR_DOWNLOADS}/source.download" "${NASM_PREFERRED}.zip"
 		unzip "${NASM_PREFERRED}".zip
-
 		if ([[ ! -e "${NASM_PREFIX}"nasm ]] && ! IsPathWritable "${NASM_PREFIX}") || ([[ -e "${NASM_PREFIX}"nasm ]] && ! IsPathWritable "${NASM_PREFIX}"nasm); then
 			echo
 			echo "installing nasm to ${NASM_PREFIX} require sudo because"
