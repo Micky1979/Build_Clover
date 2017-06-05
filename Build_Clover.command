@@ -316,7 +316,7 @@ if [[ "$SYSNAME" == Linux ]]; then
 		DOWNLOADER_CMD="curl"
 	else
 		DOWNLOADER_CMD=$(which curl)
-		printError "\nNo curl nor wget are installed! Install one of them and retry..\n" && exit 1
+		printError "\nNo curl nor wget are installed! Install one of them and retry..\n"; exit 1
 	fi
 else
 	# /usr/bin/curl!! (philip_petev)
@@ -977,7 +977,9 @@ fi
 cd "${DIR_MAIN}"/edk2/Clover
 svnWithErrorCheck "$cmd" "$(pwd)"
 printHeader 'Apply Edk2 patches'
-cp -R "${DIR_MAIN}"/edk2/Clover/Patches_for_EDK2/* "${DIR_MAIN}"/edk2/ # in Lion cp cause error with subversion (comment this line and enable next)
+cp -R "${DIR_MAIN}"/edk2/Clover/Patches_for_EDK2/* "${DIR_MAIN}"/edk2/
+
+# in Lion cp cause error with subversion (comment this line and enable next)
 # rsync -rv --exclude=.svn "${DIR_MAIN}"/edk2/Clover/Patches_for_EDK2/ "${DIR_MAIN}"/edk2
 }
 # --------------------------------------
