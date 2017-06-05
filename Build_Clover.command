@@ -81,10 +81,13 @@ TIMES=0
 ForceEDK2Update=0 # cause edk2 to be re-updated again if > 0 (handeled by the script in more places)
 SYMLINKPATH='/usr/local/bin/buildclover'
 SCRIPT_ABS_PATH=""
+SCRIPT_ABS_LOC=""
 
 DOWNLOADER_CMD=""
 DOWNLOADER_PATH=""
 GITHUB='https://raw.githubusercontent.com/Micky1979/Build_Clover/master/Build_Clover.command'
+CLOVER_REP="svn://svn.code.sf.net/p/cloverefiboot/code"
+EDK2_REP="svn://svn.code.sf.net/p/edk2/code/trunk/edk2"
 
 SELF_UPDATE_OPT="NO" # show hide selfUpdate option
 PING_RESPONSE="NO" # show hide option with connection dependency
@@ -107,45 +110,6 @@ edk2array=(
 	BaseTools
 	)
 
-# default paths (don't touch these vars)
-# first check for our path
-if [[ "$MODE" == "S" ]]; then
-	export DIR_MAIN=${DIR_MAIN:-"${HOME}"/src}
-elif [[ "$MODE" == "R" ]]; then
-	# Rehabman wants the script path as the place for the edk2 source!
-	# check if $0 is a symlink
-	if [[ -L "${0}" ]]; then
-		if [[ "$SYSNAME" == Linux ]]; then
-			cd "$(dirname $(readlink -f ${0}))"
-		else
-			cd "$(dirname $(readlink ${0}))"
-		fi
-	else
-		cd "$(dirname ${0})"
-	fi
-	export DIR_MAIN="$(pwd)"/src
-
-	if [[ "${DIR_MAIN}" = "${DIR_MAIN%[[:space:]]*}" ]]; then
-		echo "good, no blank spaces in DIR_MAIN, continuing.."
-	else
-		clear
-		printError "Error: MODE=\"R\" require a path with no spaces in the middle, exiting!\n"
-		exit 1
-	fi
-else
-	clear
-	printError "Error: unsupported MODE\n"
-	exit 1
-fi
-
-SVN_STDERR_LOG="${DIR_MAIN}/svnLog.txt"
-CLOVERV2_PATH="${DIR_MAIN}/edk2/Clover/CloverPackage/CloverV2"
-PKG_PATH="${DIR_MAIN}/edk2/Clover/CloverPackage/package"
-LOCALIZABLE_FILE="${PKG_PATH}/Resources/templates/Localizable.strings"
-ebuildB="${DIR_MAIN}/edk2/Clover/ebuildBorg.sh"
-ebuild="${DIR_MAIN}/edk2/Clover/ebuild.sh"
-CLOVER_REP="svn://svn.code.sf.net/p/cloverefiboot/code"
-EDK2_REP="svn://svn.code.sf.net/p/edk2/code/trunk/edk2"
 # ---------------------------->
 # additional macro to compile Clover EFI
 macros=(
@@ -168,9 +132,6 @@ macros=(
 	CHECK_FLAGS
 	)
 
-# tools_def.txt provide lto flags for GCC53 in linux
-if [[ "$SYSNAME" == Linux ]]; then macros+=('DISABLE_LTO'); fi
-
 # --------------------------------------
 # FUNCTIONS
 # --------------------------------------
@@ -184,13 +145,12 @@ FindScriptPath () {
 	local s_orig=$(which "${0}")
 	if [[ -L "$s_orig" ]]; then
 		[[ "$SYSNAME" == Linux ]] && l_path=$(readlink -f "$s_orig") || l_path=$(readlink "$s_orig")
-		s_path=$(dirname "$l_path")
-		s_name=$(basename "$l_path")
+		s_path=$(dirname "$l_path"); s_name=$(basename "$l_path")
 	else
-		s_path=$(dirname "$s_orig")
-		s_name=$(basename "$s_orig")
+		s_path=$(dirname "$s_orig"); s_name=$(basename "$s_orig")
 	fi
-	SCRIPT_ABS_PATH=$( cd "${s_path}" && pwd )/"${s_name}"
+	SCRIPT_ABS_PATH=$( cd "${s_path}" && pwd )
+	SCRIPT_ABS_LOC="${SCRIPT_ABS_PATH}"/"${s_name}"
 }
 # --------------------------------------
 IsNumericOnly() {
@@ -221,17 +181,17 @@ case $answer in
 					else
 						sed -i "" "${lineVarNum}s/.*/MODE=\"R\"/" /tmp/Build_Clover.tmp
 					fi
-					cat /tmp/Build_Clover.tmp > "${SCRIPT_ABS_PATH}"
-					exec "${SCRIPT_ABS_PATH}"
+					cat /tmp/Build_Clover.tmp > "${SCRIPT_ABS_LOC}"
+					exec "${SCRIPT_ABS_LOC}"
 				else
-					cat /tmp/Build_Clover.tmp > "${SCRIPT_ABS_PATH}"
+					cat /tmp/Build_Clover.tmp > "${SCRIPT_ABS_LOC}"
 					echo "Warning: was not possible to ensure that MODE var was correctly set,"
 					echo "so apply your changes (if any) and re run the new script"
 					CleanExit
 				fi
 			else
-				cat /tmp/Build_Clover.tmp > "${SCRIPT_ABS_PATH}"
-				exec "${SCRIPT_ABS_PATH}"
+				cat /tmp/Build_Clover.tmp > "${SCRIPT_ABS_LOC}"
+				exec "${SCRIPT_ABS_LOC}"
 			fi
 		else
 			pressAnyKey 'Was not possible to update Build_Clover.command,'
@@ -275,7 +235,7 @@ if [[ ! -d "$(dirname $SYMLINKPATH)" ]]; then
 fi
 [[ "$USER" != root ]] && echo "type your password to add the symlink:"
 [[ -d "${SYMLINKPATH}" ]] && sudo rm -rf "${SYMLINKPATH}" # just in case there's a folder with the same name
-eval "sudo ln -nfs \"${SCRIPT_ABS_PATH}\" $SYMLINKPATH"
+eval "sudo ln -nfs \"${SCRIPT_ABS_LOC}\" $SYMLINKPATH"
 if [[ $? -ne 0 ]] ; then
 	printError "\no_Ops, something wrong, cannot add the symlink..\n"
 	pressAnyKey '\n' noclear
@@ -1266,7 +1226,7 @@ if [[ -d "${DIR_MAIN}/edk2/Clover/.svn" ]] ; then
 		if [[ -L "$SYMLINKPATH" ]]; then
 			[[ "$SYSNAME" == Linux ]] && symPath="$(readlink -f ${SYMLINKPATH})" || symPath="$(readlink ${SYMLINKPATH})"
 			# is that symlink pointing to the currently running script
-			[[ "$symPath" != "$SCRIPT_ABS_PATH" ]] && options+=("update \"buildclover\" symlink")
+			[[ "$symPath" != "$SCRIPT_ABS_LOC" ]] && options+=("update \"buildclover\" symlink")
 		else
 			# not a symlink
 			options+=("restore \"buildclover\" symlink")
@@ -1580,8 +1540,35 @@ build
 # --------------------------------------
 # don't use sudo!
 if [[ $EUID -eq 0 ]]; then printError "\nThis script should not be run using sudo!!\n\n"; exit 1; fi
+# Cleaning up any old data if exists
 if [[ -f /tmp/Build_Clover.tmp ]]; then rm -f /tmp/Build_Clover.tmp; fi
+
 FindScriptPath
+
+# setting default paths
+case "$MODE" in
+	"S" )
+		export DIR_MAIN=${DIR_MAIN:-"${HOME}"/src};;
+	"R" )
+		export DIR_MAIN="${SCRIPT_ABS_PATH}"/src
+		if [[ "${DIR_MAIN}" = "${DIR_MAIN%[[:space:]]*}" ]]; then
+			echo "good, no blank spaces in DIR_MAIN, continuing.."
+		else
+			clear; printError "Error: MODE=\"R\" require a path with no spaces in the middle, exiting!\n"; exit 1
+		fi;;
+	* )
+		clear; printError "Error: unsupported MODE\n"; exit 1;;
+esac
+
+SVN_STDERR_LOG="${DIR_MAIN}/svnLog.txt"
+CLOVERV2_PATH="${DIR_MAIN}/edk2/Clover/CloverPackage/CloverV2"
+PKG_PATH="${DIR_MAIN}/edk2/Clover/CloverPackage/package"
+LOCALIZABLE_FILE="${PKG_PATH}/Resources/templates/Localizable.strings"
+ebuildB="${DIR_MAIN}/edk2/Clover/ebuildBorg.sh"
+ebuild="${DIR_MAIN}/edk2/Clover/ebuild.sh"
+
+# tools_def.txt provide lto flags for GCC53 in linux
+if [[ "$SYSNAME" == Linux ]]; then macros+=('DISABLE_LTO'); fi
 
 # Setting the build tool (Xcode or GCC)
 if [[ "$SYSNAME" == Darwin ]]; then
