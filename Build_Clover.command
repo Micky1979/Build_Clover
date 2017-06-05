@@ -1018,7 +1018,7 @@ return $result
 ebuildBorg () {
 if [[ "$MOD_PKG_FLAG" != YES ]]; then return; fi
 local NR=0
-if [[ "$SYSNAME" == Darwin ]]; then rintHeader 'Modding package resources'; fi
+if [[ "$SYSNAME" == Darwin ]]; then printHeader 'Modding package resources'; fi
 	
 case "$ARCH" in
 IA32_X64 | X64 )
