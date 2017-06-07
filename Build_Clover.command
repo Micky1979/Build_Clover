@@ -36,7 +36,7 @@ GNU="" # empty by default (GCC53 is used if not defined), override the GCC toolc
 Build_Tool="XCODE" # Build tool. Possible values: XCODE or GNU. DO NOT USE ANY OTHER VALUES HERE !
 # in Linux this get overrided and GCC53 used anyway!
 # --------------------------------------
-SCRIPTVER="v4.4.8"
+SCRIPTVER="v4.4.9"
 export LC_ALL=C
 SYSNAME="$( uname )"
 
@@ -359,14 +359,14 @@ downloader(){
 #$3 file name
 local cmd=""
 case "$DOWNLOADER_CMD" in
-	wget )	cmd="${DOWNLOADER_PATH}/${DOWNLOADER_CMD} -q ${1}";;
+	wget )	cmd="${DOWNLOADER_PATH}/${DOWNLOADER_CMD} -qO- ${1}";;
 	curl )	cmd="${DOWNLOADER_PATH}/${DOWNLOADER_CMD} -sLk ${1}";;
 	* ) printError "\nNo curl nor wget are installed! Install one of them and retry..\n"; exit 1;;
 esac
 if [[ ! -z "${2}" && ! -z "${3}" && -d "${2}" ]]; then
 	case "$DOWNLOADER_CMD" in
-		wget ) cmd+=" -O ${2}/${3}";;
-		curl ) cmd+=" -o ${2}/${3}";;
+		wget ) cmd="${DOWNLOADER_PATH}/${DOWNLOADER_CMD} -qO ${2}/${3} ${1}";;
+		curl ) cmd="${DOWNLOADER_PATH}/${DOWNLOADER_CMD} -sLk -o ${2}/${3} ${1}";;
 	esac
 	if [[ -d "${2}/${3}" ]]; then rm -rf "${2}/${3}"; fi
 fi
@@ -776,12 +776,12 @@ fi
 IsPathWritable() {
 local result=1
 # file/folder exists?
-if [[ ! -e "${1}" ]]; then echo "${1} does not exist!" && return $result; fi
+if [[ ! -e "${1}" ]]; then printWarning "${1} does not exist!\n"; return $result; fi
 if [[ -w "${1}" ]]; then
-	echo "${1} is writable!"
+	printMessage "${1} is writable!\n"
 	result=0
 else
-	echo "${1} is not writable!"
+	printWarning "${1} is not writable!\n"
 fi
 return $result
 }
@@ -1105,18 +1105,23 @@ mkdir -p "${DIR_LOGS}"
 # no mach-o in linux,
 printHeader "nasm check:"
 if [[ ! -x "${NASM_PREFIX}"nasm ]] || ! isNASMGood "${NASM_PREFIX}"nasm; then
-	FORCEREBUILD="-fr" #the path to nasm can now be different in generated make files: it is safe to autogen it again!
+	FORCEREBUILD="-fr" # the path to nasm can now be different in generated make files: it is safe to autogen it again!
+	printWarning "NASM not found or not the proper version, installing the preferred one..."
 	if [[ -d "${DIR_DOWNLOADS}"/source.download ]]; then rm -rf "${DIR_DOWNLOADS}"/source.download/*; else mkdir -p "${DIR_DOWNLOADS}"/source.download; fi
 	# NASM_PREFIX (the folder) can be writable or not, but also NASM_PREFIX can be writable and an old nasm inside it not writable because owned by root!
 	cd "${DIR_DOWNLOADS}"/source.download
 
 	case "$SYSNAME" in
 		Linux )
+			printMessage "\nDownloading the preferred version (${NASM_PREFERRED})..."
 			downloader "http://www.nasm.us/pub/nasm/releasebuilds/${NASM_PREFERRED}/nasm-${NASM_PREFERRED}.tar.gz" "${DIR_DOWNLOADS}/source.download" "${NASM_PREFERRED}.tar.gz"
 			tar -zxf "${NASM_PREFERRED}".tar.gz
 			cd "${DIR_DOWNLOADS}/source.download/nasm-${NASM_PREFERRED}"
+			printMessage "\n[ NASM ] configure..."
 			./configure --prefix="${PREFIX}" 1> /dev/null 2> "${DIR_LOGS}"/nasm-"${NASM_PREFERRED}".config.log.txt
+			printMessage "\n[ NASM ] make..."
 			make CC=gcc 1> /dev/null 2> "${DIR_LOGS}"/nasm-"${NASM_PREFERRED}".make.log.txt
+			printMessage "\n[ NASM ] make install..."
 			if ! IsPathWritable "${NASM_PREFIX}"; then
 				echo
 				echo "installing nasm to ${NASM_PREFIX} require sudo because"
@@ -1127,8 +1132,10 @@ if [[ ! -x "${NASM_PREFIX}"nasm ]] || ! isNASMGood "${NASM_PREFIX}"nasm; then
 				make install 1> /dev/null 2> "${DIR_LOGS}"/nasm-"${NASM_PREFERRED}".install.log.txt
 			fi;;
 		Darwin )
+			printMessage "\nDownloading the preferred version for macOS (${NASM_PREFERRED})..."
 			downloader "http://www.nasm.us/pub/nasm/releasebuilds/${NASM_PREFERRED}/macosx/nasm-${NASM_PREFERRED}-macosx.zip" "${DIR_DOWNLOADS}/source.download" "${NASM_PREFERRED}.zip"
-			unzip "${NASM_PREFERRED}".zip
+			printMessage "\nInstalling..."
+			unzip "${NASM_PREFERRED}".zip 1> /dev/null
 			if ! IsPathWritable "${NASM_PREFIX}"; then
 				echo
 				echo "installing nasm to ${NASM_PREFIX} require sudo because"
@@ -1141,9 +1148,9 @@ if [[ ! -x "${NASM_PREFIX}"nasm ]] || ! isNASMGood "${NASM_PREFIX}"nasm; then
 
 	# check the installation made:
 	if [[ -x "${NASM_PREFIX}"nasm ]] && isNASMGood "${NASM_PREFIX}"nasm; then
-		echo Done
+		printMessage "\nDone\n"; echo
 	else
-		echo "nasm installation error, check the log!"; exit 1
+		printMessage "\nNASM installation error, check the log!\n"; exit 1
 	fi
 else
 	echo "$(${NASM_PREFIX}nasm -v)"
