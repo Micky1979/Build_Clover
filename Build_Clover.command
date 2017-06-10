@@ -804,8 +804,15 @@ else
 			IsLinkOnline "$EDK2_REP/${d}"
 			cd "${DIR_MAIN}"/edk2
 			if [[ -d "${DIR_MAIN}/edk2/${d}" ]] ; then
-				cd "${DIR_MAIN}/edk2/${d}"
-				svnWithErrorCheck "svn update --accept tf --non-interactive --trust-server-cert $revision" "$(pwd)"
+				if [[ -d "${DIR_MAIN}/edk2/${d}/.svn" ]] ; then
+					cd "${DIR_MAIN}/edk2/${d}"
+					svnWithErrorCheck "svn update --accept tf --non-interactive --trust-server-cert $revision" "$(pwd)"
+				else
+					printWarning ".svn missing, the ${d} repo may be corrupted, re-downloading...\n"
+					cd "${DIR_MAIN}/edk2/${d}"
+					rm -rf ./* > /dev/null 2>&1
+					svnWithErrorCheck "svn co $revision --non-interactive --trust-server-cert $EDK2_REP/${d} ."
+				fi
 			else
 				cd "${DIR_MAIN}"/edk2
 				svnWithErrorCheck "svn co $revision --non-interactive --trust-server-cert $EDK2_REP/${d}" "$(pwd)"
