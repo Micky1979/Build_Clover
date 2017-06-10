@@ -315,42 +315,39 @@ printLine
 }
 # --------------------------------------
 printRevisions() {
-	local Clover_Remote Clover_Local EDK2_Remote EDK2_Local
-	local Unknown="\e[1;31munknown"
-	# Getting the Clover and EDK2 revisions
-	getRev "remote_local"
-	
-	# Checking if the local and remote revisions are empty or not
-	[[ -z "$REMOTE_REV" || -z "$REMOTE_EDK2_REV" ]] && PING_RESPONSE="NO" || PING_RESPONSE="YES"
-	[[ -z "$REMOTE_REV" ]] && Clover_Remote="$Unknown" || Clover_Remote="$REMOTE_REV"
-	[[ -z "$LOCAL_REV" ]] && Clover_Local="$Unknown" || Clover_Local="$LOCAL_REV"
-	[[ -z "$REMOTE_EDK2_REV" ]] && EDK2_Remote="$Unknown" || EDK2_Remote="$REMOTE_EDK2_REV"
-	[[ -z "$LOCAL_EDK2_REV" ]] && EDK2_Local="$Unknown" || EDK2_Local="$LOCAL_EDK2_REV"
-	
-	# Coloring the local revisions green (if they're equal to the remote revisions) or yellow (if they're not)
-	[[ "${Clover_Local}" == "${Clover_Remote}" ]] && Clover_Remote="\e[1;32m${Clover_Remote}" || Clover_Remote="\e[1;33m${Clover_Remote}"
-	[[ "${EDK2_Local}" == "${EDK2_Remote}" ]] && EDK2_Remote="\e[1;32m${EDK2_Remote}" || EDK2_Remote="\e[1;33m${EDK2_Remote}"
-	
-	# Printing the results on screen	
-	printf "\e[1;32mCLOVER\tRemote revision: %b\t\e[1;32mLocal revision: %b\e[0m" "${Clover_Remote}" "${Clover_Local}"
-	printf "\n\e[1;32mEDK2\tRemote revision: %b\t\e[1;32mLocal revision: %b\e[0m\n" "${EDK2_Remote}" "${EDK2_Local}"
-	
-	# Printing the error messages in case the local and remote revisions are empty
-	[[ "$Clover_Remote" == "$Unknown" ]] && printError "Something went wrong while getting the CLOVER remote revision,\ncheck your internet connection!\n"
-	[[ "$Clover_Local" == "$Unknown" ]] && printError "Something went wrong while getting the CLOVER local revision!\n"
-	[[ "$EDK2_Remote" == "$Unknown" ]] && printError "Something went wrong while getting the EDK2 remote revision,\ncheck your internet connection!\n"
-	[[ "$EDK2_Local" == "$Unknown" ]] && printError "Something went wrong while getting the EDK2 local revision!\n"
-	
-	# Checking if the local EDK2 revision is the suggested one or not
-	echo
-	if [[ "${LOCAL_EDK2_REV}" == "${EDK2_REV}" ]]; then
-		printMessage "The current local EDK2 revision is the suggested one (${EDK2_REV})."
-	else
-		printWarning "\e[5mThe current local EDK2 revision is not the suggested one (${EDK2_REV})!"
-		printWarning "\nIt's recommended to change it to the suggested one,"
-		printWarning "\nusing the \e[1;32mupdate Clover + force edk2 update\e[1;33m option!"
-	fi
-	printLine
+local Clover_Remote Clover_Local EDK2_Remote EDK2_Local
+local Unknown="\e[1;31munknown"
+# Checking if the local and remote revisions are empty or not
+[[ -z "$REMOTE_REV" || -z "$REMOTE_EDK2_REV" ]] && PING_RESPONSE="NO" || PING_RESPONSE="YES"
+[[ -z "$REMOTE_REV" ]] && Clover_Remote="$Unknown" || Clover_Remote="$REMOTE_REV"
+[[ -z "$LOCAL_REV" ]] && Clover_Local="$Unknown" || Clover_Local="$LOCAL_REV"
+[[ -z "$REMOTE_EDK2_REV" ]] && EDK2_Remote="$Unknown" || EDK2_Remote="$REMOTE_EDK2_REV"
+[[ -z "$LOCAL_EDK2_REV" ]] && EDK2_Local="$Unknown" || EDK2_Local="$LOCAL_EDK2_REV"
+
+# Coloring the local revisions green (if they're equal to the remote revisions) or yellow (if they're not)
+[[ "${Clover_Local}" == "${Clover_Remote}" ]] && Clover_Remote="\e[1;32m${Clover_Remote}" || Clover_Remote="\e[1;33m${Clover_Remote}"
+[[ "${EDK2_Local}" == "${EDK2_Remote}" ]] && EDK2_Remote="\e[1;32m${EDK2_Remote}" || EDK2_Remote="\e[1;33m${EDK2_Remote}"
+
+# Printing the results on screen	
+printf "\e[1;32mCLOVER\tRemote revision: %b\t\e[1;32mLocal revision: %b\e[0m" "${Clover_Remote}" "${Clover_Local}"
+printf "\n\e[1;32mEDK2\tRemote revision: %b\t\e[1;32mLocal revision: %b\e[0m\n" "${EDK2_Remote}" "${EDK2_Local}"
+
+# Printing the error messages in case the local and remote revisions are empty
+[[ "$Clover_Remote" == "$Unknown" ]] && printError "Something went wrong while getting the CLOVER remote revision,\ncheck your internet connection!\n"
+[[ "$Clover_Local" == "$Unknown" ]] && printError "Something went wrong while getting the CLOVER local revision!\n"
+[[ "$EDK2_Remote" == "$Unknown" ]] && printError "Something went wrong while getting the EDK2 remote revision,\ncheck your internet connection!\n"
+[[ "$EDK2_Local" == "$Unknown" ]] && printError "Something went wrong while getting the EDK2 local revision!\n"
+
+# Checking if the local EDK2 revision is the suggested one or not
+echo
+if [[ "${LOCAL_EDK2_REV}" == "${EDK2_REV}" ]]; then
+	printMessage "The current local EDK2 revision is the suggested one (${EDK2_REV})."
+else
+	printWarning "\e[5mThe current local EDK2 revision is not the suggested one (${EDK2_REV})!"
+	printWarning "\nIt's recommended to change it to the suggested one,"
+	printWarning "\nusing the \e[1;32mupdate Clover + force edk2 update\e[1;33m option!"
+fi
+printLine
 }
 # --------------------------------------
 downloader(){
@@ -391,73 +388,44 @@ sudo -k
 # --------------------------------------
 # Upgrage SVN working copy
 svnUpgrade () {
-# make sure that a svn working directory exists
-if [[ -d "${DIR_MAIN}/edk2/Clover/.svn" ]]; then
-	svn info "${DIR_MAIN}/edk2/Clover" 2>&1 | grep 'svn upgrade'
-	# if the svn working directory is outdated, let the user know
-	if [[ $? -eq 0 ]]; then
-		printError "Error: You need to upgrade the working copy first.\n"
-		for workingCopy in `find "${DIR_MAIN}/edk2" -name "*.svn"`
-		do
-			if [[ -d "$(dirname $workingCopy)" ]]; then
-				printWarning "Would you like to upgrade the, $(dirname $workingCopy), working copy? (y/n)\n"
-				read input
-				case $input in
-					Y | y) printWarning "Upgrading $(dirname $workingCopy).\n"; svn upgrade "$(dirname $workingCopy)";;
-					*) printWarning "You may encounter errors!\n";;
-				esac
-			fi
-		done
-	fi
+svn info "${DIR_MAIN}/edk2/Clover" 2>&1 | grep 'svn upgrade'
+# if the svn working directory is outdated, let the user know
+if [[ $? -eq 0 ]]; then
+	printError "Error: You need to upgrade the working copy first.\n"
+	for workingCopy in `find "${DIR_MAIN}/edk2" -name "*.svn"`
+	do
+		if [[ -d "$(dirname $workingCopy)" ]]; then
+			printWarning "Would you like to upgrade the, $(dirname $workingCopy), working copy? (y/n)\n"
+			read input
+			case $input in
+				Y | y) printWarning "Upgrading $(dirname $workingCopy).\n"; svn upgrade "$(dirname $workingCopy)";;
+				*) printWarning "You may encounter errors!\n";;
+			esac
+		fi
+	done
 fi
 }
 # --------------------------------------
 # Remote and local revisions
 getRev() {
-# for svn 1.9 and higher
-#REMOTE_REV=$(svn info --show-item "revision" ${CLOVER_REP})
-#LOCAL_REV=$(svn info --show-item "revision" ${DIR_MAIN}/edk2/Clover)
-
-# error proof
-if [[ ! ${1} ]]; then return 1; fi
-
-# convert to lowercase
-Arg=$(echo "$1" | tr '[:upper:]' '[:lower:]')
-
-# upgrade the working copy to avoid errors
-svnUpgrade
-
-# universal
 if ping -c 1 svn.code.sf.net >> /dev/null 2>&1; then
-	if [[ ${Arg} == *"remote"* ]]; then
-		REMOTE_REV=$(svn info ${CLOVER_REP} | grep '^Revision:' | tr -cd [:digit:])
-		REMOTE_EDK2_REV=$(svn info ${EDK2_REP} | grep '^Revision:' | tr -cd [:digit:])
-	fi
+	REMOTE_REV=$(svn info ${CLOVER_REP} | grep '^Revision:' | tr -cd [:digit:])
+	REMOTE_EDK2_REV=$(svn info ${EDK2_REP} | grep '^Revision:' | tr -cd [:digit:])
 else
 	REMOTE_REV=""
 	REMOTE_EDK2_REV=""
 fi
 
-if [[ ${Arg} == *"local"* ]]; then
-	if [[ -d "${DIR_MAIN}"/edk2/Clover/.svn ]]; then
-		LOCAL_REV=$(svn info "${DIR_MAIN}"/edk2/Clover | grep '^Revision:' | tr -cd [:digit:])
-	else
-		LOCAL_REV=""
-	fi
-	if [[ -d "${DIR_MAIN}"/edk2/.svn ]]; then
-		LOCAL_EDK2_REV=$(svn info "${DIR_MAIN}"/edk2 | grep '^Revision:' | tr -cd [:digit:])
-	else
-		LOCAL_EDK2_REV=""
-	fi
+if [[ -d "${DIR_MAIN}"/edk2/Clover/.svn ]]; then
+	svnUpgrade # upgrade the working copy to avoid errors
+	LOCAL_REV=$(svn info "${DIR_MAIN}"/edk2/Clover | grep '^Revision:' | tr -cd [:digit:])
+else
+	LOCAL_REV=""
 fi
-if [[ ${Arg} == *"basetools"* ]]; then
-	if [[ -d "${DIR_MAIN}"/edk2/BaseTools/.svn ]]; then
-		BaseToolsRev=$(svnversion -n "${DIR_MAIN}"/edk2/BaseTools | tr -d [:alpha:])
-	elif [[ -d "${DIR_MAIN}"/edk2/BaseTools/.git ]]; then
-		BaseToolsRev=$(git svn find-rev git-svn "${DIR_MAIN}"/edk2/BaseTools | tr -cd [:digit:])
-	else
-		BaseToolsRev=""
-	fi
+if [[ -d "${DIR_MAIN}"/edk2/.svn ]]; then
+	LOCAL_EDK2_REV=$(svn info "${DIR_MAIN}"/edk2 | grep '^Revision:' | tr -cd [:digit:])
+else
+	LOCAL_EDK2_REV=""
 fi
 }
 # --------------------------------------
@@ -786,117 +754,80 @@ fi
 return $result
 }
 # --------------------------------------
-# is compiled BaseTools not the same of edk2 after svn up?
-# In that case will be cleaned and rebuilted by ebuild.sh
-cleanAllTools() {
-local oldRev="${1}"
-#local rev="null"
-# Clean BaseToolsRev
-if [[ ! -z "$BaseToolsRev" ]]; then BaseToolsRev=""; fi
-if [[ "$oldRev" == unknown ]]; then return; fi
-if [[ -d "${DIR_MAIN}/edk2/BaseTools" ]] ; then
-	getRev "BaseTools"
-	if IsNumericOnly $oldRev && IsNumericOnly $BaseToolsRev; then
-		if [[ $BaseToolsRev -ne $oldRev ]]; then
-			printHeader "cleaning all because BaseTools mismatch r${EDK2_REV} just synced:"
-			make clean
-			cd "${DIR_MAIN}/edk2/Clover" && ./ebuild.sh clean
-			cd "${DIR_MAIN}/edk2/Clover/CloverPackage" && make clean
-			FORCEREBUILD="-fr"
-		fi
-	fi
-fi
-echo
-echo "BaseTools before update was: r${oldRev}"
-echo "now is: r${BaseToolsRev}"
-}
-# --------------------------------------
 edk2() {
-echo
-#local BaseToolsRev="unknown"
-# Set BaseToolsRev to unknown
-if [[ ! -z "$BaseToolsRev" ]]; then BaseToolsRev="unknown"; fi
 local revision="-r $EDK2_REV"
-if [[ ! -d "${DIR_MAIN}/edk2" ]]; then
-	printHeader 'Downloading edk2'
-	mkdir -p "${DIR_MAIN}"/edk2
-else
-	printHeader 'Updating edk2'
-	if [[ -d "${DIR_MAIN}/edk2/BaseTools" ]]; then getRev "BaseTools"; fi
-fi
-if [[ "$ForceEDK2Update" -eq "1979" ]]; then
-	# was invoke to force update edk2, so is safe to rebuild BaseTools
-	# in case some conflicts are resolved
-	BaseToolsRev=$ForceEDK2Update
-fi
-# update only relevant pkgs of edk2 needed by Clover
-# keep them from update.sh used by Slice..
 local updatelink="https://sourceforge.net/p/cloverefiboot/code/HEAD/tree/update.sh?format=raw"
 local edk2ArrayOnline=(
 	$( downloader "$updatelink" | grep 'cd ..' | sed -e 's/^cd ..\///' | sed -e 's/\/$//' | sed -e '/Clover/d' \
 	| sed -e 's:BaseTools/Conf:BaseTools:g' )
 )
-
 # use only if populated, otherwise use the static "edk2array"
 if [[ "${#edk2ArrayOnline[@]}" -ge "1" ]]; then unset -v edk2array; edk2array=( "${edk2ArrayOnline[@]}" ); fi
 
-# check if we have all already there and updated at the specified revision..
-# 'Scripts' and 'Source' are not present in edk2. maybe are Slice's stuff
-for d in "${edk2array[@]}"
-do
-	if [[ "$d" != Source ]] && [[ "$d" != Scripts ]]; then
-		if [[ ! -d "${DIR_MAIN}/edk2/${d}/.svn" ]] || \
-			[ "$(svn info "${DIR_MAIN}/edk2/${d}" | grep '^Revision:' | tr -cd [:digit:])" -ne "$EDK2_REV" ]; then
-			((ForceEDK2Update+=1))
+if [[ "$ForceEDK2Update" -ne "1979" ]]; then
+	if [[ ! -d "${DIR_MAIN}/edk2/.svn" ]]; then ForceEDK2Update=1; fi
+	for d in "${edk2array[@]}"
+	do
+		if [[ "$d" != Source && "$d" != Scripts ]]; then
+			if [[ ! -d "${DIR_MAIN}/edk2/${d}/.svn" ]]; then ForceEDK2Update=1; fi
 		fi
-	fi
-done
-
-# check also edk2/.svn
-if [[ ! -d "${DIR_MAIN}/edk2/.svn" ]] || \
-	[ "$(svn info "${DIR_MAIN}/edk2" | grep '^Revision:' | tr -cd [:digit:])" -ne "$EDK2_REV" ]; then
-	((ForceEDK2Update+=1))
+	done
 fi
-if [[ "$ForceEDK2Update" -eq "0" ]]; then printWarning "edk2 appear to be up to date, skipping ...\n"; return; fi
 
-TIMES=0
-cd "${DIR_MAIN}"/edk2
-IsLinkOnline $EDK2_REP
-# I want ".svn", also empty at the specified revision! .. so I can update!
-svnWithErrorCheck "svn --depth empty co $revision --non-interactive --trust-server-cert $EDK2_REP ."
-
-echo
-printf "\e[1;34medksetup.sh:\e[0m\n"
-IsLinkOnline $EDK2_REP/edksetup.sh
-svnWithErrorCheck "svn update --accept tf --non-interactive --trust-server-cert $revision edksetup.sh"
-
-for d in "${edk2array[@]}"
-do
-	if [[ "$d" != "Source" && "$d" != "Scripts" ]]; then
-		printf "\e[1;34m${d}:\e[0m\n"
-		TIMES=0
-		IsLinkOnline "$EDK2_REP/${d}"
-		cd "${DIR_MAIN}"/edk2
-		if [[ -d "${DIR_MAIN}/edk2/${d}" ]] ; then
-			cd "${DIR_MAIN}/edk2/${d}"
-			svnWithErrorCheck "svn update --accept tf --non-interactive --trust-server-cert $revision" "$(pwd)"
-		else
-			cd "${DIR_MAIN}"/edk2
-			svnWithErrorCheck "svn co $revision --non-interactive --trust-server-cert $EDK2_REP/${d}" "$(pwd)"
-		fi
+if [[ "$ForceEDK2Update" -eq "0" ]]; then
+	if [[ "${LOCAL_EDK2_REV}" == "${EDK2_REV}" ]]; then
+		printWarning "edk2 appear to be up to date, skipping ...\n"
+	else
+		printWarning "edk2 is not up to date, but no forced edk2 update is selected, skipping ...\n"
 	fi
-done
-ForceEDK2Update=0
-cleanAllTools $BaseToolsRev
+else
+	echo
+	if [[ ! -d "${DIR_MAIN}/edk2" ]]; then
+		printHeader 'Downloading edk2'
+		mkdir -p "${DIR_MAIN}"/edk2
+	else
+		printHeader 'Updating edk2 (forced)'
+	fi
+	TIMES=0
+	cd "${DIR_MAIN}"/edk2
+	IsLinkOnline $EDK2_REP
+	# I want ".svn", also empty at the specified revision! .. so I can update!
+	svnWithErrorCheck "svn --depth empty co $revision --non-interactive --trust-server-cert $EDK2_REP ."
+	printf "\n\e[1;34medksetup.sh:\e[0m\n"
+	IsLinkOnline $EDK2_REP/edksetup.sh
+	svnWithErrorCheck "svn update --accept tf --non-interactive --trust-server-cert $revision edksetup.sh"
+	for d in "${edk2array[@]}"
+	do
+		if [[ "$d" != "Source" && "$d" != "Scripts" ]]; then
+			printf "\n\e[1;34m${d}:\e[0m\n"
+			TIMES=0
+			IsLinkOnline "$EDK2_REP/${d}"
+			cd "${DIR_MAIN}"/edk2
+			if [[ -d "${DIR_MAIN}/edk2/${d}" ]] ; then
+				cd "${DIR_MAIN}/edk2/${d}"
+				svnWithErrorCheck "svn update --accept tf --non-interactive --trust-server-cert $revision" "$(pwd)"
+			else
+				cd "${DIR_MAIN}"/edk2
+				svnWithErrorCheck "svn co $revision --non-interactive --trust-server-cert $EDK2_REP/${d}" "$(pwd)"
+			fi
+		fi
+	done
+	if [[ "$ForceEDK2Update" -eq "1979" ]]; then
+		printHeader "cleaning BaseTools and Clover / Clover Package"
+		echo
+		if [[ -d "${DIR_MAIN}/edk2/BaseTools" ]]; then cd "${DIR_MAIN}/edk2/BaseTools"; make clean; fi
+		if [[ -d "${DIR_MAIN}/edk2/Clover" ]]; then cd "${DIR_MAIN}/edk2/Clover"; ./ebuild.sh clean; fi
+		if [[ -d "${DIR_MAIN}/edk2/Clover/CloverPackage" ]]; then cd "${DIR_MAIN}/edk2/Clover/CloverPackage"; make clean; fi
+		FORCEREBUILD="-fr"
+	fi
+	ForceEDK2Update=0
+fi
 }
 # --------------------------------------
 clover() {
 local cmd=""
 # check if SUGGESTED_CLOVER_REV is set
 if [[ -z "$SUGGESTED_CLOVER_REV" ]]; then
-	TIMES=0
-	IsLinkOnline ${CLOVER_REP}
-	getRev "remote"
 	echo
 	if [[ ! -d "${DIR_MAIN}/edk2/Clover" ]]; then
 		printHeader 'Downloading Clover, using the latest revision'
@@ -933,6 +864,8 @@ else
 		fi
 	fi
 fi
+TIMES=0
+IsLinkOnline ${CLOVER_REP}
 cd "${DIR_MAIN}"/edk2/Clover
 svnWithErrorCheck "$cmd" "$(pwd)"
 printHeader 'Apply Edk2 patches'
@@ -1436,12 +1369,12 @@ printf "\e[1;34m%s\e[0m" "$(gcc -v 2>&1)"
 printLine
 
 if [[ "$BUILDER" != 'slice' ]]; then restoreClover; fi
-if [[ "$UPDATE_FLAG" == YES && "$BUILDER" != 'slice' ]]; then edk2; clover; fi
+if [[ "$UPDATE_FLAG" == YES && "$BUILDER" != 'slice' ]]; then getRev; edk2; clover; fi
 
 if [[ "$BUILD_FLAG" == NO ]]; then
 	clear
 	# print updated remote and local revision
-	if [[ -d "${DIR_MAIN}"/edk2 ]]; then printRevisions; fi;
+	if [[ -d "${DIR_MAIN}"/edk2 ]]; then getRev; printRevisions; fi;
 	build
 fi
 
@@ -1596,6 +1529,6 @@ if [[ "$GITHUB" == *"Test_Script_dont_use.command"* ]];then
 fi
 
 # print the remote and the local revision
-if [[ -d "${DIR_MAIN}"/edk2 ]]; then printRevisions; fi;
+if [[ -d "${DIR_MAIN}"/edk2 ]]; then getRev; printRevisions; fi;
 
 build
