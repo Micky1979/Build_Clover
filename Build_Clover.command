@@ -799,7 +799,7 @@ else
 	svnWithErrorCheck "svn --depth empty co $revision --non-interactive --trust-server-cert $EDK2_REP ."
 	printf "\n\e[1;34medksetup.sh:\e[0m\n"
 	IsLinkOnline $EDK2_REP/edksetup.sh
-	svnWithErrorCheck "svn update --accept tf --non-interactive --trust-server-cert $revision edksetup.sh"
+	svnWithErrorCheck "svn update --accept tf --non-interactive --trust-server-cert $revision edksetup.sh" "$(pwd)"
 	for d in "${edk2array[@]}"
 	do
 		if [[ "$d" != "Source" && "$d" != "Scripts" ]]; then
@@ -820,7 +820,7 @@ else
 				fi
 			else
 				cd "${DIR_MAIN}"/edk2
-				svnWithErrorCheck "svn co $revision --non-interactive --trust-server-cert $EDK2_REP/${d}" "$(pwd)"
+				svnWithErrorCheck "svn co $revision --non-interactive --trust-server-cert $EDK2_REP/${d}"
 			fi
 		fi
 	done
