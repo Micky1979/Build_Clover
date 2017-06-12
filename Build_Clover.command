@@ -786,7 +786,11 @@ else
 		printHeader 'Downloading edk2'
 		mkdir -p "${DIR_MAIN}"/edk2
 	else
-		printHeader 'Updating edk2 (forced)'
+		if [[ "$ForceEDK2Update" -eq "1979" ]]; then
+			printHeader 'Updating edk2 (forced)'
+		else
+			printHeader 'Updating edk2'
+		fi
 	fi
 	TIMES=0
 	cd "${DIR_MAIN}"/edk2
@@ -807,6 +811,7 @@ else
 				if [[ -d "${DIR_MAIN}/edk2/${d}/.svn" ]] ; then
 					cd "${DIR_MAIN}/edk2/${d}"
 					svnWithErrorCheck "svn update --accept tf --non-interactive --trust-server-cert $revision" "$(pwd)"
+					if [[ "$d" == "BaseTools" ]]; then ForceEDK2Update=1979; fi
 				else
 					printWarning ".svn missing, the ${d} repo may be corrupted, re-downloading...\n"
 					cd "${DIR_MAIN}/edk2/${d}"
