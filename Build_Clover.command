@@ -357,13 +357,13 @@ downloader(){
 local cmd=""
 case "$DOWNLOADER_CMD" in
 	wget )	cmd="${DOWNLOADER_PATH}/${DOWNLOADER_CMD} -qO- ${1}";;
-	curl )	cmd="${DOWNLOADER_PATH}/${DOWNLOADER_CMD} -sLk ${1}";;
+	curl )	cmd="${DOWNLOADER_PATH}/${DOWNLOADER_CMD} -sL ${1}";;
 	* ) printError "\nNo curl nor wget are installed! Install one of them and retry..\n"; exit 1;;
 esac
 if [[ ! -z "${2}" && ! -z "${3}" && -d "${2}" ]]; then
 	case "$DOWNLOADER_CMD" in
 		wget ) cmd="${DOWNLOADER_PATH}/${DOWNLOADER_CMD} -qO ${2}/${3} ${1}";;
-		curl ) cmd="${DOWNLOADER_PATH}/${DOWNLOADER_CMD} -sLk -o ${2}/${3} ${1}";;
+		curl ) cmd="${DOWNLOADER_PATH}/${DOWNLOADER_CMD} -sL -o ${2}/${3} ${1}";;
 	esac
 	if [[ -d "${2}/${3}" ]]; then rm -rf "${2}/${3}"; fi
 fi
