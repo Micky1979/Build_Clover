@@ -36,7 +36,7 @@ GNU="" # empty by default (GCC53 is used if not defined), override the GCC toolc
 Build_Tool="XCODE" # Build tool. Possible values: XCODE or GNU. DO NOT USE ANY OTHER VALUES HERE !
 # in Linux this get overrided and GCC53 used anyway!
 # --------------------------------------
-SCRIPTVER="v4.4.8"
+SCRIPTVER="v4.4.9"
 export LC_ALL=C
 SYSNAME="$( uname )"
 
@@ -275,7 +275,6 @@ if [[ "$SYSNAME" == Linux ]]; then
 		DOWNLOADER_PATH=$(dirname $(which curl))
 		DOWNLOADER_CMD="curl"
 	else
-		DOWNLOADER_CMD=$(which curl)
 		printError "\nNo curl nor wget are installed! Install one of them and retry..\n"; exit 1
 	fi
 else
@@ -289,7 +288,7 @@ printCloverScriptRev() {
 initialChecks
 clear
 local LVALUE RVALUE SVERSION RSCRIPTVER RSDATA
-local SNameVer="\e[1;34mBuild_Clover script ${SCRIPTVER}\e[0m"
+local SNameVer="Build_Clover script ${SCRIPTVER}"
 
 if ping -c 1 github.com >> /dev/null 2>&1; then
 	# Retrive and filter remote script version
@@ -302,9 +301,9 @@ if ping -c 1 github.com >> /dev/null 2>&1; then
 	if IsNumericOnly $RVALUE; then
 		# Compare local and remote script version
 		[[ $LVALUE -ge $RVALUE ]] && SELF_UPDATE_OPT="NO" || SELF_UPDATE_OPT="YES"
-		[[ $LVALUE -eq $RVALUE ]] && printf "${SNameVer}\e[1;32m%*s\e[0m" 54 "No update available."
-		[[ $LVALUE -gt $RVALUE ]] && printf "${SNameVer}\e[1;33m%*s\e[0m" 54 "Wow, are you coming from the future?"
-		[[ $LVALUE -lt $RVALUE ]] && printf "${SNameVer}\e[1;5;33m%*s\e[0m" 54 "Update available (v$RSCRIPTVER)"
+		[[ $LVALUE -eq $RVALUE ]] && printf "\e[1;34m${SNameVer}\e[1;32m%*s\e[0m" 54 "No update available."
+		[[ $LVALUE -gt $RVALUE ]] && printf "\e[1;34m${SNameVer}\e[1;33m%*s\e[0m" 54 "Wow, are you coming from the future?"
+		[[ $LVALUE -lt $RVALUE ]] && printf "\e[1;34m${SNameVer}\e[1;5;33m%*s\e[0m" 54 "Update available (v$RSCRIPTVER)"
 	else
 		printf "${SNameVer}\e[1;31m\n%s\e[0m" "Remote version unavailable due to unknown reasons!"
 	fi
@@ -316,42 +315,39 @@ printLine
 }
 # --------------------------------------
 printRevisions() {
-	local Clover_Remote Clover_Local EDK2_Remote EDK2_Local
-	local Unknown="\e[1;31munknown"
-	# Getting the Clover and EDK2 revisions
-	getRev "remote_local"
-	
-	# Checking if the local and remote revisions are empty or not
-	[[ -z "$REMOTE_REV" || -z "$REMOTE_EDK2_REV" ]] && PING_RESPONSE="NO" || PING_RESPONSE="YES"
-	[[ -z "$REMOTE_REV" ]] && Clover_Remote="$Unknown" || Clover_Remote="$REMOTE_REV"
-	[[ -z "$LOCAL_REV" ]] && Clover_Local="$Unknown" || Clover_Local="$LOCAL_REV"
-	[[ -z "$REMOTE_EDK2_REV" ]] && EDK2_Remote="$Unknown" || EDK2_Remote="$REMOTE_EDK2_REV"
-	[[ -z "$LOCAL_EDK2_REV" ]] && EDK2_Local="$Unknown" || EDK2_Local="$LOCAL_EDK2_REV"
-	
-	# Coloring the local revisions green (if they're equal to the remote revisions) or yellow (if they're not)
-	[[ "${Clover_Local}" == "${Clover_Remote}" ]] && Clover_Remote="\e[1;32m${Clover_Remote}" || Clover_Remote="\e[1;33m${Clover_Remote}"
-	[[ "${EDK2_Local}" == "${EDK2_Remote}" ]] && EDK2_Remote="\e[1;32m${EDK2_Remote}" || EDK2_Remote="\e[1;33m${EDK2_Remote}"
-	
-	# Printing the results on screen	
-	printf "\e[1;32mCLOVER\tRemote revision: %b\t\e[1;32mLocal revision: %b\e[0m" "${Clover_Remote}" "${Clover_Local}"
-	printf "\n\e[1;32mEDK2\tRemote revision: %b\t\e[1;32mLocal revision: %b\e[0m\n" "${EDK2_Remote}" "${EDK2_Local}"
-	
-	# Printing the error messages in case the local and remote revisions are empty
-	[[ "$Clover_Remote" == "$Unknown" ]] && printError "Something went wrong while getting the CLOVER remote revision,\ncheck your internet connection!\n"
-	[[ "$Clover_Local" == "$Unknown" ]] && printError "Something went wrong while getting the CLOVER local revision!\n"
-	[[ "$EDK2_Remote" == "$Unknown" ]] && printError "Something went wrong while getting the EDK2 remote revision,\ncheck your internet connection!\n"
-	[[ "$EDK2_Local" == "$Unknown" ]] && printError "Something went wrong while getting the EDK2 local revision!\n"
-	
-	# Checking if the local EDK2 revision is the suggested one or not
-	echo
-	if [[ "${LOCAL_EDK2_REV}" == "${EDK2_REV}" ]]; then
-		printMessage "The current local EDK2 revision is the suggested one (${EDK2_REV})."
-	else
-		printWarning "\e[5mThe current local EDK2 revision is not the suggested one (${EDK2_REV})!"
-		printWarning "\nIt's recommended to change it to the suggested one,"
-		printWarning "\nusing the \e[1;32mupdate Clover + force edk2 update\e[1;33m option!"
-	fi
-	printLine
+local Clover_Remote Clover_Local EDK2_Remote EDK2_Local
+local Unknown="\e[1;31munknown"
+# Checking if the local and remote revisions are empty or not
+[[ -z "$REMOTE_REV" || -z "$REMOTE_EDK2_REV" ]] && PING_RESPONSE="NO" || PING_RESPONSE="YES"
+[[ -z "$REMOTE_REV" ]] && Clover_Remote="$Unknown" || Clover_Remote="$REMOTE_REV"
+[[ -z "$LOCAL_REV" ]] && Clover_Local="$Unknown" || Clover_Local="$LOCAL_REV"
+[[ -z "$REMOTE_EDK2_REV" ]] && EDK2_Remote="$Unknown" || EDK2_Remote="$REMOTE_EDK2_REV"
+[[ -z "$LOCAL_EDK2_REV" ]] && EDK2_Local="$Unknown" || EDK2_Local="$LOCAL_EDK2_REV"
+
+# Coloring the local revisions green (if they're equal to the remote revisions) or yellow (if they're not)
+[[ "${Clover_Local}" == "${Clover_Remote}" ]] && Clover_Remote="\e[1;32m${Clover_Remote}" || Clover_Remote="\e[1;33m${Clover_Remote}"
+[[ "${EDK2_Local}" == "${EDK2_Remote}" ]] && EDK2_Remote="\e[1;32m${EDK2_Remote}" || EDK2_Remote="\e[1;33m${EDK2_Remote}"
+
+# Printing the results on screen	
+printf "\e[1;32mCLOVER\tRemote revision: %b\t\e[1;32mLocal revision: %b\e[0m" "${Clover_Remote}" "${Clover_Local}"
+printf "\n\e[1;32mEDK2\tRemote revision: %b\t\e[1;32mLocal revision: %b\e[0m\n" "${EDK2_Remote}" "${EDK2_Local}"
+
+# Printing the error messages in case the local and remote revisions are empty
+[[ "$Clover_Remote" == "$Unknown" ]] && printError "Something went wrong while getting the CLOVER remote revision,\ncheck your internet connection!\n"
+[[ "$Clover_Local" == "$Unknown" ]] && printError "Something went wrong while getting the CLOVER local revision!\n"
+[[ "$EDK2_Remote" == "$Unknown" ]] && printError "Something went wrong while getting the EDK2 remote revision,\ncheck your internet connection!\n"
+[[ "$EDK2_Local" == "$Unknown" ]] && printError "Something went wrong while getting the EDK2 local revision!\n"
+
+# Checking if the local EDK2 revision is the suggested one or not
+echo
+if [[ "${LOCAL_EDK2_REV}" == "${EDK2_REV}" ]]; then
+	printMessage "The current local EDK2 revision is the suggested one (${EDK2_REV})."
+else
+	printWarning "\e[5mThe current local EDK2 revision is not the suggested one (${EDK2_REV})!"
+	printWarning "\nIt's recommended to change it to the suggested one,"
+	printWarning "\nusing the \e[1;32mupdate Clover + force edk2 update\e[1;33m option!"
+fi
+printLine
 }
 # --------------------------------------
 downloader(){
@@ -360,14 +356,14 @@ downloader(){
 #$3 file name
 local cmd=""
 case "$DOWNLOADER_CMD" in
-	wget )	cmd="${DOWNLOADER_PATH}/${DOWNLOADER_CMD} -q ${1}";;
-	curl )	cmd="${DOWNLOADER_PATH}/${DOWNLOADER_CMD} -sLk ${1}";;
+	wget )	cmd="${DOWNLOADER_PATH}/${DOWNLOADER_CMD} -qO- ${1}";;
+	curl )	cmd="${DOWNLOADER_PATH}/${DOWNLOADER_CMD} -sL ${1}";;
 	* ) printError "\nNo curl nor wget are installed! Install one of them and retry..\n"; exit 1;;
 esac
 if [[ ! -z "${2}" && ! -z "${3}" && -d "${2}" ]]; then
 	case "$DOWNLOADER_CMD" in
-		wget ) cmd+=" -O ${2}/${3}";;
-		curl ) cmd+=" -o ${2}/${3}";;
+		wget ) cmd="${DOWNLOADER_PATH}/${DOWNLOADER_CMD} -qO ${2}/${3} ${1}";;
+		curl ) cmd="${DOWNLOADER_PATH}/${DOWNLOADER_CMD} -sL -o ${2}/${3} ${1}";;
 	esac
 	if [[ -d "${2}/${3}" ]]; then rm -rf "${2}/${3}"; fi
 fi
@@ -392,73 +388,44 @@ sudo -k
 # --------------------------------------
 # Upgrage SVN working copy
 svnUpgrade () {
-# make sure that a svn working directory exists
-if [[ -d "${DIR_MAIN}/edk2/Clover/.svn" ]]; then
-	svn info "${DIR_MAIN}/edk2/Clover" 2>&1 | grep 'svn upgrade'
-	# if the svn working directory is outdated, let the user know
-	if [[ $? -eq 0 ]]; then
-		printError "Error: You need to upgrade the working copy first.\n"
-		for workingCopy in `find "${DIR_MAIN}/edk2" -name "*.svn"`
-		do
-			if [[ -d "$(dirname $workingCopy)" ]]; then
-				printWarning "Would you like to upgrade the, $(dirname $workingCopy), working copy? (y/n)\n"
-				read input
-				case $input in
-					Y | y) printWarning "Upgrading $(dirname $workingCopy).\n"; svn upgrade "$(dirname $workingCopy)";;
-					*) printWarning "You may encounter errors!\n";;
-				esac
-			fi
-		done
-	fi
+svn info "${DIR_MAIN}/edk2/Clover" 2>&1 | grep 'svn upgrade'
+# if the svn working directory is outdated, let the user know
+if [[ $? -eq 0 ]]; then
+	printError "Error: You need to upgrade the working copy first.\n"
+	for workingCopy in `find "${DIR_MAIN}/edk2" -name "*.svn"`
+	do
+		if [[ -d "$(dirname $workingCopy)" ]]; then
+			printWarning "Would you like to upgrade the, $(dirname $workingCopy), working copy? (y/n)\n"
+			read input
+			case $input in
+				Y | y) printWarning "Upgrading $(dirname $workingCopy).\n"; svn upgrade "$(dirname $workingCopy)";;
+				*) printWarning "You may encounter errors!\n";;
+			esac
+		fi
+	done
 fi
 }
 # --------------------------------------
 # Remote and local revisions
 getRev() {
-# for svn 1.9 and higher
-#REMOTE_REV=$(svn info --show-item "revision" ${CLOVER_REP})
-#LOCAL_REV=$(svn info --show-item "revision" ${DIR_MAIN}/edk2/Clover)
-
-# error proof
-if [ ! ${1} ]; then return 1; fi
-
-# convert to lowercase
-Arg=$(echo "$1" | tr '[:upper:]' '[:lower:]')
-
-# upgrade the working copy to avoid errors
-svnUpgrade
-
-# universal
 if ping -c 1 svn.code.sf.net >> /dev/null 2>&1; then
-	if [[ ${Arg} == *"remote"* ]]; then
-		REMOTE_REV=$(svn info ${CLOVER_REP} | grep '^Revision:' | tr -cd [:digit:])
-		REMOTE_EDK2_REV=$(svn info ${EDK2_REP} | grep '^Revision:' | tr -cd [:digit:])
-	fi
+	REMOTE_REV=$(svn info ${CLOVER_REP} | grep '^Revision:' | tr -cd [:digit:])
+	REMOTE_EDK2_REV=$(svn info ${EDK2_REP} | grep '^Revision:' | tr -cd [:digit:])
 else
 	REMOTE_REV=""
 	REMOTE_EDK2_REV=""
 fi
 
-if [[ ${Arg} == *"local"* ]]; then
-	if [[ -d "${DIR_MAIN}"/edk2/Clover/.svn ]]; then
-		LOCAL_REV=$(svn info "${DIR_MAIN}"/edk2/Clover | grep '^Revision:' | tr -cd [:digit:])
-	else
-		LOCAL_REV=""
-	fi
-	if [[ -d "${DIR_MAIN}"/edk2/.svn ]]; then
-		LOCAL_EDK2_REV=$(svn info "${DIR_MAIN}"/edk2 | grep '^Revision:' | tr -cd [:digit:])
-	else
-		LOCAL_EDK2_REV=""
-	fi
+if [[ -d "${DIR_MAIN}"/edk2/Clover/.svn ]]; then
+	svnUpgrade # upgrade the working copy to avoid errors
+	LOCAL_REV=$(svn info "${DIR_MAIN}"/edk2/Clover | grep '^Revision:' | tr -cd [:digit:])
+else
+	LOCAL_REV=""
 fi
-if [[ ${Arg} == *"basetools"* ]]; then
-	if [[ -d "${DIR_MAIN}"/edk2/BaseTools/.svn ]]; then
-		BaseToolsRev=$(svnversion -n "${DIR_MAIN}"/edk2/BaseTools | tr -d [:alpha:])
-	elif [[ -d "${DIR_MAIN}"/edk2/BaseTools/.git ]]; then
-		BaseToolsRev=$(git svn find-rev git-svn "${DIR_MAIN}"/edk2/BaseTools | tr -cd [:digit:])
-	else
-		BaseToolsRev=""
-	fi
+if [[ -d "${DIR_MAIN}"/edk2/.svn ]]; then
+	LOCAL_EDK2_REV=$(svn info "${DIR_MAIN}"/edk2 | grep '^Revision:' | tr -cd [:digit:])
+else
+	LOCAL_EDK2_REV=""
 fi
 }
 # --------------------------------------
@@ -472,7 +439,7 @@ archs=(
 )
 clear
 printHeader "Select the desired architecture"
-if [ -n "$1" ]; then echo "$1"; echo; fi
+if [[ -n "$1" ]]; then echo "$1"; echo; fi
 local count=1
 for op in "${archs[@]}"
 do
@@ -491,7 +458,7 @@ case $opt in
 	5 ) CleanExit;;
 	* ) selectArch "invalid choice!";;
 esac
-if [[ "$SYSNAME" == Darwin ]] && [ "$LOCAL_REV" -ge "4073" ]; then slimPKG; fi
+if [[ "$SYSNAME" == Darwin && "$LOCAL_REV" -ge "4073" ]]; then slimPKG; fi
 }
 # --------------------------------------
 slimPKG () {
@@ -506,7 +473,7 @@ archs=(
 )
 clear
 printHeader "Select the desired pkg type"
-if [ -n "$1" ]; then echo "$1" && echo; fi
+if [[ -n "$1" ]]; then echo "$1" && echo; fi
 local count=1
 for op in "${archs[@]}"
 do
@@ -704,10 +671,10 @@ svnWithErrorCheck() {
 # $3 = reserved argument ("once") indicating we are calling 'svn resolve'
 # $4 = reserved argument equal to initial $1 command string
 
-if [ -z "${1}" ]; then return; fi
+if [[ -z "${1}" ]]; then return; fi
 
 local cmd="${1}"
-if [ -n "${4}" ]; then cmd="${4}"; fi
+if [[ -n "${4}" ]]; then cmd="${4}"; fi
 
 echo "" > "${SVN_STDERR_LOG}"
 if [[ ! -x $(which tee) ]]; then
@@ -726,7 +693,7 @@ local errors=(
 local ErrCount=0
 
 # try to resolve conflicts if any
-if [[ -n "${2}" ]] && [[ "${3}" != once ]];then
+if [[ -n "${2}" && "${3}" != once ]]; then
 	if grep -q "Tree conflict can only be resolved to 'working' state" "${SVN_STDERR_LOG}" || \
 		grep -q "Node remains in conflict" "${SVN_STDERR_LOG}"; then
 		printWarning "Calling svn resolve..\n"
@@ -738,7 +705,7 @@ for err in "${errors[@]}"
 do
 	if grep -q "${err}" "${SVN_STDERR_LOG}"; then ((ErrCount+=1)); break; fi
 done
-if [ "${ErrCount}" -ge "1" ];then
+if [[ "${ErrCount}" -ge "1" ]];then
 	echo
 	printError "An error was encountered syncing the repository:\n"
 	echo "------------------------------"
@@ -752,17 +719,17 @@ fi
 # --------------------------------------
 IsLinkOnline() {
 if [[ $FAST_UPDATE != NO ]]; then return 1; fi
-if [ -z "${1}" ]; then printError "IsLinkOnline() require a link as argument!"; exit 1; fi
+if [[ -z "${1}" ]]; then printError "IsLinkOnline() require a link as argument!"; exit 1; fi
 
 ((TIMES+=1))
 printf "\e[1;35mchecking..\e[0m"
 svn info "${1}" > /dev/null
-if [ $? -eq 0 ]; then
+if [[ $? -eq 0 ]]; then
 	printf "\e[1;32mavailable, continuing..\e[0m\n"
 	TIMES=0
 	return 1 # Success!
 else
-	if [ $TIMES -ge 5 ]; then
+	if [[ $TIMES -ge 5 ]]; then
 		printError "\nError: unable to access ${1} after $TIMES attempts.";
 		printError "\nBuild_Clover go to fail voluntarily to avoid problems,";
 		printError "\ncheck your internet connection or retry later!\n\n";
@@ -777,127 +744,102 @@ fi
 IsPathWritable() {
 local result=1
 # file/folder exists?
-if [ ! -e "${1}" ]; then echo "${1} does not exist!" && return $result; fi
+if [[ ! -e "${1}" ]]; then printWarning "${1} does not exist!\n"; return $result; fi
 if [[ -w "${1}" ]]; then
-	echo "${1} is writable!"
+	printMessage "${1} is writable!\n"
 	result=0
 else
-	echo "${1} is not writable!"
+	printWarning "${1} is not writable!\n"
 fi
 return $result
 }
 # --------------------------------------
-# is compiled BaseTools not the same of edk2 after svn up?
-# In that case will be cleaned and rebuilted by ebuild.sh
-cleanAllTools() {
-local oldRev="${1}"
-#local rev="null"
-# Clean BaseToolsRev
-if [ ! -z "$BaseToolsRev" ]; then BaseToolsRev=""; fi
-if [[ "$oldRev" == unknown ]]; then return; fi
-if [[ -d "${DIR_MAIN}/edk2/BaseTools" ]] ; then
-	getRev "BaseTools"
-	if IsNumericOnly $oldRev && IsNumericOnly $BaseToolsRev; then
-		if [ $BaseToolsRev -ne $oldRev ]; then
-			printHeader "cleaning all because BaseTools mismatch r${EDK2_REV} just synced:"
-			make clean
-			cd "${DIR_MAIN}/edk2/Clover" && ./ebuild.sh clean
-			cd "${DIR_MAIN}/edk2/Clover/CloverPackage" && make clean
-			FORCEREBUILD="-fr"
-		fi
-	fi
-fi
-echo
-echo "BaseTools before update was: r${oldRev}"
-echo "now is: r${BaseToolsRev}"
-}
-# --------------------------------------
 edk2() {
-echo
-#local BaseToolsRev="unknown"
-# Set BaseToolsRev to unknown
-if [ ! -z "$BaseToolsRev" ]; then BaseToolsRev="unknown"; fi
 local revision="-r $EDK2_REV"
-if [[ ! -d "${DIR_MAIN}/edk2" ]]; then
-	printHeader 'Downloading edk2'
-	mkdir -p "${DIR_MAIN}"/edk2
-else
-	printHeader 'Updating edk2'
-	if [[ -d "${DIR_MAIN}/edk2/BaseTools" ]]; then getRev "BaseTools"; fi
-fi
-if [ "$ForceEDK2Update" -eq "1979" ]; then
-	# was invoke to force update edk2, so is safe to rebuild BaseTools
-	# in case some conflicts are resolved
-	BaseToolsRev=$ForceEDK2Update
-fi
-# update only relevant pkgs of edk2 needed by Clover
-# keep them from update.sh used by Slice..
 local updatelink="https://sourceforge.net/p/cloverefiboot/code/HEAD/tree/update.sh?format=raw"
 local edk2ArrayOnline=(
 	$( downloader "$updatelink" | grep 'cd ..' | sed -e 's/^cd ..\///' | sed -e 's/\/$//' | sed -e '/Clover/d' \
 	| sed -e 's:BaseTools/Conf:BaseTools:g' )
 )
-
 # use only if populated, otherwise use the static "edk2array"
-if [ "${#edk2ArrayOnline[@]}" -ge "1" ]; then unset -v edk2array; edk2array=( "${edk2ArrayOnline[@]}" ); fi
+if [[ "${#edk2ArrayOnline[@]}" -ge "1" ]]; then unset -v edk2array; edk2array=( "${edk2ArrayOnline[@]}" ); fi
 
-# check if we have all already there and updated at the specified revision..
-# 'Scripts' and 'Source' are not present in edk2. maybe are Slice's stuff
-for d in "${edk2array[@]}"
-do
-	if [[ "$d" != Source ]] && [[ "$d" != Scripts ]]; then
-		if [[ ! -d "${DIR_MAIN}/edk2/${d}/.svn" ]] || \
-			[ "$(svn info "${DIR_MAIN}/edk2/${d}" | grep '^Revision:' | tr -cd [:digit:])" -ne "$EDK2_REV" ]; then
-			((ForceEDK2Update+=1))
+if [[ "$ForceEDK2Update" -ne "1979" ]]; then
+	if [[ ! -d "${DIR_MAIN}/edk2/.svn" ]]; then ForceEDK2Update=1; fi
+	for d in "${edk2array[@]}"
+	do
+		if [[ "$d" != Source && "$d" != Scripts ]]; then
+			if [[ ! -d "${DIR_MAIN}/edk2/${d}/.svn" ]]; then ForceEDK2Update=1; fi
 		fi
-	fi
-done
-
-# check also edk2/.svn
-if [[ ! -d "${DIR_MAIN}/edk2/.svn" ]] || \
-	[ "$(svn info "${DIR_MAIN}/edk2" | grep '^Revision:' | tr -cd [:digit:])" -ne "$EDK2_REV" ]; then
-	((ForceEDK2Update+=1))
+	done
 fi
-if [ "$ForceEDK2Update" -eq "0" ]; then printWarning "edk2 appear to be up to date, skipping ...\n"; return; fi
 
-TIMES=0
-cd "${DIR_MAIN}"/edk2
-IsLinkOnline $EDK2_REP
-# I want ".svn", also empty at the specified revision! .. so I can update!
-svnWithErrorCheck "svn --depth empty co $revision --non-interactive --trust-server-cert $EDK2_REP ."
-
-echo
-printf "\e[1;34medksetup.sh:\e[0m\n"
-IsLinkOnline $EDK2_REP/edksetup.sh
-svnWithErrorCheck "svn update --accept tf --non-interactive --trust-server-cert $revision edksetup.sh"
-
-for d in "${edk2array[@]}"
-do
-	if [[ "$d" != "Source" ]] && [[ "$d" != "Scripts" ]]; then
-		printf "\e[1;34m${d}:\e[0m\n"
-		TIMES=0
-		IsLinkOnline "$EDK2_REP/${d}"
-		cd "${DIR_MAIN}"/edk2
-		if [[ -d "${DIR_MAIN}/edk2/${d}" ]] ; then
-			cd "${DIR_MAIN}/edk2/${d}"
-			svnWithErrorCheck "svn update --accept tf --non-interactive --trust-server-cert $revision" "$(pwd)"
+if [[ "$ForceEDK2Update" -eq "0" ]]; then
+	if [[ "${LOCAL_EDK2_REV}" == "${EDK2_REV}" ]]; then
+		printWarning "edk2 appear to be up to date, skipping ...\n"
+	else
+		printWarning "edk2 is not up to date, but no forced edk2 update is selected, skipping ...\n"
+	fi
+else
+	echo
+	if [[ ! -d "${DIR_MAIN}/edk2" ]]; then
+		printHeader 'Downloading edk2'
+		mkdir -p "${DIR_MAIN}"/edk2
+	else
+		if [[ "$ForceEDK2Update" -eq "1979" ]]; then
+			printHeader 'Updating edk2 (forced)'
 		else
-			cd "${DIR_MAIN}"/edk2
-			svnWithErrorCheck "svn co $revision --non-interactive --trust-server-cert $EDK2_REP/${d}" "$(pwd)"
+			printHeader 'Updating edk2'
 		fi
 	fi
-done
-ForceEDK2Update=0
-cleanAllTools $BaseToolsRev
+	TIMES=0
+	cd "${DIR_MAIN}"/edk2
+	IsLinkOnline $EDK2_REP
+	# I want ".svn", also empty at the specified revision! .. so I can update!
+	svnWithErrorCheck "svn --depth empty co $revision --non-interactive --trust-server-cert $EDK2_REP ."
+	printf "\n\e[1;34medksetup.sh:\e[0m\n"
+	IsLinkOnline $EDK2_REP/edksetup.sh
+	svnWithErrorCheck "svn update --accept tf --non-interactive --trust-server-cert $revision edksetup.sh" "$(pwd)"
+	for d in "${edk2array[@]}"
+	do
+		if [[ "$d" != "Source" && "$d" != "Scripts" ]]; then
+			printf "\n\e[1;34m${d}:\e[0m\n"
+			TIMES=0
+			IsLinkOnline "$EDK2_REP/${d}"
+			cd "${DIR_MAIN}"/edk2
+			if [[ -d "${DIR_MAIN}/edk2/${d}" ]] ; then
+				if [[ -d "${DIR_MAIN}/edk2/${d}/.svn" ]] ; then
+					cd "${DIR_MAIN}/edk2/${d}"
+					svnWithErrorCheck "svn update --accept tf --non-interactive --trust-server-cert $revision" "$(pwd)"
+					if [[ "$d" == "BaseTools" ]]; then ForceEDK2Update=1979; fi
+				else
+					printWarning ".svn missing, the ${d} repo may be corrupted, re-downloading...\n"
+					cd "${DIR_MAIN}/edk2/${d}"
+					rm -rf ./* > /dev/null 2>&1
+					svnWithErrorCheck "svn co $revision --non-interactive --trust-server-cert $EDK2_REP/${d} ."
+				fi
+			else
+				cd "${DIR_MAIN}"/edk2
+				svnWithErrorCheck "svn co $revision --non-interactive --trust-server-cert $EDK2_REP/${d}"
+			fi
+		fi
+	done
+	if [[ "$ForceEDK2Update" -eq "1979" ]]; then
+		printHeader "cleaning BaseTools and Clover / Clover Package"
+		echo
+		if [[ -d "${DIR_MAIN}/edk2/BaseTools" ]]; then cd "${DIR_MAIN}/edk2/BaseTools"; make clean; fi
+		if [[ -d "${DIR_MAIN}/edk2/Clover" ]]; then cd "${DIR_MAIN}/edk2/Clover"; ./ebuild.sh clean; fi
+		if [[ -d "${DIR_MAIN}/edk2/Clover/CloverPackage" ]]; then cd "${DIR_MAIN}/edk2/Clover/CloverPackage"; make clean; fi
+		FORCEREBUILD="-fr"
+	fi
+	ForceEDK2Update=0
+fi
 }
 # --------------------------------------
 clover() {
 local cmd=""
 # check if SUGGESTED_CLOVER_REV is set
 if [[ -z "$SUGGESTED_CLOVER_REV" ]]; then
-	TIMES=0
-	IsLinkOnline ${CLOVER_REP}
-	getRev "remote"
 	echo
 	if [[ ! -d "${DIR_MAIN}/edk2/Clover" ]]; then
 		printHeader 'Downloading Clover, using the latest revision'
@@ -934,6 +876,8 @@ else
 		fi
 	fi
 fi
+TIMES=0
+IsLinkOnline ${CLOVER_REP}
 cd "${DIR_MAIN}"/edk2/Clover
 svnWithErrorCheck "$cmd" "$(pwd)"
 printHeader 'Apply Edk2 patches'
@@ -947,7 +891,7 @@ needGETTEXT() {
 local gettextPath=""
 local gettextArray=( $(which -a gettext) )
 local needInstall=1
-if [ ${#gettextArray[@]} -ge "1" ]; then
+if [[ ${#gettextArray[@]} -ge "1" ]]; then
 	for i in "${gettextArray[@]}"
 	do
 		echo "found gettext at $(dirname ${i})"
@@ -968,7 +912,7 @@ local nasmPath=""
 local nasmArray=( $(which -a nasm) )
 local needInstall=1
 local good=""
-if [ ${#nasmArray[@]} -ge "1" ]; then
+if [[ ${#nasmArray[@]} -ge "1" ]]; then
 	for i in "${nasmArray[@]}"
 	do
 		echo "found nasm v$(${i} -v | grep 'NASM version' | awk '{print $3}') at $(dirname ${i})"
@@ -1069,7 +1013,7 @@ else
 	printError "Error: Localizable.strings not found\n"
 	((err+=1))
 fi
-if [ "$err" -eq 0 ]; then
+if [[ "$err" -eq 0 ]]; then
 	mv -f "${LOCALIZABLE_FILE}" "${LOCALIZABLE_FILE}.back"
 	mv /tmp/Localizable.strings "${LOCALIZABLE_FILE}"
 	cp -R "${PKG_PATH}/po" "${PKG_PATH}/po_back"
@@ -1102,50 +1046,56 @@ mkdir -p "${TOOLCHAIN_DIR}"/bin
 mkdir -p "${DIR_TOOLS}"
 mkdir -p "${DIR_DOWNLOADS}"
 mkdir -p "${DIR_LOGS}"
-rm -rf "${DIR_DOWNLOADS}"/source.download
 
 # no mach-o in linux,
 printHeader "nasm check:"
-if [[ ! -f "${NASM_PREFIX}"nasm ]] || [[ ! -x "${NASM_PREFIX}"nasm ]] || ! isNASMGood "${NASM_PREFIX}"nasm; then
-	FORCEREBUILD="-fr" #the path to nasm can now be different in generated make files: it is safe to autogen it again!
-	mkdir -p "${DIR_DOWNLOADS}"/source.download
+if [[ ! -x "${NASM_PREFIX}"nasm ]] || ! isNASMGood "${NASM_PREFIX}"nasm; then
+	FORCEREBUILD="-fr" # the path to nasm can now be different in generated make files: it is safe to autogen it again!
+	printWarning "NASM not found or not the proper version, installing the preferred one..."
+	if [[ -d "${DIR_DOWNLOADS}"/source.download ]]; then rm -rf "${DIR_DOWNLOADS}"/source.download/*; else mkdir -p "${DIR_DOWNLOADS}"/source.download; fi
 	# NASM_PREFIX (the folder) can be writable or not, but also NASM_PREFIX can be writable and an old nasm inside it not writable because owned by root!
 	cd "${DIR_DOWNLOADS}"/source.download
 
-	if [[ "$SYSNAME" == Linux ]]; then
-		downloader "http://www.nasm.us/pub/nasm/releasebuilds/${NASM_PREFERRED}/nasm-${NASM_PREFERRED}.tar.gz" "${DIR_DOWNLOADS}/source.download" "${NASM_PREFERRED}.tar.gz"
-		tar -zxf "${NASM_PREFERRED}".tar.gz
-		cd "${DIR_DOWNLOADS}/source.download/nasm-${NASM_PREFERRED}"
-		./configure --prefix="${PREFIX}" 1> /dev/null 2> "${DIR_LOGS}"/nasm-"${NASM_PREFERRED}".config.log.txt
-		make CC=gcc 1> /dev/null 2> "${DIR_LOGS}"/nasm-"${NASM_PREFERRED}".make.log.txt
-		if ([[ ! -e "${NASM_PREFIX}"nasm ]] && ! IsPathWritable "${NASM_PREFIX}") || ([[ -e "${NASM_PREFIX}"nasm ]] && ! IsPathWritable "${NASM_PREFIX}"nasm); then
-			echo
-			echo "installing nasm to ${NASM_PREFIX} require sudo because"
-			echo "is not writable by $BUILDER:"
-			sudo make install 1> /dev/null 2> "${DIR_LOGS}"/nasm-"${NASM_PREFERRED}".install.log.txt
-			sudo -k
-		else
-			make install 1> /dev/null 2> "${DIR_LOGS}"/nasm-"${NASM_PREFERRED}".install.log.txt
-		fi
-	elif [[ "$SYSNAME" == Darwin ]]; then
-		downloader "http://www.nasm.us/pub/nasm/releasebuilds/${NASM_PREFERRED}/macosx/nasm-${NASM_PREFERRED}-macosx.zip" "${DIR_DOWNLOADS}/source.download" "${NASM_PREFERRED}.zip"
-		unzip "${NASM_PREFERRED}".zip
-		if ([[ ! -e "${NASM_PREFIX}"nasm ]] && ! IsPathWritable "${NASM_PREFIX}") || ([[ -e "${NASM_PREFIX}"nasm ]] && ! IsPathWritable "${NASM_PREFIX}"nasm); then
-			echo
-			echo "installing nasm to ${NASM_PREFIX} require sudo because"
-			echo "is not writable by $BUILDER:"
-			sudo cp -R "nasm-${NASM_PREFERRED}"/nasm "${NASM_PREFIX}" && sudo -k # exiting sudo immediately!
-		else
-			cp -R "nasm-${NASM_PREFERRED}"/nasm "${NASM_PREFIX}"
-		fi
-	fi
+	case "$SYSNAME" in
+		Linux )
+			printMessage "\nDownloading the preferred version (${NASM_PREFERRED})..."
+			downloader "http://www.nasm.us/pub/nasm/releasebuilds/${NASM_PREFERRED}/nasm-${NASM_PREFERRED}.tar.gz" "${DIR_DOWNLOADS}/source.download" "${NASM_PREFERRED}.tar.gz"
+			tar -zxf "${NASM_PREFERRED}".tar.gz
+			cd "${DIR_DOWNLOADS}/source.download/nasm-${NASM_PREFERRED}"
+			printMessage "\n[ NASM ] configure..."
+			./configure --prefix="${PREFIX}" 1> /dev/null 2> "${DIR_LOGS}"/nasm-"${NASM_PREFERRED}".config.log.txt
+			printMessage "\n[ NASM ] make..."
+			make CC=gcc 1> /dev/null 2> "${DIR_LOGS}"/nasm-"${NASM_PREFERRED}".make.log.txt
+			printMessage "\n[ NASM ] make install..."
+			if ! IsPathWritable "${NASM_PREFIX}"; then
+				echo
+				echo "installing nasm to ${NASM_PREFIX} require sudo because"
+				echo "is not writable by $BUILDER:"
+				sudo make install 1> /dev/null 2> "${DIR_LOGS}"/nasm-"${NASM_PREFERRED}".install.log.txt
+				sudo -k
+			else
+				make install 1> /dev/null 2> "${DIR_LOGS}"/nasm-"${NASM_PREFERRED}".install.log.txt
+			fi;;
+		Darwin )
+			printMessage "\nDownloading the preferred version for macOS (${NASM_PREFERRED})..."
+			downloader "http://www.nasm.us/pub/nasm/releasebuilds/${NASM_PREFERRED}/macosx/nasm-${NASM_PREFERRED}-macosx.zip" "${DIR_DOWNLOADS}/source.download" "${NASM_PREFERRED}.zip"
+			printMessage "\nInstalling..."
+			unzip "${NASM_PREFERRED}".zip 1> /dev/null
+			if ! IsPathWritable "${NASM_PREFIX}"; then
+				echo
+				echo "installing nasm to ${NASM_PREFIX} require sudo because"
+				echo "is not writable by $BUILDER:"
+				sudo cp -R "nasm-${NASM_PREFERRED}"/nasm "${NASM_PREFIX}" && sudo -k # exiting sudo immediately!
+			else
+				cp -R "nasm-${NASM_PREFERRED}"/nasm "${NASM_PREFIX}"
+			fi;;
+	esac
 
 	# check the installation made:
 	if [[ -x "${NASM_PREFIX}"nasm ]] && isNASMGood "${NASM_PREFIX}"nasm; then
-		echo Done
+		printMessage "\nDone\n"; echo
 	else
-		echo "nasm installation error, check the log!"
-		exit 1
+		printMessage "\nNASM installation error, check the log!\n"; exit 1
 	fi
 else
 	echo "$(${NASM_PREFIX}nasm -v)"
@@ -1188,13 +1138,13 @@ else
 	printf "\e[1;36m\n${DEFINED_MACRO}\e[0m\n"
 fi
 echo
-if [ "${#macros[@]}" -gt "0" ]; then
+if [[ "${#macros[@]}" -gt "0" ]]; then
 	echo "enter you choice or press \"b\" to build:"
 	printf '? ' && read choice
-	if [ "${choice}" == "b" ] || [ "${choice}" == "B" ]; then
+	if [[ "${choice}" == "b" || "${choice}" == "B" ]]; then
 		echo "going to build as requested.."
 	elif [[ ${choice} =~ ^[0-9]+$ ]]; then
-		if [ "$choice" -gt "0" ] && [ "$choice" -le ${#macros[@]} ]; then
+		if [[ "$choice" -gt "0" && "$choice" -le ${#macros[@]} ]]; then
 			local chosed="${macros[choice -1]}"
 			DEFINED_MACRO=$(echo "$DEFINED_MACRO -D ${chosed}" | sed -e 's/^[ \t]*//')
 			macros=(${macros[@]/${macros[choice -1]}/})
@@ -1288,7 +1238,7 @@ if [[ -d "${DIR_MAIN}/edk2/Clover/.svn" ]] ; then
 
 	if IsNumericOnly $opt; then
 		((opt-=1))
-		if [ "$opt" -ge "0" ] && [ "$opt" -le "$lastIndex" ]; then choice="$(echo ${options[$opt]})"; fi
+		if [[ "$opt" -ge "0" && "$opt" -le "$lastIndex" ]]; then choice="$(echo ${options[$opt]})"; fi
 	fi
 
 	case $choice in
@@ -1416,29 +1366,27 @@ fi
 if [[ "$BUILDER" == 'slice' ]]; then clear && build; fi
 
 # show info about the running OS and its gcc
-if [[ "$SYSNAME" == Darwin ]]; then
-	printHeader "Running from: macOS $(sw_vers -productVersion)\n$(/usr/bin/xcodebuild -version)"
-elif [[ "$SYSNAME" == Linux ]]; then
-	if [[ -x "/usr/bin/lsb_release" ]]; then
-		printHeader "Running from: $(lsb_release -sir | sed -e ':a;N;$!ba;s/\n/ /g')"
-	else
-		printHeader "Running from: Linux"
-	fi
-else
-	printHeader "Running from: Unknown OS"
-fi
+case "$SYSNAME" in
+	Darwin ) printHeader "Running from: macOS $(sw_vers -productVersion)\n$(/usr/bin/xcodebuild -version)";;
+	Linux ) if [[ -x "/usr/bin/lsb_release" ]]; then
+				printHeader "Running from: $(lsb_release -sir | sed -e ':a;N;$!ba;s/\n/ /g')"
+			else
+				printHeader "Running from: Linux"
+			fi;;
+	* ) printHeader "Running from: Unknown OS";;
+esac
 	
 printHeader "Compiler settings"
 printf "\e[1;34m%s\e[0m" "$(gcc -v 2>&1)"
 printLine
 
 if [[ "$BUILDER" != 'slice' ]]; then restoreClover; fi
-if [[ "$UPDATE_FLAG" == YES ]] && [[ "$BUILDER" != 'slice' ]]; then edk2; clover; fi
+if [[ "$UPDATE_FLAG" == YES && "$BUILDER" != 'slice' ]]; then getRev; edk2; clover; fi
 
 if [[ "$BUILD_FLAG" == NO ]]; then
 	clear
 	# print updated remote and local revision
-	if [[ -d "${DIR_MAIN}"/edk2 ]]; then printRevisions; fi;
+	if [[ -d "${DIR_MAIN}"/edk2 ]]; then getRev; printRevisions; fi;
 	build
 fi
 
@@ -1513,22 +1461,23 @@ else
 	esac
 fi
 
-if [[ "$SYSNAME" == Darwin ]]; then
-	if [[ "$BUILD_PKG" == YES ]] || [[ "$BUILD_ISO" == YES ]]; then
-		cd "${DIR_MAIN}"/edk2/Clover/CloverPackage
-		if [[ "$FORCEREBUILD" == "-fr" ]]; then make clean; fi
-	fi
-	if [[ "$BUILD_PKG" == YES ]]; then printHeader 'MAKE PKG'; eval "$MAKEPKG_CMD"; fi
-	if [[ "$BUILD_ISO" == YES ]]; then printHeader 'MAKE ISO'; make iso; fi
-else
-	if [[ $(echo $USER | tr "[:upper:]" "[:lower:]" ) =~ ^micky1979 ]]; then
-		doSomething --run-script "${PATCHES}/Linux/distribution" # under study (.deb)
-	else
-		# use xdg-open to use default filemanager for ALL linux.
-		#nautilus "${CLOVERV2_PATH}" > /dev/null
-		[[ -x $(which xdg-open) ]] && xdg-open "${CLOVERV2_PATH}" > /dev/null
-	fi
-fi
+case "$SYSNAME" in
+	Darwin )
+		if [[ "$BUILD_PKG" == YES || "$BUILD_ISO" == YES ]]; then
+			cd "${DIR_MAIN}"/edk2/Clover/CloverPackage
+			if [[ "$FORCEREBUILD" == "-fr" ]]; then make clean; fi
+		fi
+		if [[ "$BUILD_PKG" == YES ]]; then printHeader 'MAKE PKG'; eval "$MAKEPKG_CMD"; fi
+		if [[ "$BUILD_ISO" == YES ]]; then printHeader 'MAKE ISO'; make iso; fi;;
+	Linux )
+		if [[ $(echo $USER | tr "[:upper:]" "[:lower:]" ) =~ ^micky1979 ]]; then
+			doSomething --run-script "${PATCHES}/Linux/distribution" # under study (.deb)
+		else
+			# use xdg-open to use default filemanager for ALL linux.
+			#nautilus "${CLOVERV2_PATH}" > /dev/null
+			[[ -x $(which xdg-open) ]] && xdg-open "${CLOVERV2_PATH}" > /dev/null
+		fi;;
+esac
 
 if [[ "$BUILDER" != 'slice' ]]; then restoreClover; fi
 printHeader "build started at:\n${START_BUILD}\nfinished at\n$(date)\n\nDone!\n"
@@ -1571,15 +1520,15 @@ ebuild="${DIR_MAIN}/edk2/Clover/ebuild.sh"
 if [[ "$SYSNAME" == Linux ]]; then macros+=('DISABLE_LTO'); fi
 
 # Setting the build tool (Xcode or GCC)
-if [[ "$SYSNAME" == Darwin ]]; then
-	case "$Build_Tool" in
-	"XCODE" | "xcode" ) checkXcode; BUILDTOOL="$XCODE";;
-	"GNU" | "gnu" ) [[ "$GNU" == "" ]] && BUILDTOOL="GCC53" || BUILDTOOL="$GNU";;
-	* ) printError "Wrong build tool: $Build_Tool. It should be \"XCODE\" or \"GNU\" !!!"; exit 1;;
-	esac
-else
-	[[ "$GNU" == "" ]] && BUILDTOOL="GCC53" || BUILDTOOL="$GNU"
-fi
+case "$SYSNAME" in
+	Darwin ) 
+		case "$Build_Tool" in
+		"XCODE" | "xcode" ) checkXcode; BUILDTOOL="$XCODE";;
+		"GNU" | "gnu" ) [[ "$GNU" == "" ]] && BUILDTOOL="GCC53" || BUILDTOOL="$GNU";;
+		* ) printError "Wrong build tool: $Build_Tool. It should be \"XCODE\" or \"GNU\" !!!"; exit 1;;
+		esac;;
+	Linux ) [[ "$GNU" == "" ]] && BUILDTOOL="GCC53" || BUILDTOOL="$GNU";;
+esac
 
 # print local Script revision with relative info
 printCloverScriptRev
@@ -1592,6 +1541,6 @@ if [[ "$GITHUB" == *"Test_Script_dont_use.command"* ]];then
 fi
 
 # print the remote and the local revision
-if [[ -d "${DIR_MAIN}"/edk2 ]]; then printRevisions; fi;
+if [[ -d "${DIR_MAIN}"/edk2 ]]; then getRev; printRevisions; fi;
 
 build
