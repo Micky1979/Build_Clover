@@ -36,7 +36,7 @@ GNU="" # empty by default (GCC53 is used if not defined), override the GCC toolc
 Build_Tool="XCODE" # Build tool. Possible values: XCODE or GNU. DO NOT USE ANY OTHER VALUES HERE !
 # in Linux this get overrided and GCC53 used anyway!
 # --------------------------------------
-SCRIPTVER="v4.4.9"
+SCRIPTVER="v4.5.0"
 export LC_ALL=C
 SYSNAME="$( uname )"
 
@@ -60,6 +60,8 @@ DEFAULT_MACROS="-D NO_GRUB_DRIVERS_EMBEDDED -D CHECK_FLAGS"
 PATCHES="$HOME/CloverPatches" # or where you like
 BUILD_PKG="YES" # NO to not build the pkg
 BUILD_ISO="NO" # YES if you want the iso
+USEHFSPLUS="NO" # YES if you want to include the Apple's HFS+ EFI driver in the Clover package
+USEAPFS="NO" # YES if you want to include the Apple's APFS EFI driver in the Clover package
 
 # FAST_UPDATE is set to NO as default, that means that it check if repos are or not availabile online
 # and fail the script accordigily
@@ -135,6 +137,39 @@ macros=(
 # --------------------------------------
 # FUNCTIONS
 # --------------------------------------
+CheckHFSPlus() {
+local drivers_off="${DIR_MAIN}"/edk2/Clover/CloverPackage/CloverV2/drivers-Off
+local HFS32="https://github.com/JrCs/CloverGrowerPro/raw/master/Files/HFSPlus/Ia32/HFSPlus.efi"
+local HFS64="https://github.com/JrCs/CloverGrowerPro/raw/master/Files/HFSPlus/X64/HFSPlus.efi"
+if [[ "$USEHFSPLUS" == "YES" ]]; then
+	printMessage "Apple's HFSPlus.efi driver will be added to the Clover package."
+	if [[ ! -f "${DIR_MAIN}"/tools/HFSPlus_ia32.efi ]]; then
+		printWarning "\nHFSPlus.efi (32bit) not found, downloading..."
+		downloader "$HFS32" "${DIR_MAIN}/tools" "HFSPlus_ia32.efi"
+	fi
+	if [[ ! -f "${DIR_MAIN}"/tools/HFSPlus_x64.efi ]]; then
+		printWarning "\nHFSPlus.efi (64bit) not found, downloading..."
+		downloader "$HFS64" "${DIR_MAIN}/tools" "HFSPlus_x64.efi"
+	fi
+	if [[ -d "${drivers_off}"/drivers32 ]]; then
+		printMessage "\nAdding HFSPlus.efi (32bit)..."
+		cp -f "${DIR_MAIN}"/tools/HFSPlus_ia32.efi "${drivers_off}"/drivers32/HFSPlus-32.efi
+	fi
+	if [[ -d "${drivers_off}"/drivers64 ]]; then
+		printMessage "\nAdding HFSPlus.efi (64bit)..."
+		cp -f "${DIR_MAIN}"/tools/HFSPlus_x64.efi "${drivers_off}"/drivers64/HFSPlus-64.efi
+	fi
+	if [[ -d "${drivers_off}"/drivers64UEFI ]]; then
+		printMessage "\nAdding HFSPlus.efi (64bit UEFI)..."
+		cp -f "${DIR_MAIN}"/tools/HFSPlus_x64.efi "${drivers_off}"/drivers64UEFI/HFSPlus.efi
+	fi
+else
+	for i in "drivers32/HFSPlus-32.efi" "drivers64/HFSPlus-64.efi" "drivers64UEFI/HFSPlus.efi"
+	do
+		if [[ -f "${drivers_off}/${i}" ]]; then rm -f "${drivers_off}/${i}"
+	done
+fi
+}
 CleanExit () {
 if [[ -f /tmp/Build_Clover.tmp ]]; then rm -f /tmp/Build_Clover.tmp; fi
 exit 0
@@ -462,7 +497,6 @@ if [[ "$SYSNAME" == Darwin && "$LOCAL_REV" -ge "4073" ]]; then slimPKG; fi
 }
 # --------------------------------------
 slimPKG () {
-MAKEPKG_CMD="make pkg"
 archs=(
 	'Standard'
 	'slim pkg that skip themes and CloverThemeManager.app'
@@ -1467,7 +1501,7 @@ case "$SYSNAME" in
 			cd "${DIR_MAIN}"/edk2/Clover/CloverPackage
 			if [[ "$FORCEREBUILD" == "-fr" ]]; then make clean; fi
 		fi
-		if [[ "$BUILD_PKG" == YES ]]; then printHeader 'MAKE PKG'; eval "$MAKEPKG_CMD"; fi
+		if [[ "$BUILD_PKG" == YES ]]; then printHeader 'MAKE PKG'; CheckHFSPlus; eval "$MAKEPKG_CMD"; fi
 		if [[ "$BUILD_ISO" == YES ]]; then printHeader 'MAKE ISO'; make iso; fi;;
 	Linux )
 		if [[ $(echo $USER | tr "[:upper:]" "[:lower:]" ) =~ ^micky1979 ]]; then
