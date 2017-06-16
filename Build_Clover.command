@@ -166,7 +166,7 @@ if [[ "$USEHFSPLUS" == "YES" ]]; then
 else
 	for i in "drivers32/HFSPlus-32.efi" "drivers64/HFSPlus-64.efi" "drivers64UEFI/HFSPlus.efi"
 	do
-		if [[ -f "${drivers_off}/${i}" ]]; then rm -f "${drivers_off}/${i}"
+		if [[ -f "${drivers_off}/${i}" ]]; then rm -f "${drivers_off}/${i}"; fi
 	done
 fi
 }
