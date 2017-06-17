@@ -139,8 +139,8 @@ macros=(
 # --------------------------------------
 CheckHFSPlus() {
 local drivers_off="${DIR_MAIN}"/edk2/Clover/CloverPackage/CloverV2/drivers-Off
-local HFS32="https://github.com/JrCs/CloverGrowerPro/raw/master/Files/HFSPlus/Ia32/HFSPlus.efi"
-local HFS64="https://github.com/JrCs/CloverGrowerPro/raw/master/Files/HFSPlus/X64/HFSPlus.efi"
+local HFS32="https://github.com/Micky1979/Build_Clover/raw/work/Files/HFSPlus_ia32.efi"
+local HFS64="https://github.com/Micky1979/Build_Clover/raw/work/Files/HFSPlus_x64.efi"
 if [[ "$USEHFSPLUS" == "YES" ]]; then
 	printMessage "Apple's HFSPlus.efi driver will be added to the Clover package."
 	if [[ ! -f "${DIR_MAIN}"/tools/HFSPlus_ia32.efi ]]; then
@@ -170,6 +170,33 @@ else
 	done
 fi
 }
+# --------------------------------------
+CheckAPFS () {
+local drivers_off="${DIR_MAIN}"/edk2/Clover/CloverPackage/CloverV2/drivers-Off
+local APFS="https://github.com/Micky1979/Build_Clover/raw/work/Files/apfs.efi"
+if [[ "$USEAPFS" == "YES" ]]; then
+	printMessage "\nApple's apfs.efi driver will be added to the Clover package."
+	printWarning "\nNOTE: apfs.efi is 64 bit only !"
+	if [[ ! -f "${DIR_MAIN}"/tools/apfs.efi ]]; then
+		printWarning "\napfs.efi not found, downloading..."
+		downloader "$APFS" "${DIR_MAIN}/tools" "apfs.efi"
+	fi
+	if [[ -d "${drivers_off}"/drivers64 ]]; then
+		printMessage "\nAdding apfs.efi (64bit)..."
+		cp -f "${DIR_MAIN}"/tools/apfs.efi "${drivers_off}"/drivers64/apfs-64.efi
+	fi
+	if [[ -d "${drivers_off}"/drivers64UEFI ]]; then
+		printMessage "\nAdding apfs.efi (64bit UEFI)..."
+		cp -f "${DIR_MAIN}"/tools/apfs.efi "${drivers_off}"/drivers64UEFI/apfs.efi
+	fi
+else
+	for i in "drivers64/apfs-64.efi" "drivers64UEFI/apfs.efi"
+	do
+		if [[ -f "${drivers_off}/${i}" ]]; then rm -f "${drivers_off}/${i}"; fi
+	done
+fi
+}
+# --------------------------------------
 CleanExit () {
 if [[ -f /tmp/Build_Clover.tmp ]]; then rm -f /tmp/Build_Clover.tmp; fi
 exit 0
@@ -1501,7 +1528,7 @@ case "$SYSNAME" in
 			cd "${DIR_MAIN}"/edk2/Clover/CloverPackage
 			if [[ "$FORCEREBUILD" == "-fr" ]]; then make clean; fi
 		fi
-		if [[ "$BUILD_PKG" == YES ]]; then printHeader 'MAKE PKG'; CheckHFSPlus; eval "$MAKEPKG_CMD"; fi
+		if [[ "$BUILD_PKG" == YES ]]; then printHeader 'MAKE PKG'; CheckHFSPlus; CheckAPFS; eval "$MAKEPKG_CMD"; fi
 		if [[ "$BUILD_ISO" == YES ]]; then printHeader 'MAKE ISO'; make iso; fi;;
 	Linux )
 		if [[ $(echo $USER | tr "[:upper:]" "[:lower:]" ) =~ ^micky1979 ]]; then
