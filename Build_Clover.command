@@ -134,87 +134,60 @@ macros=(
 	REAL_NVRAM
 	CHECK_FLAGS
 	)
-
 # --------------------------------------
 # FUNCTIONS
 # --------------------------------------
 CheckProprietary() {
-local drivers_off="${DIR_MAIN}"/edk2/Clover/CloverPackage/CloverV2/drivers-Off
-local HFS32="https://github.com/Micky1979/Build_Clover/raw/work/Files/HFSPlus_ia32.efi"
-local HFS64="https://github.com/Micky1979/Build_Clover/raw/work/Files/HFSPlus_x64.efi"
-local APFS="https://github.com/Micky1979/Build_Clover/raw/work/Files/apfs.efi"
-local NTFS="https://github.com/Micky1979/Build_Clover/raw/work/Files/NTFS.efi"
+local drivers_off="${DIR_MAIN}/edk2/Clover/CloverPackage/CloverV2/drivers-Off"
+local ghlink="https://github.com/Micky1979/Build_Clover/raw/work/Files"
+local efifiles=()
 
-if [[ "$USEHFSPLUS" == "YES" ]]; then
-	printMessage "Apple's HFSPlus.efi driver will be added to the Clover package."
-	if [[ ! -f "${DIR_MAIN}"/tools/HFSPlus_ia32.efi ]]; then
-		printWarning "\nHFSPlus.efi (32bit) not found, downloading..."
-		downloader "$HFS32" "${DIR_MAIN}/tools" "HFSPlus_ia32.efi"
-	fi
-	if [[ ! -f "${DIR_MAIN}"/tools/HFSPlus_x64.efi ]]; then
-		printWarning "\nHFSPlus.efi (64bit) not found, downloading..."
-		downloader "$HFS64" "${DIR_MAIN}/tools" "HFSPlus_x64.efi"
-	fi
-	if [[ -d "${drivers_off}"/drivers32 ]]; then
-		printMessage "\nAdding HFSPlus.efi (32bit)..."
-		cp -f "${DIR_MAIN}"/tools/HFSPlus_ia32.efi "${drivers_off}"/drivers32/HFSPlus-32.efi
-	fi
-	if [[ -d "${drivers_off}"/drivers64 ]]; then
-		printMessage "\nAdding HFSPlus.efi (64bit)..."
-		cp -f "${DIR_MAIN}"/tools/HFSPlus_x64.efi "${drivers_off}"/drivers64/HFSPlus-64.efi
-	fi
-	if [[ -d "${drivers_off}"/drivers64UEFI ]]; then
-		printMessage "\nAdding HFSPlus.efi (64bit UEFI)..."
-		cp -f "${DIR_MAIN}"/tools/HFSPlus_x64.efi "${drivers_off}"/drivers64UEFI/HFSPlus.efi
-	fi
+if [[ "$USEHFSPLUS" == "YES" ]]; then efifiles+=('HFSPlus_ia32.efi'); efifiles+=('HFSPlus_x64.efi'); fi
+if [[ "$USEAPFS" == "YES" ]]; then efifiles+=('apfs.efi'); fi
+if [[ "$USENTFS" == "YES" ]]; then efifiles+=('NTFS.efi'); fi
+	
+if [[ "${#efifiles[@]}" -ge "1" ]]; then
+	printMessage "The following proprietary EFI drivers will be added to the Clover package:"
+	printWarning "\n${efifiles[*]}\n"
 else
-	for i in "drivers32/HFSPlus-32.efi" "drivers64/HFSPlus-64.efi" "drivers64UEFI/HFSPlus.efi"
-	do
-		if [[ -f "${drivers_off}/${i}" ]]; then rm -f "${drivers_off}/${i}"; fi
-	done
+	return
 fi
-if [[ "$USEAPFS" == "YES" ]]; then
-	printMessage "\nApple's apfs.efi driver will be added to the Clover package."
-	printWarning "\nNOTE: apfs.efi is 64 bit only !"
-	if [[ ! -f "${DIR_MAIN}"/tools/apfs.efi ]]; then
-		printWarning "\napfs.efi not found, downloading..."
-		downloader "$APFS" "${DIR_MAIN}/tools" "apfs.efi"
+
+for fname in "${efifiles[@]}"
+do
+	if [[ ! -f "${DIR_MAIN}/tools/${fname}" ]]; then
+		printWarning "\n${fname} not found, downloading..."
+		downloader "${ghlink}/${fname}" "${DIR_MAIN}/tools" "${fname}"
 	fi
-	if [[ -d "${drivers_off}"/drivers64 ]]; then
-		printMessage "\nAdding apfs.efi (64bit)..."
-		cp -f "${DIR_MAIN}"/tools/apfs.efi "${drivers_off}"/drivers64/apfs-64.efi
-	fi
-	if [[ -d "${drivers_off}"/drivers64UEFI ]]; then
-		printMessage "\nAdding apfs.efi (64bit UEFI)..."
-		cp -f "${DIR_MAIN}"/tools/apfs.efi "${drivers_off}"/drivers64UEFI/apfs.efi
-	fi
-else
-	for i in "drivers64/apfs-64.efi" "drivers64UEFI/apfs.efi"
-	do
-		if [[ -f "${drivers_off}/${i}" ]]; then rm -f "${drivers_off}/${i}"; fi
-	done
-fi
-if [[ "$USENTFS" == "YES" ]]; then
-	printMessage "\nThe NTFS.efi driver will be added to the Clover package."
-	printWarning "\nNOTE: NTFS.efi is 64 bit only !"
-	if [[ ! -f "${DIR_MAIN}"/tools/apfs.efi ]]; then
-		printWarning "\nNTFS.efi not found, downloading..."
-		downloader "$APFS" "${DIR_MAIN}/tools" "NTFS.efi"
-	fi
-	if [[ -d "${drivers_off}"/drivers64 ]]; then
-		printMessage "\nAdding NTFS.efi (64bit)..."
-		cp -f "${DIR_MAIN}"/tools/NTFS.efi "${drivers_off}"/drivers64/NTFS-64.efi
-	fi
-	if [[ -d "${drivers_off}"/drivers64UEFI ]]; then
-		printMessage "\nAdding NTFS.efi (64bit UEFI)..."
-		cp -f "${DIR_MAIN}"/tools/NTFS.efi "${drivers_off}"/drivers64UEFI/NTFS.efi
-	fi
-else
-	for i in "drivers64/NTFS-64.efi" "drivers64UEFI/NTFS.efi"
-	do
-		if [[ -f "${drivers_off}/${i}" ]]; then rm -f "${drivers_off}/${i}"; fi
-	done
-fi
+	printMessage "\nAdding ${fname}..."
+	case "${fname}" in
+		*"_ia32"* )	if [[ -d "${drivers_off}/drivers32" ]]; then
+						cp -f "${DIR_MAIN}/tools/${fname}" "${drivers_off}/drivers32/${fname//_ia32/-32}"
+					else
+						printWarning "\ndrivers32 not found, maybe that arch hasn't been selected, skipping..."
+					fi;;
+		*"_x64"* )	if [[ -d "${drivers_off}/drivers64" ]]; then
+					cp -f "${DIR_MAIN}/tools/${fname}" "${drivers_off}/drivers64/${fname//_x64/-64}"
+				else
+					printWarning "\ndrivers64 not found, maybe that arch hasn't been selected, skipping..."
+				fi
+				if [[ -d "${drivers_off}/drivers64UEFI" ]]; then
+					cp -f "${DIR_MAIN}/tools/${fname}" "${drivers_off}/drivers64UEFI/${fname//_x64}"
+				else
+					printWarning "\ndrivers64UEFI not found, maybe that arch hasn't been selected, skipping..."
+				fi;;
+		* )	if [[ -d "${drivers_off}/drivers64" ]]; then
+				cp -f "${DIR_MAIN}/tools/${fname}" "${drivers_off}/drivers64/${fname//.efi/-64.efi}"
+			else
+				printWarning "\ndrivers64 not found, maybe that arch hasn't been selected, skipping..."
+			fi
+			if [[ -d "${drivers_off}/drivers64UEFI" ]]; then
+				cp -f "${DIR_MAIN}/tools/${fname}" "${drivers_off}/drivers64UEFI/${fname}"
+			else
+				printWarning "\ndrivers64UEFI not found, maybe that arch hasn't been selected, skipping..."
+			fi;;
+	esac
+done
 }
 # --------------------------------------
 CleanExit () {
