@@ -167,15 +167,15 @@ do
 						printWarning "\ndrivers32 not found, maybe that arch hasn't been selected, skipping..."
 					fi;;
 		*"_x64"* )	if [[ -d "${drivers_off}/drivers64" ]]; then
-					cp -f "${DIR_MAIN}/tools/${fname}" "${drivers_off}/drivers64/${fname//_x64/-64}"
-				else
-					printWarning "\ndrivers64 not found, maybe that arch hasn't been selected, skipping..."
-				fi
-				if [[ -d "${drivers_off}/drivers64UEFI" ]]; then
-					cp -f "${DIR_MAIN}/tools/${fname}" "${drivers_off}/drivers64UEFI/${fname//_x64}"
-				else
-					printWarning "\ndrivers64UEFI not found, maybe that arch hasn't been selected, skipping..."
-				fi;;
+						cp -f "${DIR_MAIN}/tools/${fname}" "${drivers_off}/drivers64/${fname//_x64/-64}"
+					else
+						printWarning "\ndrivers64 not found, maybe that arch hasn't been selected, skipping..."
+					fi
+					if [[ -d "${drivers_off}/drivers64UEFI" ]]; then
+						cp -f "${DIR_MAIN}/tools/${fname}" "${drivers_off}/drivers64UEFI/${fname//_x64}"
+					else
+						printWarning "\ndrivers64UEFI not found, maybe that arch hasn't been selected, skipping..."
+					fi;;
 		* )	if [[ -d "${drivers_off}/drivers64" ]]; then
 				cp -f "${DIR_MAIN}/tools/${fname}" "${drivers_off}/drivers64/${fname//.efi/-64.efi}"
 			else
