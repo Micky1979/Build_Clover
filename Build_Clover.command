@@ -160,33 +160,32 @@ do
 		downloader "${ghlink}/${fname}" "${DIR_MAIN}/tools" "${fname}"
 	fi
 	printMessage "\nAdding ${fname}..."
-	case "${fname}" in
-		*"_ia32"* )	if [[ -d "${drivers_off}/drivers32" ]]; then
-						cp -f "${DIR_MAIN}/tools/${fname}" "${drivers_off}/drivers32/${fname//_ia32/-32}"
-					else
-						printWarning "\ndrivers32 not found, maybe that arch hasn't been selected, skipping..."
-					fi;;
-		*"_x64"* )	if [[ -d "${drivers_off}/drivers64" ]]; then
-						cp -f "${DIR_MAIN}/tools/${fname}" "${drivers_off}/drivers64/${fname//_x64/-64}"
-					else
-						printWarning "\ndrivers64 not found, maybe that arch hasn't been selected, skipping..."
-					fi
-					if [[ -d "${drivers_off}/drivers64UEFI" ]]; then
-						cp -f "${DIR_MAIN}/tools/${fname}" "${drivers_off}/drivers64UEFI/${fname//_x64}"
-					else
-						printWarning "\ndrivers64UEFI not found, maybe that arch hasn't been selected, skipping..."
-					fi;;
-		* )	if [[ -d "${drivers_off}/drivers64" ]]; then
+	if [[ "${fname}" == *"_ia32"* ]]; then
+		if [[ -d "${drivers_off}/drivers32" ]]; then
+			cp -f "${DIR_MAIN}/tools/${fname}" "${drivers_off}/drivers32/${fname//_ia32/-32}"
+		else
+			printWarning "\ndrivers32 not found, maybe that arch hasn't been selected, skipping..."
+		fi
+	else
+		if [[ -d "${drivers_off}/drivers64" ]]; then
+			if [[ "${fname}" == *"_x64"* ]]; then
+				cp -f "${DIR_MAIN}/tools/${fname}" "${drivers_off}/drivers64/${fname//_x64/-64}"
+			else
 				cp -f "${DIR_MAIN}/tools/${fname}" "${drivers_off}/drivers64/${fname//.efi/-64.efi}"
-			else
-				printWarning "\ndrivers64 not found, maybe that arch hasn't been selected, skipping..."
 			fi
-			if [[ -d "${drivers_off}/drivers64UEFI" ]]; then
-				cp -f "${DIR_MAIN}/tools/${fname}" "${drivers_off}/drivers64UEFI/${fname}"
+		else
+			printWarning "\ndrivers64 not found, maybe that arch hasn't been selected, skipping..."
+		fi
+		if [[ -d "${drivers_off}/drivers64UEFI" ]]; then
+			if [[ "${fname}" == *"_x64"* ]]; then
+				cp -f "${DIR_MAIN}/tools/${fname}" "${drivers_off}/drivers64UEFI/${fname//_x64}"
 			else
-				printWarning "\ndrivers64UEFI not found, maybe that arch hasn't been selected, skipping..."
-			fi;;
-	esac
+				cp -f "${DIR_MAIN}/tools/${fname}" "${drivers_off}/drivers64UEFI/${fname}"
+			fi
+		else
+			printWarning "\ndrivers64UEFI not found, maybe that arch hasn't been selected, skipping..."
+		fi
+	fi
 done
 }
 # --------------------------------------
