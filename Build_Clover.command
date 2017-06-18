@@ -62,6 +62,7 @@ BUILD_PKG="YES" # NO to not build the pkg
 BUILD_ISO="NO" # YES if you want the iso
 USEHFSPLUS="NO" # YES if you want to include the Apple's HFS+ EFI driver in the Clover package
 USEAPFS="NO" # YES if you want to include the Apple's APFS EFI driver in the Clover package
+USENTFS="NO" # YES if you want to include the NTFS.efi driver in the Clover package
 
 # FAST_UPDATE is set to NO as default, that means that it check if repos are or not availabile online
 # and fail the script accordigily
@@ -137,10 +138,13 @@ macros=(
 # --------------------------------------
 # FUNCTIONS
 # --------------------------------------
-CheckHFSPlus() {
+CheckProprietary() {
 local drivers_off="${DIR_MAIN}"/edk2/Clover/CloverPackage/CloverV2/drivers-Off
 local HFS32="https://github.com/Micky1979/Build_Clover/raw/work/Files/HFSPlus_ia32.efi"
 local HFS64="https://github.com/Micky1979/Build_Clover/raw/work/Files/HFSPlus_x64.efi"
+local APFS="https://github.com/Micky1979/Build_Clover/raw/work/Files/apfs.efi"
+local NTFS="https://github.com/Micky1979/Build_Clover/raw/work/Files/NTFS.efi"
+
 if [[ "$USEHFSPLUS" == "YES" ]]; then
 	printMessage "Apple's HFSPlus.efi driver will be added to the Clover package."
 	if [[ ! -f "${DIR_MAIN}"/tools/HFSPlus_ia32.efi ]]; then
@@ -169,11 +173,6 @@ else
 		if [[ -f "${drivers_off}/${i}" ]]; then rm -f "${drivers_off}/${i}"; fi
 	done
 fi
-}
-# --------------------------------------
-CheckAPFS () {
-local drivers_off="${DIR_MAIN}"/edk2/Clover/CloverPackage/CloverV2/drivers-Off
-local APFS="https://github.com/Micky1979/Build_Clover/raw/work/Files/apfs.efi"
 if [[ "$USEAPFS" == "YES" ]]; then
 	printMessage "\nApple's apfs.efi driver will be added to the Clover package."
 	printWarning "\nNOTE: apfs.efi is 64 bit only !"
@@ -191,6 +190,27 @@ if [[ "$USEAPFS" == "YES" ]]; then
 	fi
 else
 	for i in "drivers64/apfs-64.efi" "drivers64UEFI/apfs.efi"
+	do
+		if [[ -f "${drivers_off}/${i}" ]]; then rm -f "${drivers_off}/${i}"; fi
+	done
+fi
+if [[ "$USENTFS" == "YES" ]]; then
+	printMessage "\nThe NTFS.efi driver will be added to the Clover package."
+	printWarning "\nNOTE: NTFS.efi is 64 bit only !"
+	if [[ ! -f "${DIR_MAIN}"/tools/apfs.efi ]]; then
+		printWarning "\nNTFS.efi not found, downloading..."
+		downloader "$APFS" "${DIR_MAIN}/tools" "NTFS.efi"
+	fi
+	if [[ -d "${drivers_off}"/drivers64 ]]; then
+		printMessage "\nAdding NTFS.efi (64bit)..."
+		cp -f "${DIR_MAIN}"/tools/NTFS.efi "${drivers_off}"/drivers64/NTFS-64.efi
+	fi
+	if [[ -d "${drivers_off}"/drivers64UEFI ]]; then
+		printMessage "\nAdding NTFS.efi (64bit UEFI)..."
+		cp -f "${DIR_MAIN}"/tools/NTFS.efi "${drivers_off}"/drivers64UEFI/NTFS.efi
+	fi
+else
+	for i in "drivers64/NTFS-64.efi" "drivers64UEFI/NTFS.efi"
 	do
 		if [[ -f "${drivers_off}/${i}" ]]; then rm -f "${drivers_off}/${i}"; fi
 	done
@@ -1528,7 +1548,7 @@ case "$SYSNAME" in
 			cd "${DIR_MAIN}"/edk2/Clover/CloverPackage
 			if [[ "$FORCEREBUILD" == "-fr" ]]; then make clean; fi
 		fi
-		if [[ "$BUILD_PKG" == YES ]]; then printHeader 'MAKE PKG'; CheckHFSPlus; CheckAPFS; eval "$MAKEPKG_CMD"; fi
+		if [[ "$BUILD_PKG" == YES ]]; then printHeader 'MAKE PKG'; CheckProprietary; eval "$MAKEPKG_CMD"; fi
 		if [[ "$BUILD_ISO" == YES ]]; then printHeader 'MAKE ISO'; make iso; fi;;
 	Linux )
 		if [[ $(echo $USER | tr "[:upper:]" "[:lower:]" ) =~ ^micky1979 ]]; then
