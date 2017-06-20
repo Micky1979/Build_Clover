@@ -36,7 +36,7 @@ GNU="" # empty by default (GCC53 is used if not defined), override the GCC toolc
 Build_Tool="XCODE" # Build tool. Possible values: XCODE or GNU. DO NOT USE ANY OTHER VALUES HERE !
 # in Linux this get overrided and GCC53 used anyway!
 # --------------------------------------
-SCRIPTVER="v4.4.9"
+SCRIPTVER="v4.5.0"
 export LC_ALL=C
 SYSNAME="$( uname )"
 
@@ -60,6 +60,9 @@ DEFAULT_MACROS="-D NO_GRUB_DRIVERS_EMBEDDED -D CHECK_FLAGS"
 PATCHES="$HOME/CloverPatches" # or where you like
 BUILD_PKG="YES" # NO to not build the pkg
 BUILD_ISO="NO" # YES if you want the iso
+USEHFSPLUS="NO" # YES if you want to include the Apple's HFS+ EFI driver in the Clover package
+USEAPFS="NO" # YES if you want to include the Apple's APFS EFI driver in the Clover package
+USENTFS="NO" # YES if you want to include the NTFS.efi driver in the Clover package
 
 # FAST_UPDATE is set to NO as default, that means that it check if repos are or not availabile online
 # and fail the script accordigily
@@ -131,9 +134,60 @@ macros=(
 	REAL_NVRAM
 	CHECK_FLAGS
 	)
-
 # --------------------------------------
 # FUNCTIONS
+# --------------------------------------
+CheckProprietary() {
+local drivers_off="${DIR_MAIN}/edk2/Clover/CloverPackage/CloverV2/drivers-Off"
+local ghlink="https://github.com/Micky1979/Build_Clover/raw/work/Files"
+local efifiles=()
+
+if [[ "$USEHFSPLUS" == "YES" ]]; then efifiles+=('HFSPlus_ia32.efi'); efifiles+=('HFSPlus_x64.efi'); fi
+if [[ "$USEAPFS" == "YES" ]]; then efifiles+=('apfs.efi'); fi
+if [[ "$USENTFS" == "YES" ]]; then efifiles+=('NTFS.efi'); fi
+	
+if [[ "${#efifiles[@]}" -ge "1" ]]; then
+	printMessage "The following proprietary EFI drivers will be added to the Clover package:"
+	printWarning "\n${efifiles[*]}\n"
+else
+	return
+fi
+
+for fname in "${efifiles[@]}"
+do
+	if [[ ! -f "${DIR_MAIN}/tools/${fname}" ]]; then
+		printWarning "\n${fname} not found, downloading..."
+		downloader "${ghlink}/${fname}" "${DIR_MAIN}/tools" "${fname}"
+	fi
+	printMessage "\nAdding ${fname}..."
+	if [[ "${fname}" == *"_ia32"* ]]; then
+		if [[ -d "${drivers_off}/drivers32" ]]; then
+			cp -f "${DIR_MAIN}/tools/${fname}" "${drivers_off}/drivers32/${fname//_ia32/-32}"
+		else
+			printWarning "\ndrivers32 not found, maybe that arch hasn't been selected, skipping..."
+		fi
+	else
+		if [[ -d "${drivers_off}/drivers64" ]]; then
+			if [[ "${fname}" == *"_x64"* ]]; then
+				cp -f "${DIR_MAIN}/tools/${fname}" "${drivers_off}/drivers64/${fname//_x64/-64}"
+			else
+				cp -f "${DIR_MAIN}/tools/${fname}" "${drivers_off}/drivers64/${fname//.efi/-64.efi}"
+			fi
+		else
+			printWarning "\ndrivers64 not found, maybe that arch hasn't been selected, skipping..."
+		fi
+		if [[ -d "${drivers_off}/drivers64UEFI" ]]; then
+			if [[ "${fname}" == *"_x64"* ]]; then
+				cp -f "${DIR_MAIN}/tools/${fname}" "${drivers_off}/drivers64UEFI/${fname//_x64}"
+			else
+				cp -f "${DIR_MAIN}/tools/${fname}" "${drivers_off}/drivers64UEFI/${fname}"
+			fi
+		else
+			printWarning "\ndrivers64UEFI not found, maybe that arch hasn't been selected, skipping..."
+		fi
+	fi
+done
+}
 # --------------------------------------
 CleanExit () {
 if [[ -f /tmp/Build_Clover.tmp ]]; then rm -f /tmp/Build_Clover.tmp; fi
@@ -462,7 +516,6 @@ if [[ "$SYSNAME" == Darwin && "$LOCAL_REV" -ge "4073" ]]; then slimPKG; fi
 }
 # --------------------------------------
 slimPKG () {
-MAKEPKG_CMD="make pkg"
 archs=(
 	'Standard'
 	'slim pkg that skip themes and CloverThemeManager.app'
@@ -1467,7 +1520,7 @@ case "$SYSNAME" in
 			cd "${DIR_MAIN}"/edk2/Clover/CloverPackage
 			if [[ "$FORCEREBUILD" == "-fr" ]]; then make clean; fi
 		fi
-		if [[ "$BUILD_PKG" == YES ]]; then printHeader 'MAKE PKG'; eval "$MAKEPKG_CMD"; fi
+		if [[ "$BUILD_PKG" == YES ]]; then printHeader 'MAKE PKG'; CheckProprietary; eval "$MAKEPKG_CMD"; fi
 		if [[ "$BUILD_ISO" == YES ]]; then printHeader 'MAKE ISO'; make iso; fi;;
 	Linux )
 		if [[ $(echo $USER | tr "[:upper:]" "[:lower:]" ) =~ ^micky1979 ]]; then
