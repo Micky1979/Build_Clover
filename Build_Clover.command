@@ -36,7 +36,7 @@ GNU="" # empty by default (GCC53 is used if not defined), override the GCC toolc
 Build_Tool="XCODE" # Build tool. Possible values: XCODE or GNU. DO NOT USE ANY OTHER VALUES HERE !
 # in Linux this get overrided and GCC53 used anyway!
 # --------------------------------------
-SCRIPTVER="v4.5.0"
+SCRIPTVER="v4.5.1"
 export LC_ALL=C
 SYSNAME="$( uname )"
 
@@ -1430,7 +1430,15 @@ case "$SYSNAME" in
 esac
 	
 printHeader "Compiler settings"
-printf "\e[1;34m%s\e[0m" "$(gcc -v 2>&1)"
+if [[ "${Build_Tool}" == "GNU" ]]; then
+	if [[ -x "${DIR_MAIN}/opt/local/bin/gcc" ]]; then
+		printf "\e[1;34m%s\e[0m" "$(${DIR_MAIN}/opt/local/bin/gcc -v 2>&1)"
+	elif [[ -x "${DIR_MAIN}/opt/local/cross/bin/x86_64-clover-linux-gnu-gcc" ]]; then
+		printf "\e[1;34m%s\e[0m" "$(${DIR_MAIN}/opt/local/cross/bin/x86_64-clover-linux-gnu-gcc -v 2>&1)"
+	fi
+else
+	printf "\e[1;34m%s\e[0m" "$(gcc -v 2>&1)"
+fi
 printLine
 
 if [[ "$BUILDER" != 'slice' ]]; then restoreClover; fi
