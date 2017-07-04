@@ -1435,6 +1435,8 @@ if [[ "${Build_Tool}" == "GNU" ]]; then
 		printf "\e[1;34m%s\e[0m" "$(${DIR_MAIN}/opt/local/bin/gcc -v 2>&1)"
 	elif [[ -x "${DIR_MAIN}/opt/local/cross/bin/x86_64-clover-linux-gnu-gcc" ]]; then
 		printf "\e[1;34m%s\e[0m" "$(${DIR_MAIN}/opt/local/cross/bin/x86_64-clover-linux-gnu-gcc -v 2>&1)"
+	else
+		printWarning "GNU toolchain not found or incomplete, installing the missing parts now..."
 	fi
 else
 	printf "\e[1;34m%s\e[0m" "$(gcc -v 2>&1)"
