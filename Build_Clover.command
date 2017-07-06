@@ -36,7 +36,7 @@ GNU="" # empty by default (GCC53 is used if not defined), override the GCC toolc
 Build_Tool="XCODE" # Build tool. Possible values: XCODE or GNU. DO NOT USE ANY OTHER VALUES HERE !
 # in Linux this get overrided and GCC53 used anyway!
 # --------------------------------------
-SCRIPTVER="v4.5.1"
+SCRIPTVER="v4.5.2"
 export LC_ALL=C
 SYSNAME="$( uname )"
 
@@ -150,7 +150,7 @@ if [[ "${#efifiles[@]}" -ge "1" ]]; then
 	printMessage "The following proprietary EFI drivers will be added to the Clover package:"
 	printWarning "\n${efifiles[*]}\n"
 else
-	return
+	return 0
 fi
 
 for fname in "${efifiles[@]}"
