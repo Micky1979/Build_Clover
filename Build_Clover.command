@@ -36,14 +36,14 @@ GNU="" # empty by default (GCC53 is used if not defined), override the GCC toolc
 Build_Tool="XCODE" # Build tool. Possible values: XCODE or GNU. DO NOT USE ANY OTHER VALUES HERE !
 # in Linux this get overrided and GCC53 used anyway!
 # --------------------------------------
-SCRIPTVER="v4.5.2"
+SCRIPTVER="v4.5.3"
 export LC_ALL=C
 SYSNAME="$( uname )"
 
 BUILDER=$USER # don't touch!
 # <----------------------------
 # Preferences:
-EDK2_REV="24848" # or any revision supported by Slice (otherwise no claim please)
+EDK2_REV="24933" # or any revision supported by Slice (otherwise no claim please)
 
 # "SUGGESTED_CLOVER_REV" is used to force the script to updated at the specified revision:
 # REQUIRED is a known edk2 revision (EDK2_REV="XXXXX") compatible with the "/Clover/Patches_for_EDK2" coming with
