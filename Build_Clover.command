@@ -1545,7 +1545,7 @@ esac
 if [[ "$BUILDER" != 'slice' ]]; then restoreClover; fi
 printHeader "build started at:\n${START_BUILD}\nfinished at\n$(date)\n\nDone!\n"
 printf '\e[3;0;0t'
-build
+pressAnyKey "Clover was built successfully!" noclear; clear; build
 }
 # --------------------------------------
 # MAIN CODE
