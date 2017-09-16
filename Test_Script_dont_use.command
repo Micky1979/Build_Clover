@@ -88,7 +88,7 @@ SCRIPT_ABS_LOC=""
 
 DOWNLOADER_CMD=""
 DOWNLOADER_PATH=""
-GITHUB='https://raw.githubusercontent.com/Micky1979/Build_Clover/master/Build_Clover.command'
+GITHUB='https://raw.githubusercontent.com/Micky1979/Build_Clover/master/Test_Script_dont_use.command'
 CLOVER_REP="svn://svn.code.sf.net/p/cloverefiboot/code"
 EDK2_REP="svn://svn.code.sf.net/p/edk2/code/trunk/edk2"
 
