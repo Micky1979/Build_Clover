@@ -355,9 +355,9 @@ if ping -c 1 github.com >> /dev/null 2>&1; then
 	if IsNumericOnly $RVALUE; then
 		# Compare local and remote script version
 		[[ $LVALUE -ge $RVALUE ]] && SELF_UPDATE_OPT="NO" || SELF_UPDATE_OPT="YES"
-		[[ $LVALUE -eq $RVALUE ]] && printf "\e[1;34m${SNameVer}\e[1;32m%*s\e[0m" 54 "No update available."
-		[[ $LVALUE -gt $RVALUE ]] && printf "\e[1;34m${SNameVer}\e[1;33m%*s\e[0m" 54 "Wow, are you coming from the future?"
-		[[ $LVALUE -lt $RVALUE ]] && printf "\e[1;34m${SNameVer}\e[1;5;33m%*s\e[0m" 54 "Update available (v$RSCRIPTVER)"
+		[[ $LVALUE -eq $RVALUE ]] && printf "\e[1;34m${SNameVer}\e[1;32m%*s\e[0m" $((80-${#SNameVer})) "No update available."
+		[[ $LVALUE -gt $RVALUE ]] && printf "\e[1;34m${SNameVer}\e[1;33m%*s\e[0m" $((80-${#SNameVer})) "Wow, are you coming from the future?"
+		[[ $LVALUE -lt $RVALUE ]] && printf "\e[1;34m${SNameVer}\e[1;5;33m%*s\e[0m" $((80-${#SNameVer})) "Update available (v$RSCRIPTVER)"
 	else
 		printf "${SNameVer}\e[1;31m\n%s\e[0m" "Remote version unavailable due to unknown reasons!"
 	fi
@@ -1545,7 +1545,7 @@ esac
 if [[ "$BUILDER" != 'slice' ]]; then restoreClover; fi
 printHeader "build started at:\n${START_BUILD}\nfinished at\n$(date)\n\nDone!\n"
 printf '\e[3;0;0t'
-build
+pressAnyKey "Clover was built successfully!" noclear; clear; build
 }
 # --------------------------------------
 # MAIN CODE
