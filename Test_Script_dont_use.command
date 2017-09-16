@@ -31,7 +31,7 @@ printf '\e[8;34;90t'
 # --------------------------------------
 # preferred build tool (gnu or darwin)
 # --------------------------------------
-XCODE="" # empty by default, overrides the auto-detected XCODE toolchain, possible values: XCODE32 XCODE5 XCODE8
+XCODE="" # empty by default, overrides the auto-detected XCODE toolchain, possible values: XCODE32 XCODE5 XCODE8 XCODE9
 GNU="" # empty by default (GCC53 is used if not defined), override the GCC toolchain, possible values: GCC49 GCC53
 Build_Tool="XCODE" # Build tool. Possible values: XCODE or GNU. DO NOT USE ANY OTHER VALUES HERE !
 # in Linux this get overrided and GCC53 used anyway!
@@ -662,6 +662,7 @@ if [[ "$XCODE" == "" ]]; then
 		[1-6]* | 7 | 7.[0-2]*) XCODE="XCODE5"; LTO_FLAG="--no-lto";;
 		7.[34]*) XCODE="XCODE5";;
 		8*) XCODE="XCODE8";;
+		9*) XCODE="XCODE9";;
 		*) printError "Unknown Xcode version format, exiting!\n"; exit 1;;
 	esac
 fi
@@ -1545,7 +1546,7 @@ esac
 if [[ "$BUILDER" != 'slice' ]]; then restoreClover; fi
 printHeader "build started at:\n${START_BUILD}\nfinished at\n$(date)\n\nDone!\n"
 printf '\e[3;0;0t'
-build
+pressAnyKey "Clover was built successfully!" noclear; clear; build
 }
 # --------------------------------------
 # MAIN CODE
