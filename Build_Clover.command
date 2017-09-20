@@ -8,12 +8,12 @@ printf '\e[8;34;90t'
 # Preferred OS is El Capitan with Xcode >= 7.3.1 and Sierra with Xcode >= 8.
 # In older version of OS X is better to use GNU gcc.
 
-# Tested in linux Ubuntu (16.04 and 16.10) / Debian (8.4, 8.5, 8.6 and 8.7) amd64 (x86_64).
+# Tested in linux Ubuntu (16.04 and 16.10) / Debian Jessie amd64 (x86_64).
 # This script install all missing dependencies in the iso images you
 # can download at the official download page here: http://releases.ubuntu.com/16.04/ubuntu-16.04.1-desktop-amd64.iso
 # where nasm, subversion, curl (wget if installed is used as replacement) and or uuid-dev headers are missing.
 # gcc 5.4 coming with Ubuntu 16.04 is well compiled for Clover, so no need to make a "cross" compilation of it, and 
-# I hope will be the same for future version installed here. Debian 8.6 instead use gcc 4.9.2 and is already good.
+# I hope will be the same for future version installed here. Debian Jessie instead use gcc 4.9.2 and is already good.
 # Note that Debian comes without "sudo" installed (you well know this), but this script require dependecies
 # described above so that you have install them by your self, or install sudo and enable it for your account.
 #
@@ -31,7 +31,7 @@ printf '\e[8;34;90t'
 # --------------------------------------
 # preferred build tool (gnu or darwin)
 # --------------------------------------
-XCODE="" # empty by default, overrides the auto-detected XCODE toolchain, possible values: XCODE32 XCODE5 XCODE8
+XCODE="" # empty by default, overrides the auto-detected XCODE toolchain, possible values: XCODE32 XCODE5 XCODE8 XCODE9
 GNU="" # empty by default (GCC53 is used if not defined), override the GCC toolchain, possible values: GCC49 GCC53
 Build_Tool="XCODE" # Build tool. Possible values: XCODE or GNU. DO NOT USE ANY OTHER VALUES HERE !
 # in Linux this get overrided and GCC53 used anyway!
@@ -43,7 +43,7 @@ SYSNAME="$( uname )"
 BUILDER=$USER # don't touch!
 # <----------------------------
 # Preferences:
-EDK2_REV="24933" # or any revision supported by Slice (otherwise no claim please)
+EDK2_REV="25373" # or any revision supported by Slice (otherwise no claim please)
 
 # "SUGGESTED_CLOVER_REV" is used to force the script to updated at the specified revision:
 # REQUIRED is a known edk2 revision (EDK2_REV="XXXXX") compatible with the "/Clover/Patches_for_EDK2" coming with
@@ -598,7 +598,7 @@ printf "curl (wget is good if found), the uuid-dev headers if not installed.\n"
 printf "Off course using only the amd64 release (x86_64).\n"
 printf "May work on new releases of Ubuntu as well, but not on older ones.\n"
 echo
-printf "UPDATE: since v4.0.9 this script is tested in Debian Jessie 8.6 using gcc 4.9.2,\n"
+printf "UPDATE: since v4.0.9 this script is tested in Debian Jessie 8 using gcc 4.9.2,\n"
 printf "but be aware that usually Debian comes without sudo installed:\n"
 printf "in this case you have to manage to install it manually and enable\n"
 printf "your account as sudo user (or just install all dependencies manually).\n"
@@ -662,6 +662,7 @@ if [[ "$XCODE" == "" ]]; then
 		[1-6]* | 7 | 7.[0-2]*) XCODE="XCODE5"; LTO_FLAG="--no-lto";;
 		7.[34]*) XCODE="XCODE5";;
 		8*) XCODE="XCODE8";;
+		9*) XCODE="XCODE9";;
 		*) printError "Unknown Xcode version format, exiting!\n"; exit 1;;
 	esac
 fi
@@ -1545,7 +1546,7 @@ esac
 if [[ "$BUILDER" != 'slice' ]]; then restoreClover; fi
 printHeader "build started at:\n${START_BUILD}\nfinished at\n$(date)\n\nDone!\n"
 printf '\e[3;0;0t'
-build
+pressAnyKey "Clover was built successfully!" noclear; clear; build
 }
 # --------------------------------------
 # MAIN CODE
@@ -1595,7 +1596,7 @@ esac
 
 # print local Script revision with relative info
 printCloverScriptRev
-printHeader "By Micky1979 based on Slice, Zenith432, STLVNUB, JrCs, cecekpawon, Needy,\ncvad, Rehabman, philip_petev, ErmaC\n\nSupported OSes: macOS X, Ubuntu (16.04/16.10), Debian Jessie (8.4/8.5/8.6/8.7)"
+printHeader "By Micky1979 based on Slice, Zenith432, STLVNUB, JrCs, cecekpawon, Needy,\ncvad, Rehabman, philip_petev, ErmaC\n\nSupported OSes: macOS X, Ubuntu (16.04/16.10), Debian Jessie and Stretch"
 
 if [[ "$GITHUB" == *"Test_Script_dont_use.command"* ]];then
 	printError "This script is for testing only and may be outdated,\n"
