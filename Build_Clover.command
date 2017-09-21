@@ -1,6 +1,6 @@
 #!/bin/bash
 #set -x
-printf '\e[8;34;90t'
+#printf '\e[8;34;90t'
 
 # made by Micky1979 on 07/05/2016 based on Slice, Zenith432, STLVNUB, JrCs, cvad, Rehabman, and ErmaC works
 
@@ -1311,9 +1311,12 @@ if [[ -d "${DIR_MAIN}/edk2/Clover/.svn" ]] ; then
 			fi
 			build;;
 		"update Clover only (no building)" )
+			UPDATE_FLAG="YES"
 			BUILD_FLAG="NO"
 			ForceEDK2Update=0;;
 		"update Clover + force edk2 update (no building)" )
+			UPDATE_FLAG="YES"
+			BUILD_FLAG="NO"
 			ForceEDK2Update=1979;; # 1979 has a special meaning ...i.e force clean BaseTools
 		"build existing revision (no update, for testing only)" )
 			UPDATE_FLAG="NO"
