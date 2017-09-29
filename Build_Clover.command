@@ -1496,7 +1496,12 @@ if [[ -f /tmp/Build_Clover.tmp ]]; then rm -f /tmp/Build_Clover.tmp; fi
 FindScriptPath
 
 # We have buildClover.cfg to set our preferences?
-if [[ -f "${SCRIPT_ABS_PATH}"/buildClover.cfg ]]; then . "${SCRIPT_ABS_PATH}"/buildClover.cfg; fi
+if [[ -f "${SCRIPT_ABS_PATH}"/buildClover.cfg ]];
+then 
+	echo "buildClover.cfg found."
+else
+	echo "buildClover.cfg not found."
+fi
 SetVars
 
 # setting default paths
