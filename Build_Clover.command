@@ -1,6 +1,5 @@
 #!/bin/bash
 #set -x
-printf '\e[8;34;90t'
 
 # made by Micky1979 on 07/05/2016 based on Slice, Zenith432, STLVNUB, JrCs, cvad, Rehabman, and ErmaC works
 
@@ -28,45 +27,51 @@ printf '\e[8;34;90t'
 # and all others (I'll be happy to increase this list and to not forgot anyone)
 #
 
-# --------------------------------------
-# preferred build tool (gnu or darwin)
-# --------------------------------------
-XCODE="" # empty by default, overrides the auto-detected XCODE toolchain, possible values: XCODE32 XCODE5 XCODE8
-GNU="" # empty by default (GCC53 is used if not defined), override the GCC toolchain, possible values: GCC49 GCC53
-Build_Tool="XCODE" # Build tool. Possible values: XCODE or GNU. DO NOT USE ANY OTHER VALUES HERE !
-# in Linux this get overrided and GCC53 used anyway!
-# --------------------------------------
 SCRIPTVER="v4.5.5"
 export LC_ALL=C
 SYSNAME="$( uname )"
 
 BUILDER=$USER # don't touch!
-# <----------------------------
+
+# --------------------------------------
+# FUNCTIONS
+# --------------------------------------
+SetVars() {
+# --------------------------------------
+# preferred build tool (gnu or darwin)
+# --------------------------------------
+[ "${XCODE:-}" ] || XCODE="" # empty by default, overrides the auto-detected XCODE toolchain, possible values: XCODE32 XCODE5 XCODE8
+[ "${GNU:-}" ] || GNU="" # empty by default (GCC53 is used if not defined), override the GCC toolchain, possible values: GCC49 GCC53
+Build_Tool="XCODE" # Build tool. Possible values: XCODE or GNU. DO NOT USE ANY OTHER VALUES HERE !
+# in Linux this get overrided and GCC53 used anyway!
+# --------------------------------------
+
 # Preferences:
-EDK2_REV="25373" # or any revision supported by Slice (otherwise no claim please)
+[ "${EDK2_REV:-}" ] || EDK2_REV="25373" # or any revision supported by Slice (otherwise no claim please)
 
 # "SUGGESTED_CLOVER_REV" is used to force the script to updated at the specified revision:
 # REQUIRED is a known edk2 revision (EDK2_REV="XXXXX") compatible with the "/Clover/Patches_for_EDK2" coming with
 # the specified Clover revision!
 # WARNING: anyway too old revision may be incompatible due to radical changes to ebuild.sh and tools_def.txt
-SUGGESTED_CLOVER_REV="" # empty by default
+[ "${SUGGESTED_CLOVER_REV:-}" ] || SUGGESTED_CLOVER_REV="" # empty by default
 
 # normal behavior (src inside the Home folder)
 # MODE="S" src is ~/src
 # MODE="R" src created where this script is located (use only if the path has no blank spaces in the middle)
-MODE="S"
+[ "${MODE:-}" ] || MODE="S"
 
-DEFAULT_MACROS="-D NO_GRUB_DRIVERS_EMBEDDED"
-PATCHES="$HOME/CloverPatches" # or where you like
-BUILD_PKG="YES" # NO to not build the pkg
-BUILD_ISO="NO" # YES if you want the iso
-USEHFSPLUS="NO" # YES if you want to include the Apple's HFS+ EFI driver in the Clover package
-USEAPFS="NO" # YES if you want to include the Apple's APFS EFI driver in the Clover package
-USENTFS="NO" # YES if you want to include the NTFS.efi driver in the Clover package
+[ "${DEFAULT_MACROS:-}" ]   || DEFAULT_MACROS="-D NO_GRUB_DRIVERS_EMBEDDED"
+[ "${BUILD_PKG:-}" ]        || BUILD_PKG="YES" # NO to not build the pkg
+[ "${BUILD_ISO:-}" ]        || BUILD_ISO="NO" # YES if you want the iso
+[ "${USEHFSPLUS:-}" ]       || USEHFSPLUS="NO" # YES if you want to include the Apple's HFS+ EFI driver in the Clover package
+[ "${USEAPFS:-}" ]          || USEAPFS="NO" # YES if you want to include the Apple's APFS EFI driver in the Clover package
+[ "${USENTFS:-}" ]          || USENTFS="NO" # YES if you want to include the NTFS.efi driver in the Clover package
 
 # FAST_UPDATE is set to NO as default, that means that it check if repos are or not availabile online
 # and fail the script accordigily
-FAST_UPDATE="NO" # or FAST_UPDATE="YES" # no check, faster
+[ "${FAST_UPDATE:-}" ]      || FAST_UPDATE="NO" # or FAST_UPDATE="YES" # no check, faster
+
+[ "${DISABLE_CLEAR:-}" ]    || DISABLE_CLEAR="NO" # quit messing with my Terminal window
 # ---------------------------->
 # default behavior (don't touch these vars)
 NASM_PREFERRED="2.13.01"
@@ -88,12 +93,12 @@ SCRIPT_ABS_LOC=""
 
 DOWNLOADER_CMD=""
 DOWNLOADER_PATH=""
-GITHUB='https://raw.githubusercontent.com/Micky1979/Build_Clover/master/Build_Clover.command'
-CLOVER_REP="svn://svn.code.sf.net/p/cloverefiboot/code"
-EDK2_REP="svn://svn.code.sf.net/p/edk2/code/trunk/edk2"
+[ "${GITHUB:-}" ]           || GITHUB="https://raw.githubusercontent.com/Micky1979/Build_Clover/master/Build_Clover.command"
+[ "${CLOVER_REP:-}" ]       || CLOVER_REP="svn://svn.code.sf.net/p/cloverefiboot/code"
+[ "${EDK2_REP:-}" ]         || EDK2_REP="svn://svn.code.sf.net/p/edk2/code/trunk/edk2"
 
-SELF_UPDATE_OPT="NO" # show hide selfUpdate option
-PING_RESPONSE="NO" # show hide option with connection dependency
+[ "${SELF_UPDATE_OPT:-}" ]  || SELF_UPDATE_OPT="NO" # show hide selfUpdate option
+[ "${PING_RESPONSE:-}" ]    || PING_RESPONSE="NO" # show hide option with connection dependency
 REMOTE_EDK2_REV="" # info for developer submenu this mean to show latest rev avaiable
 
 edk2array=(
@@ -133,9 +138,12 @@ macros=(
 	ENABLE_USB_XHCI
 	REAL_NVRAM
 	)
-# --------------------------------------
-# FUNCTIONS
-# --------------------------------------
+}
+
+ClearScreen() {
+if [[ "$DISABLE_CLEAR" != "YES" ]]; then clear; fi
+}
+
 CheckProprietary() {
 local drivers_off="${DIR_MAIN}/edk2/Clover/CloverPackage/CloverV2/drivers-Off"
 local ghlink="https://github.com/Micky1979/Build_Clover/raw/work/Files"
@@ -211,10 +219,10 @@ IsNumericOnly() {
 }
 # --------------------------------------
 pressAnyKey(){
-[[ "${2}" != noclear ]] && clear
+[[ "${2}" != noclear ]] && ClearScreen
 printf "${1}\n"
 read -rsp $'Press any key to continue...\n' -n1 key
-clear
+ClearScreen
 }
 # --------------------------------------
 selfUpdate() {
@@ -225,27 +233,8 @@ read answer
 case $answer in
 	Y | y)
 		if [[ -f /tmp/Build_Clover.tmp ]]; then
-			# get the line containing MODE variable and replace with what is currently in old script:
-			local lineVarNum=$(cat /tmp/Build_Clover.tmp | grep -n '^MODE="' | awk -F ":" '{print $1}')
-			if [[ "$MODE" == "R" ]]; then
-				if IsNumericOnly $lineVarNum; then
-					if [[ "$SYSNAME" == Linux ]]; then
-						sed -i "${lineVarNum}s/.*/MODE=\"R\"/" /tmp/Build_Clover.tmp
-					else
-						sed -i "" "${lineVarNum}s/.*/MODE=\"R\"/" /tmp/Build_Clover.tmp
-					fi
-					cat /tmp/Build_Clover.tmp > "${SCRIPT_ABS_LOC}"
-					exec "${SCRIPT_ABS_LOC}"
-				else
-					cat /tmp/Build_Clover.tmp > "${SCRIPT_ABS_LOC}"
-					echo "Warning: was not possible to ensure that MODE var was correctly set,"
-					echo "so apply your changes (if any) and re run the new script"
-					CleanExit
-				fi
-			else
-				cat /tmp/Build_Clover.tmp > "${SCRIPT_ABS_LOC}"
-				exec "${SCRIPT_ABS_LOC}"
-			fi
+            cat /tmp/Build_Clover.tmp > "${SCRIPT_ABS_LOC}"
+            exec "${SCRIPT_ABS_LOC}"
 		else
 			pressAnyKey 'Was not possible to update Build_Clover.command,'
 		fi;;
@@ -280,7 +269,7 @@ printf "\e[1;32m${1}\e[0m\040"
 }
 # --------------------------------------
 addSymlink() {
-clear
+ClearScreen
 if [[ ! -d "$(dirname $SYMLINKPATH)" ]]; then
 	printError "$(dirname $SYMLINKPATH) does not exist, cannot add a symlink..\n"
 	pressAnyKey '\n'
@@ -319,7 +308,7 @@ if [[ "$SYSNAME" == Linux ]]; then
 	# check whether at least one of curl or wget are installed
 	[[ ! -x $(which wget) && ! -x $(which curl) ]] && depend+=" wget"
 	# installing the dependencies
-	if [[ "$depend" != "" ]]; then clear; aptInstall "$depend"; fi
+	if [[ "$depend" != "" ]]; then ClearScreen; aptInstall "$depend"; fi
 	# set the donloader command path
 	if [[ -x $(which wget) ]]; then
 		DOWNLOADER_PATH=$(dirname $(which wget))
@@ -339,7 +328,7 @@ fi
 # --------------------------------------
 printCloverScriptRev() {
 initialChecks
-clear
+ClearScreen
 local LVALUE RVALUE SVERSION RSCRIPTVER RSDATA
 local SNameVer="Build_Clover script ${SCRIPTVER}"
 
@@ -490,7 +479,7 @@ archs=(
 	'Back to Main Menu'
 	'Exit'
 )
-clear
+ClearScreen
 printHeader "Select the desired architecture"
 if [[ -n "$1" ]]; then echo "$1"; echo; fi
 local count=1
@@ -507,7 +496,7 @@ case $opt in
 	1 ) ARCH="X64";;
 	2 ) ARCH="IA32_X64";;
 	3 ) ARCH="IA32";;
-	4 ) clear && BUILDER=$USER && build;;
+	4 ) ClearScreen && BUILDER=$USER && build;;
 	5 ) CleanExit;;
 	* ) selectArch "invalid choice!";;
 esac
@@ -523,7 +512,7 @@ archs=(
 	'Back to Select architecture menu'
 	'Exit'
 )
-clear
+ClearScreen
 printHeader "Select the desired pkg type"
 if [[ -n "$1" ]]; then echo "$1" && echo; fi
 local count=1
@@ -541,7 +530,7 @@ case $opt in
 	2 ) MAKEPKG_CMD="make slimpkg1";;
 	3 ) MAKEPKG_CMD="make slimpkg2";;
 	4 ) MAKEPKG_CMD="make slimpkg3";;
-	5 ) clear && selectArch;;
+	5 ) ClearScreen && selectArch;;
 	6 ) CleanExit;;
 	* ) slimPKG "invalid choice!";;
 esac
@@ -574,7 +563,7 @@ fi
 }
 # --------------------------------------
 showInfo () {
-clear
+ClearScreen
 printHeader "INFO"
 
 printf "This script was originally created to be run in newer OSes like El Capitan\n"
@@ -956,49 +945,6 @@ fi
 return $needInstall
 }
 # --------------------------------------
-# not used here because you now will
-# see that in ebuild.sh, and anyway
-# nasm should be found in NASM_PREFIX
-# otherwise auto installed!
-needNASM() {
-local nasmPath=""
-local nasmArray=( $(which -a nasm) )
-local needInstall=1
-local good=""
-if [[ ${#nasmArray[@]} -ge "1" ]]; then
-	for i in "${nasmArray[@]}"
-	do
-		echo "found nasm v$(${i} -v | grep 'NASM version' | awk '{print $3}') at $(dirname ${i})"
-	done
-	# we have a good nasm?
-	for i in "${nasmArray[@]}"
-	do
-		if isNASMGood "${i}"; then
-			good="${i}"
-			break
-		fi
-	done
-	if [[ -x "${good}" ]] ; then
-		# only nasm at index 0 is used!
-		if [[ "${good}" == "${nasmArray[0]}" ]]; then
-			echo "nasm is ok.."
-		else
-			echo "this one is good:"
-			echo "${good}"
-			needInstall=0
-		fi
-	else
-		# no nasm versions suitable for Clover
-		echo "nasm found, but is not good to build Clover.."
-		needInstall=0
-	fi
-else
-	needInstall=0
-	echo "nasm not found.."
-fi
-return $needInstall
-}
-# --------------------------------------
 isNASMGood() {
 # nasm should be greater or equal to 2.12.02 to be good building Clover.
 # There was a bad macho relocation in outmacho.c, fixed by Zenith432
@@ -1170,7 +1116,7 @@ rm -rf "${DIR_DOWNLOADS}"/source.download
 }
 # --------------------------------------
 showMacros() {
-clear
+ClearScreen
 CUSTOM_BUILD="YES"
 case "$ARCH" in
 	IA32_X64 ) printHeader "BUILD boot3 and boot7 with additional macros";;
@@ -1301,7 +1247,7 @@ if [[ -d "${DIR_MAIN}/edk2/Clover/.svn" ]] ; then
 		| "update \"buildclover\" symlink" ) addSymlink;;
 		"update Build_Clover.command" ) selfUpdate; build;;
 		"enter Developers mode (only for devs)" )
-			clear
+			ClearScreen
 			if [[ -d "${DIR_MAIN}/edk2/Clover" ]] ; then
 				set +e
 				BUILDER="slice"
@@ -1399,25 +1345,15 @@ if [[ -d "${DIR_MAIN}/edk2/Clover/.svn" ]] ; then
 			selectArch
 			showMacros "";;
 		"run my script on the source" )
-			if [[ $(echo $USER | tr "[:upper:]" "[:lower:]" ) =~ ^micky1979 ]]; then
-				printHeader Pandora
-				mydir="$(cd "$(dirname "$BASH_SOURCE")"; pwd)"
-				cd "${mydir}"
-				./CloverPandora.sh Clover $BUILDTOOL
-				printHeader Done
-				build
-			else
-				printHeader "add the script you want to run here.."
-				CleanExit
-			fi;;
+			[ "${MY_SCRIPT:-}" ] && eval "${MY_SCRIPT}" || printHeader "You should export MY_SCRIPT with the path to your script.." && CleanExit;;
 		"info and limitations about this script" ) showInfo;;
-		"Back to Main Menu" ) clear && BUILDER=$USER && build;;
+		"Back to Main Menu" ) ClearScreen && BUILDER=$USER && build;;
 		"Exit" ) CleanExit;;
-		* ) clear && echo "invalid option!!" && build;;
+		* ) ClearScreen && echo "invalid option!!" && build;;
 	esac
 fi
 
-if [[ "$BUILDER" == 'slice' ]]; then clear && build; fi
+if [[ "$BUILDER" == 'slice' ]]; then ClearScreen && build; fi
 
 # show info about the running OS and its gcc
 case "$SYSNAME" in
@@ -1448,7 +1384,7 @@ if [[ "$BUILDER" != 'slice' ]]; then restoreClover; fi
 if [[ "$UPDATE_FLAG" == YES && "$BUILDER" != 'slice' ]]; then getRev; edk2; clover; fi
 
 if [[ "$BUILD_FLAG" == NO ]]; then
-	clear
+	ClearScreen
 	# print updated remote and local revision
 	if [[ -d "${DIR_MAIN}"/edk2 ]]; then getRev; printRevisions; fi;
 	build
@@ -1546,7 +1482,7 @@ esac
 if [[ "$BUILDER" != 'slice' ]]; then restoreClover; fi
 printHeader "build started at:\n${START_BUILD}\nfinished at\n$(date)\n\nDone!\n"
 printf '\e[3;0;0t'
-pressAnyKey "Clover was built successfully!" noclear; clear; build
+pressAnyKey "Clover was built successfully!" noclear; ClearScreen; build
 }
 # --------------------------------------
 # MAIN CODE
@@ -1558,6 +1494,10 @@ if [[ -f /tmp/Build_Clover.tmp ]]; then rm -f /tmp/Build_Clover.tmp; fi
 
 FindScriptPath
 
+# We have Build_Clover.source to set our preferences?
+if [[ -f "${SCRIPT_ABS_PATH}"/Build_Clover.source ]]; then . "${SCRIPT_ABS_PATH}"/Build_Clover.source; fi
+SetVars
+
 # setting default paths
 case "$MODE" in
 	"S" )
@@ -1567,10 +1507,10 @@ case "$MODE" in
 		if [[ "${DIR_MAIN}" = "${DIR_MAIN%[[:space:]]*}" ]]; then
 			echo "good, no blank spaces in DIR_MAIN, continuing.."
 		else
-			clear; printError "Error: MODE=\"R\" require a path with no spaces in the middle, exiting!\n"; exit 1
+			ClearScreen; printError "Error: MODE=\"R\" require a path with no spaces in the middle, exiting!\n"; exit 1
 		fi;;
 	* )
-		clear; printError "Error: unsupported MODE\n"; exit 1;;
+		ClearScreen; printError "Error: unsupported MODE\n"; exit 1;;
 esac
 
 SVN_STDERR_LOG="${DIR_MAIN}/svnLog.txt"
@@ -1610,4 +1550,5 @@ if [[ -d "${DIR_MAIN}"/edk2 ]]; then getRev; printRevisions; fi;
 # readding removed macro CHECK_FLAGS on old source
 if [[ "$LOCAL_REV" -lt "4209" ]]; then macros+=("CHECK_FLAGS"); fi
 
+if [[ "$DISABLE_CLEAR" != "YES" ]]; then printf '\e[8;34;90t'; fi
 build
