@@ -3,7 +3,7 @@
 
 # made by Micky1979 on 07/05/2016 based on Slice, Zenith432, STLVNUB, JrCs, cvad, Rehabman, and ErmaC works
 
-# Tested in OSX using both GNU gcc and clang (Xcode 6.4, 7.2.1, 7.3.1 and Xcode 8).
+# Tested in OSX using both GNU gcc and clang (Xcode 6.4, 7.2.1, 7.3.1, 8 and Xcode 9).
 # Preferred OS is El Capitan with Xcode >= 7.3.1 and Sierra with Xcode >= 8.
 # In older version of OS X is better to use GNU gcc.
 
@@ -90,6 +90,7 @@ ForceEDK2Update=0 # cause edk2 to be re-updated again if > 0 (handeled by the sc
 SYMLINKPATH='/usr/local/bin/buildclover'
 SCRIPT_ABS_PATH=""
 SCRIPT_ABS_LOC=""
+PREFS_FILE="buildClover.cfg"
 
 DOWNLOADER_CMD=""
 DOWNLOADER_PATH=""
@@ -152,7 +153,7 @@ local efifiles=()
 if [[ "$USEHFSPLUS" == "YES" ]]; then efifiles+=('HFSPlus_ia32.efi'); efifiles+=('HFSPlus_x64.efi'); fi
 if [[ "$USEAPFS" == "YES" ]]; then efifiles+=('apfs.efi'); fi
 if [[ "$USENTFS" == "YES" ]]; then efifiles+=('NTFS.efi'); fi
-	
+
 if [[ "${#efifiles[@]}" -ge "1" ]]; then
 	printMessage "The following proprietary EFI drivers will be added to the Clover package:"
 	printWarning "\n${efifiles[*]}\n"
@@ -370,7 +371,7 @@ local Unknown="\e[1;31munknown"
 [[ "${Clover_Local}" == "${Clover_Remote}" ]] && Clover_Remote="\e[1;32m${Clover_Remote}" || Clover_Remote="\e[1;33m${Clover_Remote}"
 [[ "${EDK2_Local}" == "${EDK2_Remote}" ]] && EDK2_Remote="\e[1;32m${EDK2_Remote}" || EDK2_Remote="\e[1;33m${EDK2_Remote}"
 
-# Printing the results on screen	
+# Printing the results on screen
 printf "\e[1;32mCLOVER\tRemote revision: %b\t\e[1;32mLocal revision: %b\e[0m" "${Clover_Remote}" "${Clover_Local}"
 printf "\n\e[1;32mEDK2\tRemote revision: %b\t\e[1;32mLocal revision: %b\e[0m\n" "${EDK2_Remote}" "${EDK2_Local}"
 
@@ -664,7 +665,7 @@ doSomething() {
 # $5 = ... and so on
 local cmd=""
 case "$1" in
-	--run-script ) 
+	--run-script )
 		if [[ -x "${2}" ]]; then
 			# rebuild the cmd + all args
 			cmd=$(echo "$@" | sed -e 's:--run-script ::g' | sed -e 's/[[:space:]]*$//')
@@ -730,7 +731,7 @@ local errors=(
 	"Unable to connect"
 	"Unknown hostname"
 	"timeout"
-	"time out" 
+	"time out"
 )
 local ErrCount=0
 
@@ -962,7 +963,7 @@ ebuildBorg () {
 if [[ "$MOD_PKG_FLAG" != YES ]]; then return; fi
 local NR=0
 if [[ "$SYSNAME" == Darwin ]]; then printHeader 'Modding package resources'; fi
-	
+
 case "$ARCH" in
 IA32_X64 | X64 )
 	local oldTitle='cloverEFI.64.blockio_title'
@@ -1365,7 +1366,7 @@ case "$SYSNAME" in
 			fi;;
 	* ) printHeader "Running from: Unknown OS";;
 esac
-	
+
 printHeader "Compiler settings"
 if [[ "${Build_Tool}" == "GNU" ]]; then
 	if [[ -x "${DIR_MAIN}/opt/local/bin/gcc" ]]; then
@@ -1494,8 +1495,8 @@ if [[ -f /tmp/Build_Clover.tmp ]]; then rm -f /tmp/Build_Clover.tmp; fi
 
 FindScriptPath
 
-# We have Build_Clover.source to set our preferences?
-if [[ -f "${SCRIPT_ABS_PATH}"/Build_Clover.source ]]; then . "${SCRIPT_ABS_PATH}"/Build_Clover.source; fi
+# We have buildClover.cfg to set our preferences?
+if [[ -f "${SCRIPT_ABS_PATH}"/buildClover.cfg ]]; then . "${SCRIPT_ABS_PATH}"/buildClover.cfg; fi
 SetVars
 
 # setting default paths
@@ -1525,7 +1526,7 @@ if [[ "$SYSNAME" == Linux ]]; then macros+=('DISABLE_LTO'); fi
 
 # Setting the build tool (Xcode or GCC)
 case "$SYSNAME" in
-	Darwin ) 
+	Darwin )
 		case "$Build_Tool" in
 		"XCODE" | "xcode" ) checkXcode; BUILDTOOL="$XCODE";;
 		"GNU" | "gnu" ) [[ "$GNU" == "" ]] && BUILDTOOL="GCC53" || BUILDTOOL="$GNU";;
