@@ -32,6 +32,7 @@ export LC_ALL=C
 SYSNAME="$( uname )"
 
 BUILDER=$USER # don't touch!
+PREFS_FILE="buildClover.cfg"
 
 # --------------------------------------
 # FUNCTIONS
@@ -90,7 +91,6 @@ ForceEDK2Update=0 # cause edk2 to be re-updated again if > 0 (handeled by the sc
 SYMLINKPATH='/usr/local/bin/buildclover'
 SCRIPT_ABS_PATH=""
 SCRIPT_ABS_LOC=""
-PREFS_FILE="buildClover.cfg"
 
 DOWNLOADER_CMD=""
 DOWNLOADER_PATH=""
@@ -1496,11 +1496,16 @@ if [[ -f /tmp/Build_Clover.tmp ]]; then rm -f /tmp/Build_Clover.tmp; fi
 FindScriptPath
 
 # We have buildClover.cfg to set our preferences?
-if [[ -f "${SCRIPT_ABS_PATH}"/buildClover.cfg ]];
-then 
-	echo "buildClover.cfg found."
+if [[ -f "${SCRIPT_ABS_PATH}"/"$PREFS_FILE" ]];
+then
+	# config file found... 
+	echo "$PREFS_FILE found."
 else
-	echo "buildClover.cfg not found."
+	# config file not found create it... 
+	echo "$PREFS_FILE not found."
+	touch "${SCRIPT_ABS_PATH}"/"$PREFS_FILE"
+	# populate with stock value
+	# ...work in progress...
 fi
 SetVars
 
