@@ -29,41 +29,12 @@
 #
 
 # --------------------------------------
-# preferred build tool (gnu or darwin)
-# --------------------------------------
-XCODE="" # empty by default, overrides the auto-detected XCODE toolchain, possible values: XCODE32 XCODE5 XCODE8
-GNU="" # empty by default (GCC53 is used if not defined), override the GCC toolchain, possible values: GCC49 GCC53
-Build_Tool="XCODE" # Build tool. Possible values: XCODE or GNU. DO NOT USE ANY OTHER VALUES HERE !
-# in Linux this get overrided and GCC53 used anyway!
-# --------------------------------------
 SCRIPTVER="v4.5.5"
 export LC_ALL=C
 SYSNAME="$( uname )"
-
 BUILDER=$USER # don't touch!
 # <----------------------------
 # Preferences:
-EDK2_REV="25373" # or any revision supported by Slice (otherwise no claim please)
-
-# "SUGGESTED_CLOVER_REV" is used to force the script to updated at the specified revision:
-# REQUIRED is a known edk2 revision (EDK2_REV="XXXXX") compatible with the "/Clover/Patches_for_EDK2" coming with
-# the specified Clover revision!
-# WARNING: anyway too old revision may be incompatible due to radical changes to ebuild.sh and tools_def.txt
-SUGGESTED_CLOVER_REV="" # empty by default
-
-# normal behavior (src inside the Home folder)
-# MODE="S" src is ~/src
-# MODE="R" src created where this script is located (use only if the path has no blank spaces in the middle)
-MODE="S"
-
-DEFAULT_MACROS="-D NO_GRUB_DRIVERS_EMBEDDED"
-PATCHES="$HOME/CloverPatches" # or where you like
-BUILD_PKG="YES" # NO to not build the pkg
-BUILD_ISO="NO" # YES if you want the iso
-USEHFSPLUS="NO" # YES if you want to include the Apple's HFS+ EFI driver in the Clover package
-USEAPFS="NO" # YES if you want to include the Apple's APFS EFI driver in the Clover package
-USENTFS="NO" # YES if you want to include the NTFS.efi driver in the Clover package
-
 # FAST_UPDATE is set to NO as default, that means that it check if repos are or not availabile online
 # and fail the script accordigily
 FAST_UPDATE="NO" # or FAST_UPDATE="YES" # no check, faster
@@ -83,14 +54,12 @@ START_BUILD=""
 TIMES=0
 ForceEDK2Update=0 # cause edk2 to be re-updated again if > 0 (handeled by the script in more places)
 SYMLINKPATH='/usr/local/bin/buildclover'
+userconf="$HOME/.bcc.plist"
 SCRIPT_ABS_PATH=""
 SCRIPT_ABS_LOC=""
 
 DOWNLOADER_CMD=""
 DOWNLOADER_PATH=""
-GITHUB='https://raw.githubusercontent.com/Micky1979/Build_Clover/master/Build_Clover.command'
-CLOVER_REP="svn://svn.code.sf.net/p/cloverefiboot/code"
-EDK2_REP="svn://svn.code.sf.net/p/edk2/code/trunk/edk2"
 
 SELF_UPDATE_OPT="NO" # show hide selfUpdate option
 PING_RESPONSE="NO" # show hide option with connection dependency
@@ -136,6 +105,61 @@ macros=(
 # --------------------------------------
 # FUNCTIONS
 # --------------------------------------
+AddEntry (){
+/usr/libexec/PlistBuddy -c "Add ${1} string ${2}" "$userconf" 1>/dev/null
+}
+ReadEntry () {
+/usr/libexec/PlistBuddy -c "Print :${1}" "$userconf"
+}
+CreateDefaultConf () {
+AddEntry "XCODE" ""
+AddEntry "GNU" ""
+AddEntry "Build_Tool" "XCODE"
+AddEntry "EDK2_REV" "25373"
+AddEntry "SUGGESTED_CLOVER_REV" ""
+AddEntry "MODE" "S"
+AddEntry "DEFAULT_MACROS" "-D NO_GRUB_DRIVERS_EMBEDDED"
+AddEntry "PATCHES" "~/CloverPatches"
+AddEntry "BUILD_PKG" "YES"
+AddEntry "BUILD_ISO" "NO"
+AddEntry "USEHFSPLUS" "NO"
+AddEntry "USEAPFS" "NO"
+AddEntry "USENTFS" "NO"
+AddEntry "GITHUB" "https://raw.githubusercontent.com/Micky1979/Build_Clover/master/Build_Clover.command"
+AddEntry "CLOVER_REP" "svn://svn.code.sf.net/p/cloverefiboot/code"
+AddEntry "EDK2_REP" "svn://svn.code.sf.net/p/edk2/code/trunk/edk2"
+}
+ReadConf () {
+var_arr=(
+	XCODE
+	GNU
+	Build_Tool
+	EDK2_REV
+	SUGGESTED_CLOVER_REV
+	MODE
+	DEFAULT_MACROS
+	PATCHES
+	BUILD_PKG
+	BUILD_ISO
+	USEHFSPLUS
+	USEAPFS
+	USENTFS
+	GITHUB
+	CLOVER_REP
+	EDK2_REP
+)
+for i in "${var_arr[@]}"
+do
+	if ReadEntry "${i}" 1>/dev/null 2>&1 
+	then
+		export "${i}"="$(ReadEntry ${i})"
+	else
+		printError "The following option cannot be read: ${i}\n"
+		printError "The config file is damaged or incomplete, exiting...\n"
+		exit 1
+	fi
+done
+}
 CheckProprietary() {
 local drivers_off="${DIR_MAIN}/edk2/Clover/CloverPackage/CloverV2/drivers-Off"
 local ghlink="https://github.com/Micky1979/Build_Clover/raw/work/Files"
@@ -1560,6 +1584,7 @@ if [[ $EUID -eq 0 ]]; then printError "\nThis script should not be run using sud
 if [[ -f /tmp/Build_Clover.tmp ]]; then rm -f /tmp/Build_Clover.tmp; fi
 
 FindScriptPath
+if [[ -f "$userconf" ]]; then ReadConf; else CreateDefaultConf; ReadConf; fi
 
 # setting default paths
 case "$MODE" in
