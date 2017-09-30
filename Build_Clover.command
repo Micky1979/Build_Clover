@@ -94,6 +94,27 @@ macros=(
 	ENABLE_USB_XHCI
 	REAL_NVRAM
 	)
+var_defaults=(
+	"XCODE",,,
+	"GNU",,,
+	"Build_Tool",,,"XCODE"
+	"EDK2_REV",,,"25373"
+	"SUGGESTED_CLOVER_REV",,,
+	"MODE",,,"S"
+	"DEFAULT_MACROS",,,"-D NO_GRUB_DRIVERS_EMBEDDED"
+	"PATCHES",,,"~/CloverPatches"
+	"BUILD_PKG",,,"YES"
+	"BUILD_ISO",,,"NO"
+	"USEHFSPLUS",,,"NO"
+	"USEAPFS",,,"NO"
+	"USENTFS",,,"NO"
+	"GITHUB",,,"https://raw.githubusercontent.com/Micky1979/Build_Clover/master/Build_Clover.command"
+	"CLOVER_REP",,,"svn://svn.code.sf.net/p/cloverefiboot/code"
+	"EDK2_REP",,,"svn://svn.code.sf.net/p/edk2/code/trunk/edk2"
+	"DISABLE_CLEAR",,,"NO"
+	"MY_SCRIPT",,,
+	"FAST_UPDATE",,,"NO"
+	)
 # --------------------------------------
 # FUNCTIONS
 # --------------------------------------
@@ -107,55 +128,20 @@ ReadEntry () {
 /usr/libexec/PlistBuddy -c "Print :${1}" "$userconf"
 }
 CreateDefaultConf () {
-AddEntry "XCODE" ""
-AddEntry "GNU" ""
-AddEntry "Build_Tool" "XCODE"
-AddEntry "EDK2_REV" "25373"
-AddEntry "SUGGESTED_CLOVER_REV" ""
-AddEntry "MODE" "S"
-AddEntry "DEFAULT_MACROS" "-D NO_GRUB_DRIVERS_EMBEDDED"
-AddEntry "PATCHES" "~/CloverPatches"
-AddEntry "BUILD_PKG" "YES"
-AddEntry "BUILD_ISO" "NO"
-AddEntry "USEHFSPLUS" "NO"
-AddEntry "USEAPFS" "NO"
-AddEntry "USENTFS" "NO"
-AddEntry "GITHUB" "https://raw.githubusercontent.com/Micky1979/Build_Clover/master/Build_Clover.command"
-AddEntry "CLOVER_REP" "svn://svn.code.sf.net/p/cloverefiboot/code"
-AddEntry "EDK2_REP" "svn://svn.code.sf.net/p/edk2/code/trunk/edk2"
-AddEntry "DISABLE_CLEAR" "NO"
-AddEntry "MY_SCRIPT" ""
-AddEntry "FAST_UPDATE" "NO"
+for i in "${var_defaults[@]}"
+do
+	AddEntry "${i%,,,*}" "${i#*,,,}"
+done
 }
 ReadConf () {
-var_arr=(
-	XCODE
-	GNU
-	Build_Tool
-	EDK2_REV
-	SUGGESTED_CLOVER_REV
-	MODE
-	DEFAULT_MACROS
-	PATCHES
-	BUILD_PKG
-	BUILD_ISO
-	USEHFSPLUS
-	USEAPFS
-	USENTFS
-	GITHUB
-	CLOVER_REP
-	EDK2_REP
-	DISABLE_CLEAR
-	MY_SCRIPT
-	FAST_UPDATE
-)
-for i in "${var_arr[@]}"
+for i in "${var_defaults[@]}"
 do
-	if ReadEntry "${i}" 1>/dev/null 2>&1 
-	then
-		export "${i}"="$(ReadEntry ${i})"
+	if ReadEntry "${i%,,,*}" 1>/dev/null 2>&1; then 
+		export "${i%,,,*}"="$(ReadEntry ${i%,,,*})"
+	elif AddEntry "${i%,,,*}" "${i#*,,,}"; then
+		export "${i%,,,*}"="$(ReadEntry ${i%,,,*})"
 	else
-		printError "The following option cannot be read: ${i}\n"
+		printError "Error processing the following setting: ${i%,,,*}\n"
 		printError "The config file is damaged or incomplete, exiting...\n"
 		exit 1
 	fi
