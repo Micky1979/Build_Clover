@@ -32,11 +32,6 @@ SCRIPTVER="v4.5.5"
 export LC_ALL=C
 SYSNAME="$( uname )"
 BUILDER=$USER # don't touch!
-# <----------------------------
-# Preferences:
-# FAST_UPDATE is set to NO as default, that means that it check if repos are or not availabile online
-# and fail the script accordigily
-FAST_UPDATE="NO" # or FAST_UPDATE="YES" # no check, faster
 # ---------------------------->
 # default behavior (don't touch these vars)
 NASM_PREFERRED="2.13.01"
@@ -56,10 +51,8 @@ SYMLINKPATH='/usr/local/bin/buildclover'
 userconf="$HOME/.bcc.plist"
 SCRIPT_ABS_PATH=""
 SCRIPT_ABS_LOC=""
-
 DOWNLOADER_CMD=""
 DOWNLOADER_PATH=""
-
 SELF_UPDATE_OPT="NO" # show hide selfUpdate option
 PING_RESPONSE="NO" # show hide option with connection dependency
 REMOTE_EDK2_REV="" # info for developer submenu this mean to show latest rev avaiable
@@ -132,6 +125,7 @@ AddEntry "CLOVER_REP" "svn://svn.code.sf.net/p/cloverefiboot/code"
 AddEntry "EDK2_REP" "svn://svn.code.sf.net/p/edk2/code/trunk/edk2"
 AddEntry "DISABLE_CLEAR" "NO"
 AddEntry "MY_SCRIPT" ""
+AddEntry "FAST_UPDATE" "NO"
 }
 ReadConf () {
 var_arr=(
@@ -153,6 +147,7 @@ var_arr=(
 	EDK2_REP
 	DISABLE_CLEAR
 	MY_SCRIPT
+	FAST_UPDATE
 )
 for i in "${var_arr[@]}"
 do
