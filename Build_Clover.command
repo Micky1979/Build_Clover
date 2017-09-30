@@ -32,7 +32,8 @@ export LC_ALL=C
 SYSNAME="$( uname )"
 
 BUILDER=$USER # don't touch!
-PREFS_FILE="buildClover.cfg"
+PREFS_FILE=".buildClover.cfg"
+NOW_DATE="$(date +'%x %r')"
 
 # --------------------------------------
 # FUNCTIONS
@@ -72,7 +73,7 @@ Build_Tool="XCODE" # Build tool. Possible values: XCODE or GNU. DO NOT USE ANY O
 # and fail the script accordigily
 [ "${FAST_UPDATE:-}" ]      || FAST_UPDATE="NO" # or FAST_UPDATE="YES" # no check, faster
 
-[ "${DISABLE_CLEAR:-}" ]    || DISABLE_CLEAR="NO" # quit messing with my Terminal window
+[ "${DISABLE_CLEAR:-}" ]    || DISABLE_CLEAR="YES" # quit messing with my Terminal window
 # ---------------------------->
 # default behavior (don't touch these vars)
 NASM_PREFERRED="2.13.01"
@@ -1496,16 +1497,16 @@ if [[ -f /tmp/Build_Clover.tmp ]]; then rm -f /tmp/Build_Clover.tmp; fi
 FindScriptPath
 
 # We have buildClover.cfg to set our preferences?
-if [[ -f "${SCRIPT_ABS_PATH}"/"$PREFS_FILE" ]];
+if [[ -f ~/"$PREFS_FILE" ]];
 then
 	# config file found... 
 	echo "$PREFS_FILE found."
 else
 	# config file not found create it... 
 	echo "$PREFS_FILE not found."
-	touch "${SCRIPT_ABS_PATH}"/"$PREFS_FILE"
-	# populate with stock value
-	# ...work in progress...
+	touch ~/"$PREFS_FILE"
+	echo "#### buildClover.cfg created on: $NOW_DATE ####" >> ~/"$PREFS_FILE"
+	# Then, add the stock contents to the file...
 fi
 SetVars
 
