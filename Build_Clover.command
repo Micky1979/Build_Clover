@@ -48,7 +48,7 @@ START_BUILD=""
 TIMES=0
 ForceEDK2Update=0 # cause edk2 to be re-updated again if > 0 (handeled by the script in more places)
 SYMLINKPATH='/usr/local/bin/buildclover'
-userconf="$HOME/.bcc.plist"
+userconf="$HOME/bcc.cfg"
 SCRIPT_ABS_PATH=""
 SCRIPT_ABS_LOC=""
 DOWNLOADER_CMD=""
@@ -94,6 +94,7 @@ macros=(
 	ENABLE_USB_XHCI
 	REAL_NVRAM
 	)
+# defaults for all the variables, taken from the config file 
 var_defaults=(
 	"XCODE",,,
 	"GNU",,,
@@ -102,7 +103,7 @@ var_defaults=(
 	"SUGGESTED_CLOVER_REV",,,
 	"MODE",,,"S"
 	"DEFAULT_MACROS",,,"-D NO_GRUB_DRIVERS_EMBEDDED"
-	"PATCHES",,,"~/CloverPatches"
+	"PATCHES",,,"$HOME/CloverPatches"
 	"BUILD_PKG",,,"YES"
 	"BUILD_ISO",,,"NO"
 	"USEHFSPLUS",,,"NO"
@@ -121,29 +122,23 @@ var_defaults=(
 ClearScreen() {
 if [[ "$DISABLE_CLEAR" != "YES" ]]; then clear; fi
 }
-AddEntry (){
-/usr/libexec/PlistBuddy -c "Add ${1} string ${2}" "$userconf" 1>/dev/null
-}
-ReadEntry () {
-/usr/libexec/PlistBuddy -c "Print :${1}" "$userconf"
-}
 CreateDefaultConf () {
+if [[ ! -f "${userconf}" ]]; then touch "${userconf}"; fi
 for i in "${var_defaults[@]}"
 do
-	AddEntry "${i%,,,*}" "${i#*,,,}"
+	echo "${i%,,,*}=${i#*,,,}" >> "${userconf}"
 done
 }
 ReadConf () {
 for i in "${var_defaults[@]}"
 do
-	if ReadEntry "${i%,,,*}" 1>/dev/null 2>&1; then 
-		export "${i%,,,*}"="$(ReadEntry ${i%,,,*})"
-	elif AddEntry "${i%,,,*}" "${i#*,,,}"; then
-		export "${i%,,,*}"="$(ReadEntry ${i%,,,*})"
+	if cat "${userconf}" | grep "^${i%,,,*}=" 1>/dev/null 2>&1; then
+#		echo "Variable ${i%,,,*} found, loading..."
+		eval "export \"$(cat ${userconf} | grep ^${i%,,,*}=)\""
 	else
-		printError "Error processing the following setting: ${i%,,,*}\n"
-		printError "The config file is damaged or incomplete, exiting...\n"
-		exit 1
+#		echo "Variable ${i%,,,*} not found in config, restoring defaut value..."
+		echo "${i%,,,*}=${i#*,,,}" >> "${userconf}"
+		eval "export \"${i%,,,*}=${i#*,,,}\""
 	fi
 done
 }
