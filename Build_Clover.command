@@ -237,7 +237,7 @@ SUGGESTED_CLOVER_REV=""
 #### PATCHES_FOR_EDK2
 #### specify a path to a directory containings patches for edk2.
 #### Default is "/edk2/Clover/Patches_for_EDK2" (i.e. inside Clover)
-#### make it "NO" to not not patch edk2
+#### make it "NO" to leave edk2 as is (may you need to updated edk2 again to restore its original state)
 PATCHES_FOR_EDK2="/edk2/Clover/Patches_for_EDK2"
 
 #### MODE
@@ -301,12 +301,6 @@ CLOVER_REP="svn://svn.code.sf.net/p/cloverefiboot/code"
 #### Actually (30 Sept,2017) can work only with subversion but we're working to use git as well
 EDK2_REP="svn://svn.code.sf.net/p/edk2/code/trunk/edk2"
 
-#### SELF_UPDATE_OPT and PING_RESPONSE
-#### Used to hide or unhide the auto update capabilities of the script.
-#### Default is NO for both, YES otherwise.
-SELF_UPDATE_OPT="NO"
-PING_RESPONSE="NO"
-
 #### MY_SCRIPT
 #### Here you can set a path to a secondary script callable by "run my script on the source" option.
 #### this variable is unset by default
@@ -316,14 +310,47 @@ MY_SCRIPT=
 END_OF_FILE
 }
 # --------------------------------------
+deleteCfg () {
+ClearScreen
+printError "DELETE Build_Clover Preferences"
+printf "\nDo you really want to delete the preferences? (Y/n): "
+read answer
+case $answer in
+	Y | y)
+		if [[ -f ~/"$PREFS_FILE" ]]; then
+            rm ~/"$PREFS_FILE"
+            pressAnyKey 'Preferences correcly deleted.' noclear
+		else
+			pressAnyKey 'Was not possible to delete the preferences.'
+		fi;;
+esac
+preferenceMenu
+}
+# --------------------------------------
+createCfg () {
+StockCfg
+}
+# --------------------------------------
+modifyCfg () {
+exit 0
+}
+# --------------------------------------
+showCurrentCfg () {
+exit 0
+}
+# --------------------------------------
 preferenceMenu () {
-cfgops=(
-	'This is a dummy options 1'
-	'This is a dummy options 2'
-	'This is a dummy options 3'
-	'Back to Main Menu'
-	'Exit'
-)
+	local cfgops=()
+	if [[ -f ~/"$PREFS_FILE" ]]; then
+		cfgops+=("Show Config")
+		cfgops+=("Modify Config")
+		cfgops+=("Delete Config")
+	else
+		cfgops+=("Create Config")		
+	fi
+	cfgops+=("Back to Main Menu")
+	cfgops+=("Exit")
+
 ClearScreen
 printf "   \e[1;94;107m Menu Preferences for Build_Clover config. \e[0m\n"
 echo 'Please select the desired options: '
@@ -332,22 +359,32 @@ local count=1
 for op in "${cfgops[@]}"
 do
 	case "${op}" in
-		'This is a dummy options 1' ) printf "\e[1;30m ${count}) ${op}\e[0m\n";;
-		'This is a dummy options 2' ) printf "\e[1;34m ${count}) ${op}\e[0m\n";;
-		'This is a dummy options 3' ) printf "\e[1;35m ${count}) ${op}\e[0m\n";;
+		'Create Config' ) printf "\e[1;32m ${count}) ${op}\e[0m\n";;
+		'Show Config' ) printf "\e[1;32m ${count}) ${op}\e[0m\n";;
+		'Modify Config' ) printf "\e[1;33m ${count}) ${op}\e[0m\n";;
+		'Delete Config' ) printf "\e[1;31m ${count}) ${op}\e[0m\n";;
 		* ) printf " $count) ${op}\n";;
 	esac
 	((count+=1))
 done
 printf '? ' && read opt
-case $opt in
-	1 ) preferenceMenu;;
-	2 ) preferenceMenu;;
-	3 ) preferenceMenu;;
-	4 ) ClearScreen && BUILDER=$USER && build;;
-	5 ) CleanExit;;
-	* ) preferenceMenu "invalid choice!";;
-esac
+if [[ -f ~/"$PREFS_FILE" ]]; then
+	case $opt in
+		1 ) preferenceMenu;;
+		2 ) preferenceMenu;;
+		3 ) deleteCfg;;
+		4 ) ClearScreen && BUILDER=$USER && build;;
+		5 ) CleanExit;;
+		* ) preferenceMenu "invalid choice!";;
+	esac
+else
+	case $opt in
+		1 ) preferenceMenu;;
+		2 ) ClearScreen && BUILDER=$USER && build;;
+		3 ) CleanExit;;
+		* ) preferenceMenu "invalid choice!";;
+	esac
+fi
 }
 
 # --------------------------------------
