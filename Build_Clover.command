@@ -48,7 +48,7 @@ START_BUILD=""
 TIMES=0
 ForceEDK2Update=0 # cause edk2 to be re-updated again if > 0 (handeled by the script in more places)
 SYMLINKPATH='/usr/local/bin/buildclover'
-userconf="$HOME/bcc.cfg"
+userconf="$HOME/bcc.txt"
 SCRIPT_ABS_PATH=""
 SCRIPT_ABS_LOC=""
 DOWNLOADER_CMD=""
@@ -1209,6 +1209,7 @@ if [[ -d "${DIR_MAIN}/edk2/Clover/.svn" ]] ; then
 		options+=("build existing revision with custom macros enabled")
 		options+=("info and limitations about this script")
 		options+=("enter Developers mode (only for devs)")
+		options+=("edit the configuration file")
 		options+=("Exit")
 	fi
 
@@ -1349,6 +1350,7 @@ if [[ -d "${DIR_MAIN}/edk2/Clover/.svn" ]] ; then
 			eval "${MY_SCRIPT}" || printHeader "You should export MY_SCRIPT with the path to your script.." && CleanExit;;
 		"info and limitations about this script" ) showInfo;;
 		"Back to Main Menu" ) ClearScreen && BUILDER=$USER && build;;
+		"edit the configuration file" ) open "${userconf}" && ClearScreen && build;;
 		"Exit" ) CleanExit;;
 		* ) ClearScreen && echo "invalid option!!" && build;;
 	esac
