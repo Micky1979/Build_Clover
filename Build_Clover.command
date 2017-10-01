@@ -42,14 +42,14 @@ SetVars() {
 # --------------------------------------
 # preferred build tool (gnu or darwin)
 # --------------------------------------
-[ "${XCODE:-}" ] || XCODE="" # empty by default, overrides the auto-detected XCODE toolchain, possible values: XCODE32 XCODE5 XCODE8
-[ "${GNU:-}" ] || GNU="" # empty by default (GCC53 is used if not defined), override the GCC toolchain, possible values: GCC49 GCC53
-BUILD_TOOL="XCODE" # Build tool. Possible values: XCODE or GNU. DO NOT USE ANY OTHER VALUES HERE !
+[ "${XCODE:-}" ]		|| XCODE="" # empty by default, overrides the auto-detected XCODE toolchain, possible values: XCODE32 XCODE5 XCODE8
+[ "${GNU:-}" ]			|| GNU="" # empty by default (GCC53 is used if not defined), override the GCC toolchain, possible values: GCC49 GCC53
+[ "${BUILD_TOOL:-}" ]   || BUILD_TOOL="XCODE" # Build tool. Possible values: XCODE or GNU. DO NOT USE ANY OTHER VALUES HERE !
 # in Linux this get overrided and GCC53 used anyway!
 # --------------------------------------
 
 # Preferences:
-[ "${EDK2_REV:-}" ] || EDK2_REV="25373" # or any revision supported by Slice (otherwise no claim please)
+[ "${EDK2_REV:-}" ]	|| EDK2_REV="25373" # or any revision supported by Slice (otherwise no claim please)
 
 # "SUGGESTED_CLOVER_REV" is used to force the script to updated at the specified revision:
 # REQUIRED is a known edk2 revision (EDK2_REV="XXXXX") compatible with the "/Clover/Patches_for_EDK2" coming with
@@ -206,15 +206,23 @@ StockCfg() {
 	buildClover.cfg created on: $NOW_DATE" >> ~/"$PREFS_FILE"
 	# Then, add the stock contents to the file...
 	cat <<'END_OF_FILE' >> ~/"$PREFS_FILE"
+	Preferences for Build_Clover.command script,
+    a way to make it persistent through updates
 #################################################################
 
-#### empty by default, overrides the auto-detected XCODE toolchain, possible values: XCODE32 XCODE5 XCODE8
-XCODE="XCODE5"
+#### XCODE
+#### default value is empty by default, but you can set XCODE32, XCODE5 and XCODE8.
+#### and so use the desired tool chain. If empty is automatic.
+XCODE=""
 
-#### empty by default (GCC53 is used if not defined), override the GCC toolchain, possible values: GCC49 GCC53
+#### GNU
+#### default value is empty by default, but you can set GCC49 and GCC53
+#### and so use the desired tool chain. If empty is automatic.
 GNU=""
 
-#### Build tool. Possible values: XCODE or GNU. DO NOT USE ANY OTHER VALUES HERE !
+#### Build_Tool
+#### default value is XCODE (see above for XCODE and GNU).
+#### Build Clover command automatically override this value for the running OS.
 BUILD_TOOL="XCODE"
 
 #### CUSTOM_EDK2_REV
