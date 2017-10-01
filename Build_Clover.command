@@ -142,6 +142,70 @@ macros=(
 	)
 }
 
+StockCfg() {
+	touch ~/"$PREFS_FILE"
+	# Creation time of buildClover.cfg
+	echo "#################################################################
+	buildClover.cfg created on: $NOW_DATE" >> ~/"$PREFS_FILE"
+	# Then, add the stock contents to the file...
+	cat <<'END_OF_FILE' >> ~/"$PREFS_FILE"
+#################################################################
+
+#### empty by default, overrides the auto-detected XCODE toolchain, possible values: XCODE32 XCODE5 XCODE8
+XCODE="XCODE5"
+
+#### empty by default (GCC53 is used if not defined), override the GCC toolchain, possible values: GCC49 GCC53
+GNU=""
+
+#### Build tool. Possible values: XCODE or GNU. DO NOT USE ANY OTHER VALUES HERE !
+Build_Tool="XCODE"
+
+#### or any revision supported by Slice (otherwise no claim please)
+EDK2_REV="25373"
+
+#### empty by default
+SUGGESTED_CLOVER_REV=""
+
+#### MODE="S", MODE="R"
+MODE="S"
+
+####
+DEFAULT_MACROS="-D NO_GRUB_DRIVERS_EMBEDDED"
+
+#### or where you like
+PATCHES="$HOME/CloverPatches"
+
+#### NO to not build the pkg
+BUILD_PKG="YES"
+
+#### YES if you want the iso
+BUILD_ISO="NO"
+
+#### YES if you want to include the Apple's HFS+ EFI driver in the Clover package
+USEHFSPLUS="NO"
+
+#### YES if you want to include the Apple's APFS EFI driver in the Clover package
+USEAPFS="NO"
+
+#### YES if you want to include the NTFS.efi driver in the Clover package
+USENTFS="NO"
+
+#### or FAST_UPDATE="YES" # no check, faster
+FAST_UPDATE="NO"
+
+####
+GITHUB='https://raw.githubus...Clover.command'
+
+####
+CLOVER_REP="svn://svn.code.sf.net/p/cloverefiboot/code"
+
+####
+EDK2_REP="svn://svn.code.sf.net/p/edk2/code/trunk/edk2"
+
+#################################################################
+END_OF_FILE
+}
+
 ClearScreen() {
 if [[ "$DISABLE_CLEAR" != "YES" ]]; then clear; fi
 }
@@ -1504,9 +1568,7 @@ then
 else
 	# config file not found create it... 
 	echo "$PREFS_FILE not found."
-	touch ~/"$PREFS_FILE"
-	echo "#### buildClover.cfg created on: $NOW_DATE ####" >> ~/"$PREFS_FILE"
-	# Then, add the stock contents to the file...
+	StockCfg
 fi
 SetVars
 
