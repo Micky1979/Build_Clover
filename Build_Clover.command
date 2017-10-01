@@ -44,7 +44,7 @@ SetVars() {
 # --------------------------------------
 [ "${XCODE:-}" ] || XCODE="" # empty by default, overrides the auto-detected XCODE toolchain, possible values: XCODE32 XCODE5 XCODE8
 [ "${GNU:-}" ] || GNU="" # empty by default (GCC53 is used if not defined), override the GCC toolchain, possible values: GCC49 GCC53
-Build_Tool="XCODE" # Build tool. Possible values: XCODE or GNU. DO NOT USE ANY OTHER VALUES HERE !
+BUILD_TOOL="XCODE" # Build tool. Possible values: XCODE or GNU. DO NOT USE ANY OTHER VALUES HERE !
 # in Linux this get overrided and GCC53 used anyway!
 # --------------------------------------
 
@@ -158,49 +158,94 @@ XCODE="XCODE5"
 GNU=""
 
 #### Build tool. Possible values: XCODE or GNU. DO NOT USE ANY OTHER VALUES HERE !
-Build_Tool="XCODE"
+BUILD_TOOL="XCODE"
 
-#### or any revision supported by Slice (otherwise no claim please)
-EDK2_REV="25373"
+#### CUSTOM_EDK2_REV
+#### Custom revision for EDK2
+CUSTOM_EDK2_REV="25373"
 
-#### empty by default
+#### SUGGESTED_CLOVER_REV
+#### used to download a specifi Clover revision.
+#### Actually this works using subversion
 SUGGESTED_CLOVER_REV=""
 
-#### MODE="S", MODE="R"
+#### PATCHES_FOR_EDK2
+#### specify a path to a directory containings patches for edk2.
+#### Default is "/edk2/Clover/Patches_for_EDK2" (i.e. inside Clover)
+#### make it "NO" to not not patch edk2
+PATCHES_FOR_EDK2="/edk2/Clover/Patches_for_EDK2"
+
+#### MODE
+#### used to tell to Build_Clover.command where to download edk2 and Clover:
+#### MODE="S" the src is in ~/
+#### MODE="R" the script path is the place where the src folder is created
+#### With R mode you can work in any sub folder (also on other drive). The only
+#### limit is that your path should not contains blank spaces
 MODE="S"
 
-####
+#### DEFAULT_MACROS
+#### You can set your default macros for ebuild.sh
 DEFAULT_MACROS="-D NO_GRUB_DRIVERS_EMBEDDED"
 
-#### or where you like
-PATCHES="$HOME/CloverPatches"
-
-#### NO to not build the pkg
+#### BUILD_PKG
+#### Default is YES, otherwise the package will not be created
 BUILD_PKG="YES"
 
-#### YES if you want the iso
+#### BUILD_ISO
+#### Default is NO, otherwise the iso image will be created after building the package
 BUILD_ISO="NO"
 
-#### YES if you want to include the Apple's HFS+ EFI driver in the Clover package
+#### USEHFSPLUS
+#### Default is NO, use YES to download the HFS+ driver
 USEHFSPLUS="NO"
 
-#### YES if you want to include the Apple's APFS EFI driver in the Clover package
+#### USEAPFS
+#### Default is NO, use YES to download the apfs driver
 USEAPFS="NO"
 
-#### YES if you want to include the NTFS.efi driver in the Clover package
+#### USENTFS
+#### Default is NO, use YES to download the ntfs driver
 USENTFS="NO"
 
-#### or FAST_UPDATE="YES" # no check, faster
+#### FAST_UPDATE
+#### Default is NO: the script check if a link is reachable and is online
+#### Set YES to skip the check. Faster but..
 FAST_UPDATE="NO"
 
-####
-GITHUB='https://raw.githubus...Clover.command'
+#### DISABLE_CLEAR
+#### Default is YES: better log because clear command isnt used
+#### Also the terminal window will not be resized.
+#### Otherwise use NO
+DISABLE_CLEAR="YES"
 
-####
+#### GITHUB
+#### link to Build_Clover.command. Default is:
+#### https://raw.githubusercontent.com/Micky1979/Build_Clover/master/Build_Clover.command
+#### You can change it to try branches and forks
+GITHUB="https://raw.githubusercontent.com/Micky1979/Build_Clover/master/Build_Clover.command"
+
+#### CLOVER_REP
+#### link to the Clover repository. Default is:
+#### svn://svn.code.sf.net/p/cloverefiboot/code
+#### Actually (30 Sept,2017) can work only with subversion but we're working to use git as well
 CLOVER_REP="svn://svn.code.sf.net/p/cloverefiboot/code"
 
-####
+#### EDK2_REP
+#### link to the edk2 repository. Default is:
+#### svn://svn.code.sf.net/p/edk2/code/trunk/edk2
+#### Actually (30 Sept,2017) can work only with subversion but we're working to use git as well
 EDK2_REP="svn://svn.code.sf.net/p/edk2/code/trunk/edk2"
+
+#### SELF_UPDATE_OPT and PING_RESPONSE
+#### Used to hide or unhide the auto update capabilities of the script.
+#### Default is NO for both, YES otherwise.
+SELF_UPDATE_OPT="NO"
+PING_RESPONSE="NO"
+
+#### MY_SCRIPT
+#### Here you can set a path to a secondary script callable by "run my script on the source" option.
+#### this variable is unset by default
+MY_SCRIPT=
 
 #################################################################
 END_OF_FILE
@@ -1277,6 +1322,7 @@ if [[ -d "${DIR_MAIN}/edk2/Clover/.svn" ]] ; then
 		options+=("build existing revision with custom macros enabled")
 		options+=("info and limitations about this script")
 		options+=("enter Developers mode (only for devs)")
+		options+=("manage Build_Clover.command preferences")
 		options+=("Exit")
 	fi
 
@@ -1288,6 +1334,7 @@ if [[ -d "${DIR_MAIN}/edk2/Clover/.svn" ]] ; then
 			| "add \"buildclover\" symlink to $(dirname $SYMLINKPATH)" \
 			| "restore \"buildclover\" symlink" \
 			| "update \"buildclover\" symlink" ) printf "\e[1;31m ${count}) ${opt}\e[0m\n";;
+			"manage Build_Clover.command preferences" ) printf "\e[1;33m ${count}) ${opt}\e[0m\n";;
 			"build existing revision for release (no update, standard build)" \
 			| "update Clover + force edk2 update (no building)" \
 			| "build all for Release" \
@@ -1413,6 +1460,7 @@ if [[ -d "${DIR_MAIN}/edk2/Clover/.svn" ]] ; then
 		"run my script on the source" )
 			[ "${MY_SCRIPT:-}" ] && eval "${MY_SCRIPT}" || printHeader "You should export MY_SCRIPT with the path to your script.." && CleanExit;;
 		"info and limitations about this script" ) showInfo;;
+		"manage Build_Clover.command preferences" ) ClearScreen && echo "invalid option!!" && build;;
 		"Back to Main Menu" ) ClearScreen && BUILDER=$USER && build;;
 		"Exit" ) CleanExit;;
 		* ) ClearScreen && echo "invalid option!!" && build;;
@@ -1433,7 +1481,7 @@ case "$SYSNAME" in
 esac
 
 printHeader "Compiler settings"
-if [[ "${Build_Tool}" == "GNU" ]]; then
+if [[ "${BUILD_TOOL}" == "GNU" ]]; then
 	if [[ -x "${DIR_MAIN}/opt/local/bin/gcc" ]]; then
 		printf "\e[1;34m%s\e[0m" "$(${DIR_MAIN}/opt/local/bin/gcc -v 2>&1)"
 	elif [[ -x "${DIR_MAIN}/opt/local/cross/bin/x86_64-clover-linux-gnu-gcc" ]]; then
@@ -1564,10 +1612,10 @@ FindScriptPath
 if [[ -f ~/"$PREFS_FILE" ]];
 then
 	# config file found... 
-	echo "$PREFS_FILE found."
+	printMessage "\n$PREFS_FILE found.\n"
 else
 	# config file not found create it... 
-	echo "$PREFS_FILE not found."
+	printError "\n$PREFS_FILE not found.\n"
 	StockCfg
 fi
 SetVars
@@ -1600,10 +1648,10 @@ if [[ "$SYSNAME" == Linux ]]; then macros+=('DISABLE_LTO'); fi
 # Setting the build tool (Xcode or GCC)
 case "$SYSNAME" in
 	Darwin )
-		case "$Build_Tool" in
+		case "$BUILD_TOOL" in
 		"XCODE" | "xcode" ) checkXcode; BUILDTOOL="$XCODE";;
 		"GNU" | "gnu" ) [[ "$GNU" == "" ]] && BUILDTOOL="GCC53" || BUILDTOOL="$GNU";;
-		* ) printError "Wrong build tool: $Build_Tool. It should be \"XCODE\" or \"GNU\" !!!"; exit 1;;
+		* ) printError "Wrong build tool: $BUILD_TOOL. It should be \"XCODE\" or \"GNU\" !!!"; exit 1;;
 		esac;;
 	Linux ) [[ "$GNU" == "" ]] && BUILDTOOL="GCC53" || BUILDTOOL="$GNU";;
 esac
