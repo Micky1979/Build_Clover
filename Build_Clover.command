@@ -27,7 +27,7 @@
 # and all others (I'll be happy to increase this list and to not forgot anyone)
 #
 
-SCRIPTVER="v4.5.5"
+SCRIPTVER="v4.5.6"
 export LC_ALL=C
 SYSNAME="$( uname )"
 
@@ -142,6 +142,63 @@ macros=(
 	)
 }
 
+# --------------------------------------
+ClearScreen() {
+if [[ "$DISABLE_CLEAR" != "YES" ]]; then clear; fi
+}
+# --------------------------------------
+CheckProprietary() {
+local drivers_off="${DIR_MAIN}/edk2/Clover/CloverPackage/CloverV2/drivers-Off"
+local ghlink="https://github.com/Micky1979/Build_Clover/raw/work/Files"
+local efifiles=()
+
+if [[ "$USEHFSPLUS" == "YES" ]]; then efifiles+=('HFSPlus_ia32.efi'); efifiles+=('HFSPlus_x64.efi'); fi
+if [[ "$USEAPFS" == "YES" ]]; then efifiles+=('apfs.efi'); fi
+if [[ "$USENTFS" == "YES" ]]; then efifiles+=('NTFS.efi'); fi
+
+if [[ "${#efifiles[@]}" -ge "1" ]]; then
+	printMessage "The following proprietary EFI drivers will be added to the Clover package:"
+	printWarning "\n${efifiles[*]}\n"
+else
+	return 0
+fi
+
+for fname in "${efifiles[@]}"
+do
+	if [[ ! -f "${DIR_MAIN}/tools/${fname}" ]]; then
+		printWarning "\n${fname} not found, downloading..."
+		downloader "${ghlink}/${fname}" "${DIR_MAIN}/tools" "${fname}"
+	fi
+	printMessage "\nAdding ${fname}..."
+	if [[ "${fname}" == *"_ia32"* ]]; then
+		if [[ -d "${drivers_off}/drivers32" ]]; then
+			cp -f "${DIR_MAIN}/tools/${fname}" "${drivers_off}/drivers32/${fname//_ia32/-32}"
+		else
+			printWarning "\ndrivers32 not found, maybe that arch hasn't been selected, skipping..."
+		fi
+	else
+		if [[ -d "${drivers_off}/drivers64" ]]; then
+			if [[ "${fname}" == *"_x64"* ]]; then
+				cp -f "${DIR_MAIN}/tools/${fname}" "${drivers_off}/drivers64/${fname//_x64/-64}"
+			else
+				cp -f "${DIR_MAIN}/tools/${fname}" "${drivers_off}/drivers64/${fname//.efi/-64.efi}"
+			fi
+		else
+			printWarning "\ndrivers64 not found, maybe that arch hasn't been selected, skipping..."
+		fi
+		if [[ -d "${drivers_off}/drivers64UEFI" ]]; then
+			if [[ "${fname}" == *"_x64"* ]]; then
+				cp -f "${DIR_MAIN}/tools/${fname}" "${drivers_off}/drivers64UEFI/${fname//_x64}"
+			else
+				cp -f "${DIR_MAIN}/tools/${fname}" "${drivers_off}/drivers64UEFI/${fname}"
+			fi
+		else
+			printWarning "\ndrivers64UEFI not found, maybe that arch hasn't been selected, skipping..."
+		fi
+	fi
+done
+}
+# --------------------------------------
 StockCfg() {
 	touch ~/"$PREFS_FILE"
 	# Creation time of buildClover.cfg
@@ -250,62 +307,41 @@ MY_SCRIPT=
 #################################################################
 END_OF_FILE
 }
-
-ClearScreen() {
-if [[ "$DISABLE_CLEAR" != "YES" ]]; then clear; fi
-}
-
-CheckProprietary() {
-local drivers_off="${DIR_MAIN}/edk2/Clover/CloverPackage/CloverV2/drivers-Off"
-local ghlink="https://github.com/Micky1979/Build_Clover/raw/work/Files"
-local efifiles=()
-
-if [[ "$USEHFSPLUS" == "YES" ]]; then efifiles+=('HFSPlus_ia32.efi'); efifiles+=('HFSPlus_x64.efi'); fi
-if [[ "$USEAPFS" == "YES" ]]; then efifiles+=('apfs.efi'); fi
-if [[ "$USENTFS" == "YES" ]]; then efifiles+=('NTFS.efi'); fi
-
-if [[ "${#efifiles[@]}" -ge "1" ]]; then
-	printMessage "The following proprietary EFI drivers will be added to the Clover package:"
-	printWarning "\n${efifiles[*]}\n"
-else
-	return 0
-fi
-
-for fname in "${efifiles[@]}"
+# --------------------------------------
+preferenceMenu () {
+cfgops=(
+	'This is a dummy options 1'
+	'This is a dummy options 2'
+	'This is a dummy options 3'
+	'Back to Main Menu'
+	'Exit'
+)
+ClearScreen
+printf "   \e[1;94;107m Menu Preferences for Build_Clover config. \e[0m\n"
+echo 'Please select the desired options: '
+if [[ -n "$1" ]]; then echo "$1"; echo; fi
+local count=1
+for op in "${cfgops[@]}"
 do
-	if [[ ! -f "${DIR_MAIN}/tools/${fname}" ]]; then
-		printWarning "\n${fname} not found, downloading..."
-		downloader "${ghlink}/${fname}" "${DIR_MAIN}/tools" "${fname}"
-	fi
-	printMessage "\nAdding ${fname}..."
-	if [[ "${fname}" == *"_ia32"* ]]; then
-		if [[ -d "${drivers_off}/drivers32" ]]; then
-			cp -f "${DIR_MAIN}/tools/${fname}" "${drivers_off}/drivers32/${fname//_ia32/-32}"
-		else
-			printWarning "\ndrivers32 not found, maybe that arch hasn't been selected, skipping..."
-		fi
-	else
-		if [[ -d "${drivers_off}/drivers64" ]]; then
-			if [[ "${fname}" == *"_x64"* ]]; then
-				cp -f "${DIR_MAIN}/tools/${fname}" "${drivers_off}/drivers64/${fname//_x64/-64}"
-			else
-				cp -f "${DIR_MAIN}/tools/${fname}" "${drivers_off}/drivers64/${fname//.efi/-64.efi}"
-			fi
-		else
-			printWarning "\ndrivers64 not found, maybe that arch hasn't been selected, skipping..."
-		fi
-		if [[ -d "${drivers_off}/drivers64UEFI" ]]; then
-			if [[ "${fname}" == *"_x64"* ]]; then
-				cp -f "${DIR_MAIN}/tools/${fname}" "${drivers_off}/drivers64UEFI/${fname//_x64}"
-			else
-				cp -f "${DIR_MAIN}/tools/${fname}" "${drivers_off}/drivers64UEFI/${fname}"
-			fi
-		else
-			printWarning "\ndrivers64UEFI not found, maybe that arch hasn't been selected, skipping..."
-		fi
-	fi
+	case "${op}" in
+		'This is a dummy options 1' ) printf "\e[1;30m ${count}) ${op}\e[0m\n";;
+		'This is a dummy options 2' ) printf "\e[1;34m ${count}) ${op}\e[0m\n";;
+		'This is a dummy options 3' ) printf "\e[1;35m ${count}) ${op}\e[0m\n";;
+		* ) printf " $count) ${op}\n";;
+	esac
+	((count+=1))
 done
+printf '? ' && read opt
+case $opt in
+	1 ) preferenceMenu;;
+	2 ) preferenceMenu;;
+	3 ) preferenceMenu;;
+	4 ) ClearScreen && BUILDER=$USER && build;;
+	5 ) CleanExit;;
+	* ) preferenceMenu "invalid choice!";;
+esac
 }
+
 # --------------------------------------
 CleanExit () {
 if [[ -f /tmp/Build_Clover.tmp ]]; then rm -f /tmp/Build_Clover.tmp; fi
@@ -1460,7 +1496,8 @@ if [[ -d "${DIR_MAIN}/edk2/Clover/.svn" ]] ; then
 		"run my script on the source" )
 			[ "${MY_SCRIPT:-}" ] && eval "${MY_SCRIPT}" || printHeader "You should export MY_SCRIPT with the path to your script.." && CleanExit;;
 		"info and limitations about this script" ) showInfo;;
-		"manage Build_Clover.command preferences" ) ClearScreen && echo "invalid option!!" && build;;
+		"manage Build_Clover.command preferences" )
+			preferenceMenu;;
 		"Back to Main Menu" ) ClearScreen && BUILDER=$USER && build;;
 		"Exit" ) CleanExit;;
 		* ) ClearScreen && echo "invalid option!!" && build;;
