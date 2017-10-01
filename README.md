@@ -31,16 +31,17 @@ The current local EDK2 revision is the suggested one (25373).
                              <--------------------------------------------------
 Please enter your choice:
  1) add "buildclover" symlink to /usr/local/bin
- 2) update Clover only (no building)
- 3) update Clover + force edk2 update (no building)
- 4) run my script on the source
- 5) build existing revision (no update, for testing only)
- 6) build existing revision for release (no update, standard build)
- 7) build existing revision with custom macros enabled
- 8) info and limitations about this script
- 9) enter Developers mode (only for devs)
- 10) manage Build_Clover.command preferences
- 11) Exit
+ 2) update Build_Clover.command
+ 3) update Clover only (no building)
+ 4) update Clover + force edk2 update (no building)
+ 5) run my script on the source
+ 6) build existing revision (no update, for testing only)
+ 7) build existing revision for release (no update, standard build)
+ 8) build existing revision with custom macros enabled
+ 9) info and limitations about this script
+ 10) enter Developers mode (only for devs)
+ 11) manage Build_Clover.command preferences
+ 12) Exit
 ```
 >**Menu for advanced users:**
 
