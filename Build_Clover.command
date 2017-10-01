@@ -48,7 +48,6 @@ START_BUILD=""
 TIMES=0
 ForceEDK2Update=0 # cause edk2 to be re-updated again if > 0 (handeled by the script in more places)
 SYMLINKPATH='/usr/local/bin/buildclover'
-userconf="$HOME/bcc.txt"
 SCRIPT_ABS_PATH=""
 SCRIPT_ABS_LOC=""
 DOWNLOADER_CMD=""
@@ -1496,6 +1495,13 @@ if [[ $EUID -eq 0 ]]; then printError "\nThis script should not be run using sud
 if [[ -f /tmp/Build_Clover.tmp ]]; then rm -f /tmp/Build_Clover.tmp; fi
 
 FindScriptPath
+
+if [[ "${BUILD_CLOVER_CFG_PATH:-}" ]]; then
+	userconf="${BUILD_CLOVER_CFG_PATH}"
+else
+	userconf="$HOME/BuildCloverConfig.txt"
+fi
+
 if [[ -f "$userconf" ]]; then ReadConf; else CreateDefaultConf; ReadConf; fi
 
 # setting default paths
