@@ -1349,7 +1349,7 @@ if [[ -d "${DIR_MAIN}/edk2/Clover/.svn" ]] ; then
 			eval "${MY_SCRIPT}" || printHeader "You should export MY_SCRIPT with the path to your script.." && CleanExit;;
 		"info and limitations about this script" ) showInfo;;
 		"Back to Main Menu" ) ClearScreen && BUILDER=$USER && build;;
-		"edit the configuration file" ) open "${userconf}" && ClearScreen && build;;
+		"edit the configuration file" ) open "${userconf}"; CleanExit;;
 		"Exit" ) CleanExit;;
 		* ) ClearScreen && echo "invalid option!!" && build;;
 	esac
