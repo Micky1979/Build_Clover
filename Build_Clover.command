@@ -198,6 +198,18 @@ if [[ -f /tmp/Build_Clover.tmp ]]; then rm -f /tmp/Build_Clover.tmp; fi
 exit 0
 }
 # --------------------------------------
+OsOpen () {
+if [[ "$SYSNAME" == Darwin ]]; then
+    open "${1}" > /dev/null 2>&1
+else
+    if which xdg-open > /dev/null; then
+        xdg-open "${1}" > /dev/null 2>&1
+    elif which gnome-open > /dev/null; then
+        gnome-open "${1}" > /dev/null 2>&1
+    fi
+fi
+}
+# --------------------------------------
 FindScriptPath () {
 	local s_path s_name l_path
 	local s_orig=$(which "${0}")
@@ -1349,7 +1361,7 @@ if [[ -d "${DIR_MAIN}/edk2/Clover/.svn" ]] ; then
 			eval "${MY_SCRIPT}" || printHeader "You should export MY_SCRIPT with the path to your script.." && CleanExit;;
 		"info and limitations about this script" ) showInfo;;
 		"Back to Main Menu" ) ClearScreen && BUILDER=$USER && build;;
-		"edit the configuration file" ) open "${userconf}"; CleanExit;;
+		"edit the configuration file" ) OsOpen "${userconf}"; CleanExit;;
 		"Exit" ) CleanExit;;
 		* ) ClearScreen && echo "invalid option!!" && build;;
 	esac
@@ -1463,23 +1475,16 @@ else
 	esac
 fi
 
-case "$SYSNAME" in
-	Darwin )
-		if [[ "$BUILD_PKG" == YES || "$BUILD_ISO" == YES ]]; then
-			cd "${DIR_MAIN}"/edk2/Clover/CloverPackage
-			if [[ "$FORCEREBUILD" == "-fr" ]]; then make clean; fi
-		fi
-		if [[ "$BUILD_PKG" == YES ]]; then printHeader 'MAKE PKG'; CheckProprietary; eval "$MAKEPKG_CMD"; fi
-		if [[ "$BUILD_ISO" == YES ]]; then printHeader 'MAKE ISO'; make iso; fi;;
-	Linux )
-		if [[ $(echo $USER | tr "[:upper:]" "[:lower:]" ) =~ ^micky1979 ]]; then
-			doSomething --run-script "${PATCHES}/Linux/distribution" # under study (.deb)
-		else
-			# use xdg-open to use default filemanager for ALL linux.
-			#nautilus "${CLOVERV2_PATH}" > /dev/null
-			[[ -x $(which xdg-open) ]] && xdg-open "${CLOVERV2_PATH}" > /dev/null
-		fi;;
-esac
+if [[ "$SYSNAME" == Darwin ]]; then
+    if [[ "$BUILD_PKG" == YES || "$BUILD_ISO" == YES ]]; then
+        cd "${DIR_MAIN}"/edk2/Clover/CloverPackage
+        if [[ "$FORCEREBUILD" == "-fr" ]]; then make clean; fi
+    fi
+    if [[ "$BUILD_PKG" == YES ]]; then printHeader 'MAKE PKG'; CheckProprietary; eval "$MAKEPKG_CMD"; fi
+    if [[ "$BUILD_ISO" == YES ]]; then printHeader 'MAKE ISO'; make iso; fi
+fi
+
+OsOpen "${CLOVERV2_PATH}"
 
 if [[ "$BUILDER" != 'slice' ]]; then restoreClover; fi
 printHeader "build started at:\n${START_BUILD}\nfinished at\n$(date)\n\nDone!\n"
