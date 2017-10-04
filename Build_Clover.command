@@ -200,13 +200,13 @@ exit 0
 # --------------------------------------
 OsOpen () {
 if [[ "$SYSNAME" == Darwin ]]; then
-    open "${1}" > /dev/null 2>&1
+	open "${1}" > /dev/null 2>&1
 else
-    if which xdg-open > /dev/null; then
-        xdg-open "${1}" > /dev/null 2>&1
-    elif which gnome-open > /dev/null; then
-        gnome-open "${1}" > /dev/null 2>&1
-    fi
+	if which xdg-open > /dev/null; then
+		xdg-open "${1}" > /dev/null 2>&1
+	elif which gnome-open > /dev/null; then
+		gnome-open "${1}" > /dev/null 2>&1
+	fi
 fi
 }
 # --------------------------------------
@@ -1476,12 +1476,12 @@ else
 fi
 
 if [[ "$SYSNAME" == Darwin ]]; then
-    if [[ "$BUILD_PKG" == YES || "$BUILD_ISO" == YES ]]; then
-        cd "${DIR_MAIN}"/edk2/Clover/CloverPackage
-        if [[ "$FORCEREBUILD" == "-fr" ]]; then make clean; fi
-    fi
-    if [[ "$BUILD_PKG" == YES ]]; then printHeader 'MAKE PKG'; CheckProprietary; eval "$MAKEPKG_CMD"; fi
-    if [[ "$BUILD_ISO" == YES ]]; then printHeader 'MAKE ISO'; make iso; fi
+	if [[ "$BUILD_PKG" == YES || "$BUILD_ISO" == YES ]]; then
+		cd "${DIR_MAIN}"/edk2/Clover/CloverPackage
+		if [[ "$FORCEREBUILD" == "-fr" ]]; then make clean; fi
+	fi
+	if [[ "$BUILD_PKG" == YES ]]; then printHeader 'MAKE PKG'; CheckProprietary; eval "$MAKEPKG_CMD"; fi
+	if [[ "$BUILD_ISO" == YES ]]; then printHeader 'MAKE ISO'; make iso; fi
 fi
 
 OsOpen "${CLOVERV2_PATH}"
