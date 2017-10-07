@@ -1482,9 +1482,9 @@ if [[ "$SYSNAME" == Darwin ]]; then
 	fi
 	if [[ "$BUILD_PKG" == YES ]]; then printHeader 'MAKE PKG'; CheckProprietary; eval "$MAKEPKG_CMD"; fi
 	if [[ "$BUILD_ISO" == YES ]]; then printHeader 'MAKE ISO'; make iso; fi
+else
+	OsOpen "${DIR_MAIN}/edk2/Clover/CloverPackage/sym"
 fi
-
-OsOpen "${CLOVERV2_PATH}"
 
 if [[ "$BUILDER" != 'slice' ]]; then restoreClover; fi
 printHeader "build started at:\n${START_BUILD}\nfinished at\n$(date)\n\nDone!\n"
