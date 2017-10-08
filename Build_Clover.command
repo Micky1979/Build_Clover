@@ -1483,7 +1483,7 @@ if [[ "$SYSNAME" == Darwin ]]; then
 	if [[ "$BUILD_PKG" == YES ]]; then printHeader 'MAKE PKG'; CheckProprietary; eval "$MAKEPKG_CMD"; fi
 	if [[ "$BUILD_ISO" == YES ]]; then printHeader 'MAKE ISO'; make iso; fi
 else
-	OsOpen "${DIR_MAIN}/edk2/Clover/CloverPackage/sym"
+	OsOpen "${CLOVERV2_PATH}"
 fi
 
 if [[ "$BUILDER" != 'slice' ]]; then restoreClover; fi
