@@ -28,7 +28,7 @@
 #
 
 # --------------------------------------
-SCRIPTVER="v4.5.5"
+SCRIPTVER="v4.5.6"
 export LC_ALL=C
 SYSNAME="$( uname )"
 BUILDER=$USER # don't touch!
