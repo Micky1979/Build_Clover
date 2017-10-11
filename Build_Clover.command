@@ -98,7 +98,6 @@ var_defaults=(
 	"XCODE",,,
 	"GNU",,,
 	"Build_Tool",,,"XCODE"
-	"EDK2_REV",,,"25373"
 	"SUGGESTED_CLOVER_REV",,,
 	"MODE",,,"S"
 	"DEFAULT_MACROS",,,"-D NO_GRUB_DRIVERS_EMBEDDED"
@@ -118,8 +117,30 @@ var_defaults=(
 # --------------------------------------
 # FUNCTIONS
 # --------------------------------------
+usage () {
+printf "\n\e[1m%s\e[0m" "Usage: $0 [--edk2rev <revision>] [--defaults]"
+echo
+printf "\n%s" "The following optional arguments are recognized:"
+echo
+printf "\n\e[1m%s\e[0m\t%s" "--edk2rev <revision>" "Overrides the defauls EDK2 revision. If <revision> is ommited or not numeric-only,"
+printf "\n\t\t\t%s" "the default EDK2 revision will be used instead."
+echo
+printf "\n\e[1m%s\e[0m\t\t%s" "--defaults" "Ignores the config file and loads the default values for all settings in that file."
+echo
+printf "\n\e[1m%s\e[0m\t\t%s" "--cfg <path>" "Overrides the path to the config file. If <path> is ommited or doesn't exist,"
+printf "\n\t\t\t%s" "the \$HOME / \$BUILD_CLOVER_CFG_PATH variables will be used instead."
+echo
+printf "\n%s" "If no argument is provided, the script starts in interactive mode, using the default edk2 revision"
+printf "\n%s" "and the settings from the config file."
+}
 ClearScreen() {
 if [[ "$DISABLE_CLEAR" != "YES" ]]; then clear; fi
+}
+LoadDefaults () {
+for i in "${var_defaults[@]}"
+do
+	eval "export \"${i%,,,*}=${i#*,,,}\""
+done
 }
 CreateDefaultConf () {
 if [[ ! -f "${userconf}" ]]; then touch "${userconf}"; fi
@@ -391,12 +412,20 @@ printf "\n\e[1;32mEDK2\tRemote revision: %b\t\e[1;32mLocal revision: %b\e[0m\n" 
 
 # Checking if the local EDK2 revision is the suggested one or not
 echo
+if [[ "${cus_edk2}" == "Y" ]]; then
+	printWarning "User-provided EDK2 revision: ${EDK2_REV}\n\n"
+fi
 if [[ "${LOCAL_EDK2_REV}" == "${EDK2_REV}" ]]; then
 	printMessage "The current local EDK2 revision is the suggested one (${EDK2_REV})."
 else
 	printWarning "\e[5mThe current local EDK2 revision is not the suggested one (${EDK2_REV})!"
 	printWarning "\nIt's recommended to change it to the suggested one,"
 	printWarning "\nusing the \e[1;32mupdate Clover + force edk2 update\e[1;33m option!"
+fi
+if [[ "${useDefaults}" == "Y" ]]; then
+	printMessage "\nUsed settings: default"
+else
+	printMessage "\nUsed settings: \e[1;33m${userconf}\e[0m"
 fi
 printLine
 }
@@ -569,73 +598,6 @@ if [[ -d "${CLOVERV2_PATH}" ]]; then
 		rm -rf "${CLOVERV2_PATH}/${i}"
 	done
 fi
-}
-# --------------------------------------
-showInfo () {
-ClearScreen
-printHeader "INFO"
-
-printf "This script was originally created to be run in newer OSes like El Capitan\n"
-printf "using Xcode 7.3 +, but should works fine using gcc 4,9 (GCC49)\n"
-printf "in older ones. Also gcc 5,3 can be used but not actually advised.\n"
-echo
-printf "Don't be surprised if this does not work in Snow Leopard (because can't).\n"
-printf "In Lion can require you to uncomment/comment some line in clover() function.\n"
-echo
-printf "Using old Xcode like v7.2 and older, this script automatically disable\n"
-printf "LTO as suggested by devs. The result will be binaries increased in size.\n"
-printf "Off course that is automatic only for standard compilations, but consider to\n"
-printf "switch back to gcc 4,9 (GCC49).\n"
-printf "UPDATE: actually using XCODE5 LTO is disabled anyway due to problems coming with\n"
-printf "Xcode 8 and new version of clang.\n"
-echo
-printf "Since v3.5 Build_Clover.command is able to build Clover in Ubuntu 16.04 +\n"
-printf "using the built-in gcc and installing some dependecies like nasm, subversion,\n"
-printf "curl (wget is good if found), the uuid-dev headers if not installed.\n"
-printf "Off course using only the amd64 release (x86_64).\n"
-printf "May work on new releases of Ubuntu as well, but not on older ones.\n"
-echo
-printf "UPDATE: since v4.0.9 this script is tested in Debian Jessie 8 using gcc 4.9.2,\n"
-printf "but be aware that usually Debian comes without sudo installed:\n"
-printf "in this case you have to manage to install it manually and enable\n"
-printf "your account as sudo user (or just install all dependencies manually).\n"
-echo
-printf "This script conform to Slice's will as the main Clover's developer:\n"
-printf "edk2 is actually set to r${EDK2_REV} and nasm should not be older\n"
-printf "than r${NASM_PREFERRED}.\n"
-printf "Check for update about Build_Clover.command because edk2 can be updated soon\n"
-printf "by Slice, or check for the logs on sourceforge and simply change the\n"
-printf "\"EDK2_REV\" variable inside the scrip by editing it to the advised one.\n"
-printf "Using the same revision that Slice use to build Clover ensure that we\n"
-printf "conform to Him, with same identical conditions. If you are using different\n"
-printf "edk2 revision you will be encounter problems of any kind and you should\n"
-printf "not complain for that!\n"
-echo
-printf "By default the script no longer build the iso image but if you need it,\n"
-printf "just edit BUILD_ISO=\"NO\" to BUILD_ISO=\"YES\" at the \"Preferences\"\n"
-printf "section. Or enter the Developers mode. *(macOS only)\n"
-echo
-printf "You can build both 32/64 bit, only 32bit or only 64 bit packages!\n"
-echo
-printf "Enabling macros to build Clover EFI apply only to boot3/boot7,\n"
-printf "ia32 build can fail defining additional macros. In this case don't panic:\n"
-printf "use only 64-bit target.. or rebuild it with supported functionalities!\n"
-echo
-printf "\"enter Developer mode\" is an option designated for developers:\n"
-printf "no update, no downloads, no installations of any kind, just some\n"
-printf "options you can use to build Clover while you are editing the source code!\n"
-printf "May you encounter some errors with this mode (bad nasm version?), so you need\n"
-printf "to adjust all dependencies (by your-self) before run this way.\n"
-printf "Not a developer? don't use \"Developer mode\"!!!!\n"
-echo
-printf "Anyway the pkg and the iso image are generated in (and for) macOS X only.\n"
-echo
-printf "Warning using the \"R\" mode of this script to create the src folder\n"
-printf "outside the Home folder:\n"
-printf "Blank spaces in the path are not allowed because it will auto-fail!\n"
-printLine
-pressAnyKey '' noclear
-build
 }
 # --------------------------------------
 # Function: to manage PATH
@@ -1218,7 +1180,6 @@ if [[ -d "${DIR_MAIN}/edk2/Clover/.svn" ]] ; then
 		options+=("build existing revision (no update, for testing only)")
 		options+=("build existing revision for release (no update, standard build)")
 		options+=("build existing revision with custom macros enabled")
-		options+=("info and limitations about this script")
 		options+=("enter Developers mode (only for devs)")
 		options+=("edit the configuration file")
 		options+=("Exit")
@@ -1359,7 +1320,6 @@ if [[ -d "${DIR_MAIN}/edk2/Clover/.svn" ]] ; then
 			showMacros "";;
 		"run my script on the source" )
 			eval "${MY_SCRIPT}" || printHeader "You should export MY_SCRIPT with the path to your script.." && CleanExit;;
-		"info and limitations about this script" ) showInfo;;
 		"Back to Main Menu" ) ClearScreen && BUILDER=$USER && build;;
 		"edit the configuration file" ) OsOpen "${userconf}"; CleanExit;;
 		"Exit" ) CleanExit;;
@@ -1491,9 +1451,7 @@ printHeader "build started at:\n${START_BUILD}\nfinished at\n$(date)\n\nDone!\n"
 printf '\e[3;0;0t'
 pressAnyKey "Clover was built successfully!" noclear; ClearScreen; build
 }
-# --------------------------------------
-# MAIN CODE
-# --------------------------------------
+main () {
 # don't use sudo!
 if [[ $EUID -eq 0 ]]; then printError "\nThis script should not be run using sudo!!\n\n"; exit 1; fi
 # Cleaning up any old data if exists
@@ -1501,13 +1459,25 @@ if [[ -f /tmp/Build_Clover.tmp ]]; then rm -f /tmp/Build_Clover.tmp; fi
 
 FindScriptPath
 
-if [[ "${BUILD_CLOVER_CFG_PATH:-}" ]]; then
-	userconf="${BUILD_CLOVER_CFG_PATH}"
-else
-	userconf="$HOME/BuildCloverConfig.txt"
+# Checking if any command line parameters has passed any value
+if [[ "${cus_conf}" != "Y" ]]; then
+	if [[ "${BUILD_CLOVER_CFG_PATH:-}" ]]; then
+		userconf="${BUILD_CLOVER_CFG_PATH}"
+	else
+		userconf="$HOME/BuildCloverConfig.txt"
+	fi
 fi
 
-if [[ -f "$userconf" ]]; then ReadConf; else CreateDefaultConf; ReadConf; fi
+EDK2_REV="${EDK2_REV:-25373}"
+
+if [[ "${useDefaults}" == "Y" ]]; then
+	LoadDefaults
+elif [[ -f "$userconf" ]]; then
+	ReadConf
+else
+	CreateDefaultConf
+	ReadConf
+fi
 
 # setting default paths
 case "$MODE" in
@@ -1549,12 +1519,6 @@ esac
 printCloverScriptRev
 printHeader "By Micky1979 based on Slice, Zenith432, STLVNUB, JrCs, cecekpawon, Needy,\ncvad, Rehabman, philip_petev, ErmaC\n\nSupported OSes: macOS X, Ubuntu (16.04/16.10), Debian Jessie and Stretch"
 
-if [[ "$GITHUB" == *"Test_Script_dont_use.command"* ]];then
-	printError "This script is for testing only and may be outdated,\n"
-	printError "use the regular one at:\n"
-	printError "http://www.insanelymac.com/forum/files/download/589-build-clovercommand/\n"
-fi
-
 # print the remote and the local revision
 if [[ -d "${DIR_MAIN}"/edk2 ]]; then getRev; printRevisions; fi;
 
@@ -1563,3 +1527,26 @@ if [[ "$LOCAL_REV" -lt "4209" ]]; then macros+=("CHECK_FLAGS"); fi
 
 if [[ "$DISABLE_CLEAR" != "YES" ]]; then printf '\e[8;34;90t'; fi
 build
+}
+# --------------------------------------
+# MAIN CODE
+# --------------------------------------
+if [[ $# -eq 0 ]]; then main; fi
+while [[ $# -gt 0 ]]; do
+	case "${1}" in
+		--defaults ) useDefaults="Y";;
+		--edk2rev ) if [[ -n "${2}" && "${2}" =~ ^[0-9]+$ ]]; then
+						EDK2_REV="${2}"
+						cus_edk2="Y"
+					fi
+					shift;;
+			--cfg ) if [[ -n "${2}" && -f "${2}" ]]; then
+						userconf="${2}"
+						cus_conf="Y"
+					fi
+					shift;;
+		* ) printf "\e[1m%s\e[0m\n" "Invalid option: ${1} !" >&2; usage; exit 1;;
+	esac
+	shift
+done
+main
