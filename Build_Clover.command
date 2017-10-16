@@ -132,6 +132,7 @@ printf "\n\t\t\t%s" "the \$HOME / \$BUILD_CLOVER_CFG_PATH variables will be used
 echo
 printf "\n%s" "If no argument is provided, the script starts in interactive mode, using the default edk2 revision"
 printf "\n%s" "and the settings from the config file."
+echo
 }
 ClearScreen() {
 if [[ "$DISABLE_CLEAR" != "YES" ]]; then clear; fi
