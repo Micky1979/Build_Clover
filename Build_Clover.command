@@ -1468,7 +1468,7 @@ if [[ "${cus_conf}" != "Y" ]]; then
 	fi
 fi
 
-EDK2_REV="${EDK2_REV:-25373}"
+EDK2_REV="${EDK2_REV:-25480}"
 
 if [[ "${useDefaults}" == "Y" ]]; then
 	LoadDefaults
