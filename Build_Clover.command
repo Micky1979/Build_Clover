@@ -35,18 +35,13 @@ BUILDER=$USER # don't touch!
 # ---------------------------->
 # default behavior (don't touch these vars)
 NASM_PREFERRED="2.13.01"
-FORCEREBUILD=""
 MAKEPKG_CMD="make pkg"
-UPDATE_FLAG="YES"
-BUILD_FLAG="NO"
 LTO_FLAG="" # default for Xcode >= 7.3, will automatically adjusted for older ones
 MOD_PKG_FLAG="YES" # used only when you add custom macros. Does nothing for normal build.
-ARCH="IA32_X64" # will ask if you want IA32 (deprecated) or X64 only
 DEFINED_MACRO=""
 CUSTOM_BUILD="NO"
 START_BUILD=""
 TIMES=0
-ForceEDK2Update=0 # cause edk2 to be re-updated again if > 0 (handeled by the script in more places)
 SYMLINKPATH='/usr/local/bin/buildclover'
 SCRIPT_ABS_PATH=""
 SCRIPT_ABS_LOC=""
@@ -113,6 +108,12 @@ var_defaults=(
 	"DISABLE_CLEAR",,,"NO"
 	"MY_SCRIPT",,,
 	"FAST_UPDATE",,,"NO"
+	"INTERACTIVE",,,"YES"
+	"UPDATE_FLAG",,,"YES"
+	"BUILD_FLAG",,,"YES"
+	"ForceEDK2Update",,,"0"
+	"ARCH",,,"X64"
+	"FORCEREBUILD",,,"-fr"
 	)
 # --------------------------------------
 # FUNCTIONS
@@ -1137,7 +1138,7 @@ fi
 }
 # --------------------------------------
 build() {
-if [[ -d "${DIR_MAIN}/edk2/Clover/.svn" ]] ; then
+if [[ -d "${DIR_MAIN}/edk2/Clover/.svn" && "${INTERACTIVE}" != "NO" ]] ; then
 	echo 'Please enter your choice: '
 	local options=()
 
@@ -1237,6 +1238,7 @@ if [[ -d "${DIR_MAIN}/edk2/Clover/.svn" ]] ; then
 			BUILD_FLAG="NO"
 			ForceEDK2Update=1979;; # 1979 has a special meaning ...i.e force clean BaseTools
 		"build existing revision (no update, for testing only)" )
+			FORCEREBUILD=""
 			UPDATE_FLAG="NO"
 			BUILD_FLAG="YES"
 			selectArch;;
@@ -1358,7 +1360,7 @@ printLine
 if [[ "$BUILDER" != 'slice' ]]; then restoreClover; fi
 if [[ "$UPDATE_FLAG" == YES && "$BUILDER" != 'slice' ]]; then getRev; edk2; clover; fi
 
-if [[ "$BUILD_FLAG" == NO ]]; then
+if [[ "$BUILD_FLAG" == NO && "${INTERACTIVE}" != "NO" ]]; then
 	ClearScreen
 	# print updated remote and local revision
 	if [[ -d "${DIR_MAIN}"/edk2 ]]; then getRev; printRevisions; fi;
@@ -1450,7 +1452,9 @@ fi
 if [[ "$BUILDER" != 'slice' ]]; then restoreClover; fi
 printHeader "build started at:\n${START_BUILD}\nfinished at\n$(date)\n\nDone!\n"
 printf '\e[3;0;0t'
-pressAnyKey "Clover was built successfully!" noclear; ClearScreen; build
+pressAnyKey "Clover was built successfully!" noclear
+ClearScreen
+if [[ "${INTERACTIVE}" != "NO" ]]; then build; else exit 0; fi
 }
 main() {
 # don't use sudo!
