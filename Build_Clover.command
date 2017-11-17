@@ -1138,7 +1138,7 @@ fi
 }
 # --------------------------------------
 build() {
-if [[ -d "${DIR_MAIN}/edk2/Clover/.svn" && "${INTERACTIVE}" != "NO" ]] ; then
+if [[ -d "${DIR_MAIN}/edk2/Clover/.svn" && "$INTERACTIVE" != "NO" ]] ; then
 	echo 'Please enter your choice: '
 	local options=()
 
@@ -1360,7 +1360,7 @@ printLine
 if [[ "$BUILDER" != 'slice' ]]; then restoreClover; fi
 if [[ "$UPDATE_FLAG" == YES && "$BUILDER" != 'slice' ]]; then getRev; edk2; clover; fi
 
-if [[ "$BUILD_FLAG" == NO && "${INTERACTIVE}" != "NO" ]]; then
+if [[ "$BUILD_FLAG" == NO || "$INTERACTIVE" != "NO" ]]; then
 	ClearScreen
 	# print updated remote and local revision
 	if [[ -d "${DIR_MAIN}"/edk2 ]]; then getRev; printRevisions; fi;
@@ -1452,9 +1452,13 @@ fi
 if [[ "$BUILDER" != 'slice' ]]; then restoreClover; fi
 printHeader "build started at:\n${START_BUILD}\nfinished at\n$(date)\n\nDone!\n"
 printf '\e[3;0;0t'
-pressAnyKey "Clover was built successfully!" noclear
-ClearScreen
-if [[ "${INTERACTIVE}" != "NO" ]]; then build; else exit 0; fi
+if [[ "$INTERACTIVE" != "NO" ]]; then
+	pressAnyKey "Clover was built successfully!" noclear
+	ClearScreen
+	build
+else
+	printf "\nClover was built successfully!\n\n"; exit 0
+fi
 }
 main() {
 # don't use sudo!
