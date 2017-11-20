@@ -109,8 +109,6 @@ var_defaults=(
 	"MY_SCRIPT",,,
 	"FAST_UPDATE",,,"NO"
 	"INTERACTIVE",,,"YES"
-	"UPDATE_FLAG",,,"YES"
-	"BUILD_FLAG",,,"YES"
 	"ForceEDK2Update",,,"0"
 	"ARCH",,,"X64"
 	"FORCEREBUILD",,,"-fr"
@@ -1328,9 +1326,12 @@ if [[ -d "${DIR_MAIN}/edk2/Clover/.svn" && "$INTERACTIVE" != "NO" ]] ; then
 		"Exit" ) CleanExit;;
 		* ) ClearScreen && echo "invalid option!!" && build;;
 	esac
+else
+	UPDATE_FLAG=YES
+	if [[ "$INTERACTIVE" == "NO" ]]; then BUILD_FLAG=YES; else BUILD_FLAG=NO; fi
 fi
 
-if [[ "$BUILDER" == 'slice' ]]; then ClearScreen && build; fi
+if [[ "$BUILDER" == 'slice' && "$INTERACTIVE" != "NO" ]]; then ClearScreen && build; fi
 
 # show info about the running OS and its gcc
 case "$SYSNAME" in
@@ -1360,11 +1361,13 @@ printLine
 if [[ "$BUILDER" != 'slice' ]]; then restoreClover; fi
 if [[ "$UPDATE_FLAG" == YES && "$BUILDER" != 'slice' ]]; then getRev; edk2; clover; fi
 
-if [[ "$BUILD_FLAG" == NO || "$INTERACTIVE" != "NO" ]]; then
-	ClearScreen
-	# print updated remote and local revision
-	if [[ -d "${DIR_MAIN}"/edk2 ]]; then getRev; printRevisions; fi;
-	build
+if [[ "$INTERACTIVE" != "NO" ]]; then
+	if [[ "$BUILD_FLAG" == "NO" ]]; then
+		ClearScreen
+		# print updated remote and local revision
+		if [[ -d "${DIR_MAIN}"/edk2 ]]; then getRev; printRevisions; fi;
+		build
+	fi
 fi
 
 set -e
