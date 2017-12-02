@@ -28,13 +28,13 @@
 #
 
 # --------------------------------------
-SCRIPTVER="v4.5.8"
+SCRIPTVER="v4.5.9"
 export LC_ALL=C
 SYSNAME="$( uname )"
 BUILDER=$USER # don't touch!
 # ---------------------------->
 # default behavior (don't touch these vars)
-NASM_PREFERRED="2.13.01"
+NASM_PREFERRED="2.13.02"
 MAKEPKG_CMD="make pkg"
 LTO_FLAG="" # default for Xcode >= 7.3, will automatically adjusted for older ones
 MOD_PKG_FLAG="YES" # used only when you add custom macros. Does nothing for normal build.
@@ -1351,7 +1351,7 @@ if [[ "${Build_Tool}" == "GNU" ]]; then
 	elif [[ -x "${DIR_MAIN}/opt/local/cross/bin/x86_64-clover-linux-gnu-gcc" ]]; then
 		printf "\e[1;34m%s\e[0m" "$(${DIR_MAIN}/opt/local/cross/bin/x86_64-clover-linux-gnu-gcc -v 2>&1)"
 	else
-		printWarning "GNU toolchain not found or incomplete, installing the missing parts now..."
+		printWarning "GNU toolchain not found or incomplete!!!"
 	fi
 else
 	printf "\e[1;34m%s\e[0m" "$(gcc -v 2>&1)"
@@ -1380,7 +1380,7 @@ GCC49 )
 	if [[ "$SYSNAME" == Darwin ]]; then "${DIR_MAIN}"/edk2/Clover/buildgcc-4.9.sh; fi;;
 GCC53 )
 	printHeader "BUILDTOOL is $BUILDTOOL"
-	if [[ "$SYSNAME" == Darwin ]]; then "${DIR_MAIN}"/edk2/Clover/build_gcc6.sh; fi;;
+	if [[ "$SYSNAME" == Darwin ]]; then "${DIR_MAIN}"/edk2/Clover/build_gcc7.sh; fi;;
 XCODE* ) exportXcodePaths; printHeader "BUILDTOOL is $BUILDTOOL";;
 esac
 
