@@ -28,25 +28,20 @@
 #
 
 # --------------------------------------
-SCRIPTVER="v4.5.8"
+SCRIPTVER="v4.5.9"
 export LC_ALL=C
 SYSNAME="$( uname )"
 BUILDER=$USER # don't touch!
 # ---------------------------->
 # default behavior (don't touch these vars)
-NASM_PREFERRED="2.13.01"
-FORCEREBUILD=""
+NASM_PREFERRED="2.13.02"
 MAKEPKG_CMD="make pkg"
-UPDATE_FLAG="YES"
-BUILD_FLAG="NO"
 LTO_FLAG="" # default for Xcode >= 7.3, will automatically adjusted for older ones
 MOD_PKG_FLAG="YES" # used only when you add custom macros. Does nothing for normal build.
-ARCH="IA32_X64" # will ask if you want IA32 (deprecated) or X64 only
 DEFINED_MACRO=""
 CUSTOM_BUILD="NO"
 START_BUILD=""
 TIMES=0
-ForceEDK2Update=0 # cause edk2 to be re-updated again if > 0 (handeled by the script in more places)
 SYMLINKPATH='/usr/local/bin/buildclover'
 SCRIPT_ABS_PATH=""
 SCRIPT_ABS_LOC=""
@@ -113,11 +108,15 @@ var_defaults=(
 	"DISABLE_CLEAR",,,"NO"
 	"MY_SCRIPT",,,
 	"FAST_UPDATE",,,"NO"
+	"INTERACTIVE",,,"YES"
+	"ForceEDK2Update",,,"0"
+	"ARCH",,,"X64"
+	"FORCEREBUILD",,,"-fr"
 	)
 # --------------------------------------
 # FUNCTIONS
 # --------------------------------------
-usage () {
+usage() {
 printf "\n\e[1m%s\e[0m" "Usage: $0 [--edk2rev <revision>] [--defaults]"
 echo
 printf "\n%s" "The following optional arguments are recognized:"
@@ -137,20 +136,20 @@ echo
 ClearScreen() {
 if [[ "$DISABLE_CLEAR" != "YES" ]]; then clear; fi
 }
-LoadDefaults () {
+LoadDefaults() {
 for i in "${var_defaults[@]}"
 do
 	eval "export \"${i%,,,*}=${i#*,,,}\""
 done
 }
-CreateDefaultConf () {
+CreateDefaultConf() {
 if [[ ! -f "${userconf}" ]]; then touch "${userconf}"; fi
 for i in "${var_defaults[@]}"
 do
 	echo "${i%,,,*}=${i#*,,,}" >> "${userconf}"
 done
 }
-ReadConf () {
+ReadConf() {
 for i in "${var_defaults[@]}"
 do
 	if cat "${userconf}" | grep "^${i%,,,*}=" 1>/dev/null 2>&1; then
@@ -215,12 +214,12 @@ do
 done
 }
 # --------------------------------------
-CleanExit () {
+CleanExit() {
 if [[ -f /tmp/Build_Clover.tmp ]]; then rm -f /tmp/Build_Clover.tmp; fi
 exit 0
 }
 # --------------------------------------
-OsOpen () {
+OsOpen() {
 if [[ "$SYSNAME" == Darwin ]]; then
 	open "${1}" > /dev/null 2>&1
 else
@@ -232,7 +231,7 @@ else
 fi
 }
 # --------------------------------------
-FindScriptPath () {
+FindScriptPath() {
 	local s_path s_name l_path
 	local s_orig=$(which "${0}")
 	if [[ -L "$s_orig" ]]; then
@@ -339,7 +338,7 @@ if [[ "$SYSNAME" == Linux ]]; then
 	# check whether at least one of curl or wget are installed
 	[[ ! -x $(which wget) && ! -x $(which curl) ]] && depend+=" wget"
 	# installing the dependencies
-	if [[ "$depend" != "" ]]; then ClearScreen; aptInstall "$depend"; fi
+	if [[ "$depend" != "" ]]; then ClearScreen; aptInstall "${depend:1}"; fi
 	# set the donloader command path
 	if [[ -x $(which wget) ]]; then
 		DOWNLOADER_PATH=$(dirname $(which wget))
@@ -454,21 +453,21 @@ eval "${cmd}"
 aptInstall() {
 if [[ -z "${1}" ]]; then return; fi
 printWarning "Build_Clover need this:\n"
-printError "${1:1}\n"
+printError "${1}\n"
 printWarning "..to be installed, but was not found.\n"
 printWarning "Would you allow to install it? (Y/N)\n"
 read answer
 case $answer in
 	Y | y ) if [[ "$USER" != root ]]; then echo "type your password to install:"; fi
 			sudo apt-get update
-			sudo apt-get install$1;;
+			sudo apt-get install $1;;
 	*) printError "Build_Clover cannot go ahead without it/them, process aborted!\n"; exit 1;;
 esac
 sudo -k
 }
 # --------------------------------------
 # Upgrage SVN working copy
-svnUpgrade () {
+svnUpgrade() {
 svn info "${DIR_MAIN}/edk2/Clover" 2>&1 | grep 'svn upgrade'
 # if the svn working directory is outdated, let the user know
 if [[ $? -eq 0 ]]; then
@@ -510,7 +509,7 @@ else
 fi
 }
 # --------------------------------------
-selectArch () {
+selectArch() {
 archs=(
 	'Standard x64 only'
 	'ia32 and x64 (ia32 is deprecated)'
@@ -542,7 +541,7 @@ esac
 if [[ "$SYSNAME" == Darwin && "$LOCAL_REV" -ge "4073" ]]; then slimPKG; fi
 }
 # --------------------------------------
-slimPKG () {
+slimPKG() {
 archs=(
 	'Standard'
 	'slim pkg that skip themes and CloverThemeManager.app'
@@ -575,7 +574,7 @@ case $opt in
 esac
 }
 # --------------------------------------
-cleanCloverV2 () {
+cleanCloverV2() {
 c2paths=(
 	"Bootloaders/ia32/boot3"
 	"Bootloaders/x64/boot6"
@@ -602,7 +601,7 @@ fi
 }
 # --------------------------------------
 # Function: to manage PATH
-pathmunge () {
+pathmunge() {
 if [[ ! $PATH =~ (^|:)$1(:|$) ]]; then
 	if [[ "${2:-}" = "after" ]]; then
 		export PATH=$PATH:$1
@@ -612,7 +611,7 @@ if [[ ! $PATH =~ (^|:)$1(:|$) ]]; then
 fi
 }
 # --------------------------------------
-checkXcode () {
+checkXcode() {
 if [[ ! -x /usr/bin/gcc ]]; then printError "Xcode clt not found, exiting!\n"; exit 1; fi
 if [[ ! -x /usr/bin/xcodebuild ]]; then printError "xcodebuild not found, exiting!\n"; exit 1; fi
 # Autodetect the Xcode version if no specific version is set (XCODE) and disable LTO if Xcode is version 7.2.x or earlier
@@ -930,7 +929,7 @@ esac
 return $result
 }
 # --------------------------------------
-ebuildBorg () {
+ebuildBorg() {
 if [[ "$MOD_PKG_FLAG" != YES ]]; then return; fi
 local NR=0
 if [[ "$SYSNAME" == Darwin ]]; then printHeader 'Modding package resources'; fi
@@ -994,7 +993,7 @@ fi
 set -e
 }
 # --------------------------------------
-restoreClover () {
+restoreClover() {
 if [[ -f "${LOCALIZABLE_FILE}.back" ]]; then
 	mv -f "${LOCALIZABLE_FILE}.back" "${LOCALIZABLE_FILE}"
 fi
@@ -1137,7 +1136,7 @@ fi
 }
 # --------------------------------------
 build() {
-if [[ -d "${DIR_MAIN}/edk2/Clover/.svn" ]] ; then
+if [[ -d "${DIR_MAIN}/edk2/Clover/.svn" && "$INTERACTIVE" != "NO" ]] ; then
 	echo 'Please enter your choice: '
 	local options=()
 
@@ -1237,6 +1236,7 @@ if [[ -d "${DIR_MAIN}/edk2/Clover/.svn" ]] ; then
 			BUILD_FLAG="NO"
 			ForceEDK2Update=1979;; # 1979 has a special meaning ...i.e force clean BaseTools
 		"build existing revision (no update, for testing only)" )
+			FORCEREBUILD=""
 			UPDATE_FLAG="NO"
 			BUILD_FLAG="YES"
 			selectArch;;
@@ -1326,9 +1326,12 @@ if [[ -d "${DIR_MAIN}/edk2/Clover/.svn" ]] ; then
 		"Exit" ) CleanExit;;
 		* ) ClearScreen && echo "invalid option!!" && build;;
 	esac
+else
+	UPDATE_FLAG=YES
+	if [[ "$INTERACTIVE" == "NO" ]]; then BUILD_FLAG=YES; else BUILD_FLAG=NO; fi
 fi
 
-if [[ "$BUILDER" == 'slice' ]]; then ClearScreen && build; fi
+if [[ "$BUILDER" == 'slice' && "$INTERACTIVE" != "NO" ]]; then ClearScreen && build; fi
 
 # show info about the running OS and its gcc
 case "$SYSNAME" in
@@ -1348,7 +1351,7 @@ if [[ "${Build_Tool}" == "GNU" ]]; then
 	elif [[ -x "${DIR_MAIN}/opt/local/cross/bin/x86_64-clover-linux-gnu-gcc" ]]; then
 		printf "\e[1;34m%s\e[0m" "$(${DIR_MAIN}/opt/local/cross/bin/x86_64-clover-linux-gnu-gcc -v 2>&1)"
 	else
-		printWarning "GNU toolchain not found or incomplete, installing the missing parts now..."
+		printWarning "GNU toolchain not found or incomplete!!!"
 	fi
 else
 	printf "\e[1;34m%s\e[0m" "$(gcc -v 2>&1)"
@@ -1358,11 +1361,13 @@ printLine
 if [[ "$BUILDER" != 'slice' ]]; then restoreClover; fi
 if [[ "$UPDATE_FLAG" == YES && "$BUILDER" != 'slice' ]]; then getRev; edk2; clover; fi
 
-if [[ "$BUILD_FLAG" == NO ]]; then
-	ClearScreen
-	# print updated remote and local revision
-	if [[ -d "${DIR_MAIN}"/edk2 ]]; then getRev; printRevisions; fi;
-	build
+if [[ "$INTERACTIVE" != "NO" ]]; then
+	if [[ "$BUILD_FLAG" == "NO" ]]; then
+		ClearScreen
+		# print updated remote and local revision
+		if [[ -d "${DIR_MAIN}"/edk2 ]]; then getRev; printRevisions; fi;
+		build
+	fi
 fi
 
 set -e
@@ -1375,7 +1380,7 @@ GCC49 )
 	if [[ "$SYSNAME" == Darwin ]]; then "${DIR_MAIN}"/edk2/Clover/buildgcc-4.9.sh; fi;;
 GCC53 )
 	printHeader "BUILDTOOL is $BUILDTOOL"
-	if [[ "$SYSNAME" == Darwin ]]; then "${DIR_MAIN}"/edk2/Clover/build_gcc6.sh; fi;;
+	if [[ "$SYSNAME" == Darwin ]]; then "${DIR_MAIN}"/edk2/Clover/build_gcc7.sh; fi;;
 XCODE* ) exportXcodePaths; printHeader "BUILDTOOL is $BUILDTOOL";;
 esac
 
@@ -1450,9 +1455,15 @@ fi
 if [[ "$BUILDER" != 'slice' ]]; then restoreClover; fi
 printHeader "build started at:\n${START_BUILD}\nfinished at\n$(date)\n\nDone!\n"
 printf '\e[3;0;0t'
-pressAnyKey "Clover was built successfully!" noclear; ClearScreen; build
+if [[ "$INTERACTIVE" != "NO" ]]; then
+	pressAnyKey "Clover was built successfully!" noclear
+	ClearScreen
+	build
+else
+	printf "\nClover was built successfully!\n\n"; exit 0
+fi
 }
-main () {
+main() {
 # don't use sudo!
 if [[ $EUID -eq 0 ]]; then printError "\nThis script should not be run using sudo!!\n\n"; exit 1; fi
 # Cleaning up any old data if exists
