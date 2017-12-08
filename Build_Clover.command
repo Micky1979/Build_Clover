@@ -28,7 +28,7 @@
 #
 
 # --------------------------------------
-SCRIPTVER="v4.5.9"
+SCRIPTVER="v4.6.0"
 export LC_ALL=C
 SYSNAME="$( uname )"
 BUILDER=$USER # don't touch!
@@ -1480,7 +1480,7 @@ if [[ "${cus_conf}" != "Y" ]]; then
 	fi
 fi
 
-EDK2_REV="${EDK2_REV:-25764}"
+EDK2_REV="${EDK2_REV:-25847}"
 
 if [[ "${useDefaults}" == "Y" ]]; then
 	LoadDefaults
