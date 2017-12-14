@@ -28,7 +28,7 @@
 #
 
 # --------------------------------------
-SCRIPTVER="v4.6.0"
+SCRIPTVER="v4.6.1"
 export LC_ALL=C
 SYSNAME="$( uname )"
 BUILDER=$USER # don't touch!
@@ -841,7 +841,7 @@ else
 		printHeader "cleaning BaseTools and Clover / Clover Package"
 		echo
 		if [[ -d "${DIR_MAIN}/edk2/BaseTools" ]]; then cd "${DIR_MAIN}/edk2/BaseTools"; make clean; fi
-		if [[ -d "${DIR_MAIN}/edk2/Clover" ]]; then cd "${DIR_MAIN}/edk2/Clover"; ./ebuild.sh clean; fi
+		if [[ -d "${DIR_MAIN}/edk2/Clover" ]]; then cd "${DIR_MAIN}/edk2/Clover"; ./ebuild.sh clean -t $BUILDTOOL; fi
 		if [[ -d "${DIR_MAIN}/edk2/Clover/CloverPackage" ]]; then cd "${DIR_MAIN}/edk2/Clover/CloverPackage"; make clean; fi
 		FORCEREBUILD="-fr"
 	fi
@@ -1480,7 +1480,7 @@ if [[ "${cus_conf}" != "Y" ]]; then
 	fi
 fi
 
-EDK2_REV="${EDK2_REV:-25847}"
+EDK2_REV="${EDK2_REV:-25909}"
 
 if [[ "${useDefaults}" == "Y" ]]; then
 	LoadDefaults
