@@ -28,7 +28,7 @@
 #
 
 # --------------------------------------
-SCRIPTVER="v4.6.1"
+SCRIPTVER="v4.6.3"
 export LC_ALL=C
 SYSNAME="$( uname )"
 BUILDER=$USER # don't touch!
@@ -112,6 +112,7 @@ var_defaults=(
 	"ForceEDK2Update",,,"0"
 	"ARCH",,,"X64"
 	"FORCEREBUILD",,,"-fr"
+    "SHOWCCP_ADVERTISE",,,"YES"
 	)
 # --------------------------------------
 # FUNCTIONS
@@ -1181,6 +1182,11 @@ if [[ -d "${DIR_MAIN}/edk2/Clover/.svn" && "$INTERACTIVE" != "NO" ]] ; then
 		options+=("build existing revision for release (no update, standard build)")
 		options+=("build existing revision with custom macros enabled")
 		options+=("enter Developers mode (only for devs)")
+        if [[ "$SHOWCCP_ADVERTISE" == YES ]]; then
+        if [[ ! -f "${HOME}"/Library/Preferences/com.m79softwares.Clover-Configurator-Pro.plist ]]; then
+            options+=("Try Clover Configurator Pro.app")
+        fi
+        fi
 		options+=("edit the configuration file")
 		options+=("Exit")
 	fi
@@ -1323,6 +1329,7 @@ if [[ -d "${DIR_MAIN}/edk2/Clover/.svn" && "$INTERACTIVE" != "NO" ]] ; then
 			eval "${MY_SCRIPT}" || printHeader "You should export MY_SCRIPT with the path to your script.." && CleanExit;;
 		"Back to Main Menu" ) ClearScreen && BUILDER=$USER && build;;
 		"edit the configuration file" ) OsOpen "${userconf}"; CleanExit;;
+        "Try Clover Configurator Pro.app" ) OsOpen "https://github.com/Micky1979/Clover-Configurator-Pro"; CleanExit;;
 		"Exit" ) CleanExit;;
 		* ) ClearScreen && echo "invalid option!!" && build;;
 	esac
@@ -1480,7 +1487,7 @@ if [[ "${cus_conf}" != "Y" ]]; then
 	fi
 fi
 
-EDK2_REV="${EDK2_REV:-25909}"
+EDK2_REV="${EDK2_REV:-26114}"
 
 if [[ "${useDefaults}" == "Y" ]]; then
 	LoadDefaults
