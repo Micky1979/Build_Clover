@@ -28,7 +28,7 @@
 #
 
 # --------------------------------------
-SCRIPTVER="v4.6.4"
+SCRIPTVER="v4.6.5"
 export LC_ALL=C
 SYSNAME="$( uname )"
 BUILDER=$USER # don't touch!
@@ -815,7 +815,14 @@ source edksetup.sh BaseTools
 if  [[ ! -x "${DIR_MAIN}/edk2/BaseTools/Source/C/bin/GenFv" ]]; then
 make -C "${DIR_MAIN}"/edk2/BaseTools CC="gcc -Wno-deprecated-declarations"
 fi
-build -a X64 -b RELEASE -t $BUILDTOOL -p "${DIR_MAIN}"/edk2/AptioFixPkg/AptioFixPkg.dsc
+
+local ncpu=2
+if [[ "$SYSNAME" == Linux ]]; then
+    ncpu=$(( $(nproc) + 1 ))
+else
+    ncpu=$(( $(sysctl -n hw.logicalcpu) + 1 ))
+fi
+build -a X64 -b RELEASE -t $BUILDTOOL -n $ncpu -p "${DIR_MAIN}"/edk2/AptioFixPkg/AptioFixPkg.dsc
 cd "${DIR_MAIN}"/edk2/Clover
 }
 # --------------------------------------
