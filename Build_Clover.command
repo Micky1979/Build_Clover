@@ -776,7 +776,7 @@ return $result
 # --------------------------------------
 AptioFixPkg() {
 if [[ "${Build_Tool}" != "XCODE" ]]; then
-    return
+    return # cannot be compiled with GNU gcc atm 
 fi
 printHeader 'Downloading AptioFixPkg and dependencies'
 
@@ -802,18 +802,18 @@ do
         cd "${DIR_MAIN}/edk2/${pkg}"
         svnWithErrorCheck "svn co --non-interactive --trust-server-cert ${link}/trunk ."
     fi
-	done
+done
 }
 
 buildAptioFixPkg() {
 if [[ "${Build_Tool}" != "XCODE" ]]; then
-    return
+    return  # cannot be compiled with GNU gcc atm
 fi
 cd "${DIR_MAIN}"/edk2
 source edksetup.sh BaseTools
 # Create edk tools if necessary
 if  [[ ! -x "${DIR_MAIN}/edk2/BaseTools/Source/C/bin/GenFv" ]]; then
-make -C "${DIR_MAIN}"/edk2/BaseTools CC="gcc -Wno-deprecated-declarations"
+    make -C "${DIR_MAIN}"/edk2/BaseTools CC="gcc -Wno-deprecated-declarations"
 fi
 
 local ncpu=2
