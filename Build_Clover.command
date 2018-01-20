@@ -28,7 +28,7 @@
 #
 
 # --------------------------------------
-SCRIPTVER="v4.6.3"
+SCRIPTVER="v4.6.4"
 export LC_ALL=C
 SYSNAME="$( uname )"
 BUILDER=$USER # don't touch!
@@ -68,6 +68,12 @@ edk2array=(
 	BaseTools
 	)
 
+AptioFixDep=(
+    https://github.com/vit9696/AptioFixPkg.git
+    https://github.com/CupertinoNet/CupertinoModulePkg
+    https://github.com/CupertinoNet/EfiMiscPkg
+    https://github.com/CupertinoNet/EfiPkg
+)
 # ---------------------------->
 # additional macro to compile Clover EFI
 macros=(
@@ -312,7 +318,7 @@ eval "sudo ln -nfs \"${SCRIPT_ABS_LOC}\" $SYMLINKPATH"
 if [[ $? -ne 0 ]] ; then
 	printError "\no_Ops, something wrong, cannot add the symlink..\n"
 	pressAnyKey '\n' noclear
-	sudo -k && build
+	sudo -k && cbuild
 else
 	echo "now is possible to open the Terminal and type \"buildclover\""
 	echo "to simply run Build_Clover.command.."
@@ -768,6 +774,51 @@ fi
 return $result
 }
 # --------------------------------------
+AptioFixPkg() {
+if [[ "${Build_Tool}" != "XCODE" ]]; then
+    return
+fi
+printHeader 'Downloading AptioFixPkg and dependencies'
+
+for link in "${AptioFixDep[@]}"
+do
+    local x=$(basename $link)
+    local c="${x%.git}"
+    local pkg="${c##*/}"
+    printf "\n\e[1;34m${pkg}:\e[0m\n"
+    TIMES=0
+    IsLinkOnline $link
+    if [[ -d "${DIR_MAIN}/edk2/${pkg}" ]] ; then
+        cd "${DIR_MAIN}/edk2/${pkg}"
+        if [[ -d "${DIR_MAIN}/edk2/${pkg}/.svn" ]] ; then
+            svnWithErrorCheck "svn update --accept tf --non-interactive --trust-server-cert" "$(pwd)"
+        else
+            printWarning ".svn missing, the ${pkg} repo may be corrupted, re-downloading...\n"
+            rm -rf ./* > /dev/null 2>&1
+            svnWithErrorCheck "svn co --non-interactive --trust-server-cert ${link}/trunk ."
+        fi
+    else
+        mkdir "${DIR_MAIN}/edk2/${pkg}"
+        cd "${DIR_MAIN}/edk2/${pkg}"
+        svnWithErrorCheck "svn co --non-interactive --trust-server-cert ${link}/trunk ."
+    fi
+	done
+}
+
+buildAptioFixPkg() {
+if [[ "${Build_Tool}" != "XCODE" ]]; then
+    return
+fi
+cd "${DIR_MAIN}"/edk2
+source edksetup.sh BaseTools
+# Create edk tools if necessary
+if  [[ ! -x "${DIR_MAIN}/edk2/BaseTools/Source/C/bin/GenFv" ]]; then
+make -C "${DIR_MAIN}"/edk2/BaseTools CC="gcc -Wno-deprecated-declarations"
+fi
+build -a X64 -b RELEASE -t $BUILDTOOL -p "${DIR_MAIN}"/edk2/AptioFixPkg/AptioFixPkg.dsc
+cd "${DIR_MAIN}"/edk2/Clover
+}
+# --------------------------------------
 edk2() {
 local revision="-r $EDK2_REV"
 local updatelink="https://sourceforge.net/p/cloverefiboot/code/HEAD/tree/update.sh?format=raw"
@@ -1136,7 +1187,7 @@ if [[ -f "${CLOVERV2_PATH}/Bootloaders/x64/boot7-MCP79" ]]; then
 fi
 }
 # --------------------------------------
-build() {
+cbuild() {
 if [[ -d "${DIR_MAIN}/edk2/Clover/.svn" && "$INTERACTIVE" != "NO" ]] ; then
 	echo 'Please enter your choice: '
 	local options=()
@@ -1222,7 +1273,7 @@ if [[ -d "${DIR_MAIN}/edk2/Clover/.svn" && "$INTERACTIVE" != "NO" ]] ; then
 		"add \"buildclover\" symlink to $(dirname $SYMLINKPATH)" \
 		| "restore \"buildclover\" symlink" \
 		| "update \"buildclover\" symlink" ) addSymlink;;
-		"update Build_Clover.command" ) selfUpdate; build;;
+		"update Build_Clover.command" ) selfUpdate; cbuild;;
 		"enter Developers mode (only for devs)" )
 			ClearScreen
 			if [[ -d "${DIR_MAIN}/edk2/Clover" ]] ; then
@@ -1232,7 +1283,7 @@ if [[ -d "${DIR_MAIN}/edk2/Clover/.svn" && "$INTERACTIVE" != "NO" ]] ; then
 				BUILDER=$USER
 				echo "yep... you are a Dev, but at least download Clover firstly :-)"
 			fi
-			build;;
+			cbuild;;
 		"update Clover only (no building)" )
 			UPDATE_FLAG="YES"
 			BUILD_FLAG="NO"
@@ -1327,11 +1378,11 @@ if [[ -d "${DIR_MAIN}/edk2/Clover/.svn" && "$INTERACTIVE" != "NO" ]] ; then
 			showMacros "";;
 		"run my script on the source" )
 			eval "${MY_SCRIPT}" || printHeader "You should export MY_SCRIPT with the path to your script.." && CleanExit;;
-		"Back to Main Menu" ) ClearScreen && BUILDER=$USER && build;;
+		"Back to Main Menu" ) ClearScreen && BUILDER=$USER && cbuild;;
 		"edit the configuration file" ) OsOpen "${userconf}"; CleanExit;;
         "Try Clover Configurator Pro.app" ) OsOpen "https://github.com/Micky1979/Clover-Configurator-Pro"; CleanExit;;
 		"Exit" ) CleanExit;;
-		* ) ClearScreen && echo "invalid option!!" && build;;
+		* ) ClearScreen && echo "invalid option!!" && cbuild;;
 	esac
 else
 	UPDATE_FLAG=YES
@@ -1366,14 +1417,19 @@ fi
 printLine
 
 if [[ "$BUILDER" != 'slice' ]]; then restoreClover; fi
-if [[ "$UPDATE_FLAG" == YES && "$BUILDER" != 'slice' ]]; then getRev; edk2; clover; fi
+if [[ "$UPDATE_FLAG" == YES && "$BUILDER" != 'slice' ]]; then
+getRev
+edk2
+clover
+AptioFixPkg
+fi
 
 if [[ "$INTERACTIVE" != "NO" ]]; then
 	if [[ "$BUILD_FLAG" == "NO" ]]; then
 		ClearScreen
 		# print updated remote and local revision
 		if [[ -d "${DIR_MAIN}"/edk2 ]]; then getRev; printRevisions; fi;
-		build
+		cbuild
 	fi
 fi
 
@@ -1402,7 +1458,7 @@ START_BUILD=$(date)
 if [[ "$SYSNAME" == Darwin ]]; then LTO_FLAG=""; fi
 
 set +e
-
+buildAptioFixPkg
 if [[ "$CUSTOM_BUILD" == NO ]]; then
 	# using standard options
 	case "$ARCH" in
@@ -1465,7 +1521,7 @@ printf '\e[3;0;0t'
 if [[ "$INTERACTIVE" != "NO" ]]; then
 	pressAnyKey "Clover was built successfully!" noclear
 	ClearScreen
-	build
+	cbuild
 else
 	printf "\nClover was built successfully!\n\n"; exit 0
 fi
@@ -1545,7 +1601,7 @@ if [[ -d "${DIR_MAIN}"/edk2 ]]; then getRev; printRevisions; fi;
 if [[ "$LOCAL_REV" -lt "4209" ]]; then macros+=("CHECK_FLAGS"); fi
 
 if [[ "$DISABLE_CLEAR" != "YES" ]]; then printf '\e[8;34;90t'; fi
-build
+cbuild
 }
 # --------------------------------------
 # MAIN CODE
