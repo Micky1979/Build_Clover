@@ -69,10 +69,10 @@ edk2array=(
 	)
 
 AptioFixDep=(
-    https://github.com/vit9696/AptioFixPkg.git
-    https://github.com/CupertinoNet/CupertinoModulePkg
-    https://github.com/CupertinoNet/EfiMiscPkg
-    https://github.com/CupertinoNet/EfiPkg
+	https://github.com/vit9696/AptioFixPkg.git
+	https://github.com/CupertinoNet/CupertinoModulePkg
+	https://github.com/CupertinoNet/EfiMiscPkg
+	https://github.com/CupertinoNet/EfiPkg
 )
 # ---------------------------->
 # additional macro to compile Clover EFI
@@ -118,7 +118,7 @@ var_defaults=(
 	"ForceEDK2Update",,,"0"
 	"ARCH",,,"X64"
 	"FORCEREBUILD",,,"-fr"
-    "SHOWCCP_ADVERTISE",,,"YES"
+	"SHOWCCP_ADVERTISE",,,"YES"
 	)
 # --------------------------------------
 # FUNCTIONS
@@ -310,7 +310,7 @@ ClearScreen
 if [[ ! -d "$(dirname $SYMLINKPATH)" ]]; then
 	printError "$(dirname $SYMLINKPATH) does not exist, cannot add a symlink..\n"
 	pressAnyKey '\n'
-	build
+	cbuild
 fi
 [[ "$USER" != root ]] && echo "type your password to add the symlink:"
 [[ -d "${SYMLINKPATH}" ]] && sudo rm -rf "${SYMLINKPATH}" # just in case there's a folder with the same name
@@ -541,7 +541,7 @@ case $opt in
 	1 ) ARCH="X64";;
 	2 ) ARCH="IA32_X64";;
 	3 ) ARCH="IA32";;
-	4 ) ClearScreen && BUILDER=$USER && build;;
+	4 ) ClearScreen && BUILDER=$USER && cbuild;;
 	5 ) CleanExit;;
 	* ) selectArch "invalid choice!";;
 esac
@@ -782,45 +782,45 @@ printHeader 'Downloading AptioFixPkg and dependencies'
 
 for link in "${AptioFixDep[@]}"
 do
-    local x=$(basename $link)
-    local c="${x%.git}"
-    local pkg="${c##*/}"
-    printf "\n\e[1;34m${pkg}:\e[0m\n"
-    TIMES=0
-    IsLinkOnline $link
-    if [[ -d "${DIR_MAIN}/edk2/${pkg}" ]] ; then
-        cd "${DIR_MAIN}/edk2/${pkg}"
-        if [[ -d "${DIR_MAIN}/edk2/${pkg}/.svn" ]] ; then
-            svnWithErrorCheck "svn update --accept tf --non-interactive --trust-server-cert" "$(pwd)"
-        else
-            printWarning ".svn missing, the ${pkg} repo may be corrupted, re-downloading...\n"
-            rm -rf ./* > /dev/null 2>&1
-            svnWithErrorCheck "svn co --non-interactive --trust-server-cert ${link}/trunk ."
-        fi
-    else
-        mkdir "${DIR_MAIN}/edk2/${pkg}"
-        cd "${DIR_MAIN}/edk2/${pkg}"
-        svnWithErrorCheck "svn co --non-interactive --trust-server-cert ${link}/trunk ."
-    fi
+	local x=$(basename $link)
+	local c="${x%.git}"
+	local pkg="${c##*/}"
+	printf "\n\e[1;34m${pkg}:\e[0m\n"
+	TIMES=0
+	IsLinkOnline $link
+	if [[ -d "${DIR_MAIN}/edk2/${pkg}" ]] ; then
+		cd "${DIR_MAIN}/edk2/${pkg}"
+		if [[ -d "${DIR_MAIN}/edk2/${pkg}/.svn" ]] ; then
+			svnWithErrorCheck "svn update --accept tf --non-interactive --trust-server-cert" "$(pwd)"
+		else
+			printWarning ".svn missing, the ${pkg} repo may be corrupted, re-downloading...\n"
+			rm -rf ./* > /dev/null 2>&1
+			svnWithErrorCheck "svn co --non-interactive --trust-server-cert ${link}/trunk ."
+		fi
+	else
+		mkdir "${DIR_MAIN}/edk2/${pkg}"
+		cd "${DIR_MAIN}/edk2/${pkg}"
+		svnWithErrorCheck "svn co --non-interactive --trust-server-cert ${link}/trunk ."
+	fi
 done
 }
 
 buildAptioFixPkg() {
 if [[ "${Build_Tool}" != "XCODE" ]]; then
-    return  # cannot be compiled with GNU gcc atm
+	return  # cannot be compiled with GNU gcc atm
 fi
 cd "${DIR_MAIN}"/edk2
 source edksetup.sh BaseTools
 # Create edk tools if necessary
-if  [[ ! -x "${DIR_MAIN}/edk2/BaseTools/Source/C/bin/GenFv" ]]; then
-    make -C "${DIR_MAIN}"/edk2/BaseTools CC="gcc -Wno-deprecated-declarations"
+if [[ ! -x "${DIR_MAIN}/edk2/BaseTools/Source/C/bin/GenFv" ]]; then
+	make -C "${DIR_MAIN}"/edk2/BaseTools CC="gcc -Wno-deprecated-declarations"
 fi
 
 local ncpu=2
 if [[ "$SYSNAME" == Linux ]]; then
-    ncpu=$(( $(nproc) + 1 ))
+	ncpu=$(( $(nproc) + 1 ))
 else
-    ncpu=$(( $(sysctl -n hw.logicalcpu) + 1 ))
+	ncpu=$(( $(sysctl -n hw.logicalcpu) + 1 ))
 fi
 build -a X64 -b RELEASE -t $BUILDTOOL -n $ncpu -p "${DIR_MAIN}"/edk2/AptioFixPkg/AptioFixPkg.dsc
 cd "${DIR_MAIN}"/edk2/Clover
@@ -1240,11 +1240,11 @@ if [[ -d "${DIR_MAIN}/edk2/Clover/.svn" && "$INTERACTIVE" != "NO" ]] ; then
 		options+=("build existing revision for release (no update, standard build)")
 		options+=("build existing revision with custom macros enabled")
 		options+=("enter Developers mode (only for devs)")
-        if [[ "$SHOWCCP_ADVERTISE" == YES ]]; then
-        if [[ ! -f "${HOME}"/Library/Preferences/com.m79softwares.Clover-Configurator-Pro.plist ]]; then
-            options+=("Try Clover Configurator Pro.app")
-        fi
-        fi
+		if [[ "$SHOWCCP_ADVERTISE" == YES ]]; then
+			if [[ ! -f "${HOME}"/Library/Preferences/com.m79softwares.Clover-Configurator-Pro.plist ]]; then
+				options+=("Try Clover Configurator Pro.app")
+			fi
+		fi
 		options+=("edit the configuration file")
 		options+=("Exit")
 	fi
@@ -1387,7 +1387,7 @@ if [[ -d "${DIR_MAIN}/edk2/Clover/.svn" && "$INTERACTIVE" != "NO" ]] ; then
 			eval "${MY_SCRIPT}" || printHeader "You should export MY_SCRIPT with the path to your script.." && CleanExit;;
 		"Back to Main Menu" ) ClearScreen && BUILDER=$USER && cbuild;;
 		"edit the configuration file" ) OsOpen "${userconf}"; CleanExit;;
-        "Try Clover Configurator Pro.app" ) OsOpen "https://github.com/Micky1979/Clover-Configurator-Pro"; CleanExit;;
+		"Try Clover Configurator Pro.app" ) OsOpen "https://github.com/Micky1979/Clover-Configurator-Pro"; CleanExit;;
 		"Exit" ) CleanExit;;
 		* ) ClearScreen && echo "invalid option!!" && cbuild;;
 	esac
