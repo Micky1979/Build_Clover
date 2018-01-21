@@ -29,7 +29,7 @@
 #
 
 # --------------------------------------
-SCRIPTVER="v4.6.5"
+SCRIPTVER="v4.6.6"
 export LC_ALL=C
 SYSNAME="$( uname )"
 BUILDER=$USER # don't touch!
@@ -116,7 +116,8 @@ var_defaults=(
 	"MY_SCRIPT",,,
 	"FAST_UPDATE",,,"NO"
 	"INTERACTIVE",,,"YES"
-	"ForceEDK2Update",,,"0"
+  "SVN_UPDATE_ACCEPT_ARG",,,"tf"
+  "ForceEDK2Update",,,"0"
 	"ARCH",,,"X64"
 	"FORCEREBUILD",,,"-fr"
 	"SHOWCCP_ADVERTISE",,,"YES"
@@ -687,7 +688,7 @@ pathmunge "$TOOLCHAIN_DIR"/bin
 }
 # --------------------------------------
 svnWithErrorCheck() {
-# $1 = svn command to be execute
+# $1 = arguments for the svn command to be execute (svn command is added here for security reason)
 # $2 = containing folder of our /.svn we are attempting to work on
 # $3 = reserved argument ("once") indicating we are calling 'svn resolve'
 # $4 = reserved argument equal to initial $1 command string
@@ -699,9 +700,9 @@ if [[ -n "${4}" ]]; then cmd="${4}"; fi
 
 echo "" > "${SVN_STDERR_LOG}"
 if [[ ! -x $(which tee) ]]; then
-	eval "${cmd}" 2> "${SVN_STDERR_LOG}"
+	eval "svn ${cmd}" 2> "${SVN_STDERR_LOG}"
 else
-	eval "${cmd}" 2>&1  | tee -a "${SVN_STDERR_LOG}"
+	eval "svn ${cmd}" 2>&1  | tee -a "${SVN_STDERR_LOG}"
 fi
 
 local errors=(
@@ -718,7 +719,7 @@ if [[ -n "${2}" && "${3}" != once ]]; then
 	if grep -q "Tree conflict can only be resolved to 'working' state" "${SVN_STDERR_LOG}" || \
 		grep -q "Node remains in conflict" "${SVN_STDERR_LOG}"; then
 		printWarning "Calling svn resolve..\n"
-		svnWithErrorCheck "svn resolve ${2}" "${2}" once "${1}"
+		svnWithErrorCheck "resolve ${2}" "${2}" once "${1}"
 	fi
 fi
 
@@ -792,18 +793,25 @@ do
 	if [[ -d "${DIR_MAIN}/edk2/${pkg}" ]] ; then
 		cd "${DIR_MAIN}/edk2/${pkg}"
 		if [[ -d "${DIR_MAIN}/edk2/${pkg}/.svn" ]] ; then
-			svnWithErrorCheck "svn update --accept tf --non-interactive --trust-server-cert" "$(pwd)"
+      local localRev=$(svn info "${DIR_MAIN}/edk2/${pkg}" | grep '^Revision:' | tr -cd [:digit:])
+      local remoteRev=$(svn info ${link} | grep '^Revision:' | tr -cd [:digit:])
+      if [[ "$localRev" != "$remoteRev" ]]; then
+        svnWithErrorCheck "update --accept $SVN_UPDATE_ACCEPT_ARG --non-interactive --trust-server-cert" "$(pwd)"
+      else
+        echo "r${localRev} is already at the latest version"
+      fi
 		else
 			printWarning ".svn missing, the ${pkg} repo may be corrupted, re-downloading...\n"
 			rm -rf ./* > /dev/null 2>&1
-			svnWithErrorCheck "svn co --non-interactive --trust-server-cert ${link}/trunk ."
+			svnWithErrorCheck "co --non-interactive --trust-server-cert ${link}/trunk ."
 		fi
 	else
 		mkdir "${DIR_MAIN}/edk2/${pkg}"
 		cd "${DIR_MAIN}/edk2/${pkg}"
-		svnWithErrorCheck "svn co --non-interactive --trust-server-cert ${link}/trunk ."
+		svnWithErrorCheck "co --non-interactive --trust-server-cert ${link}/trunk ."
 	fi
 done
+ClearScreen
 }
 
 buildAptioFixPkg() {
@@ -869,10 +877,10 @@ else
 	cd "${DIR_MAIN}"/edk2
 	IsLinkOnline $EDK2_REP
 	# I want ".svn", also empty at the specified revision! .. so I can update!
-	svnWithErrorCheck "svn --depth empty co $revision --non-interactive --trust-server-cert $EDK2_REP ."
+	svnWithErrorCheck "--depth empty co $revision --non-interactive --trust-server-cert $EDK2_REP ."
 	printf "\n\e[1;34medksetup.sh:\e[0m\n"
 	IsLinkOnline $EDK2_REP/edksetup.sh
-	svnWithErrorCheck "svn update --accept tf --non-interactive --trust-server-cert $revision edksetup.sh" "$(pwd)"
+	svnWithErrorCheck "update --accept $SVN_UPDATE_ACCEPT_ARG --non-interactive --trust-server-cert $revision edksetup.sh" "$(pwd)"
 	for d in "${edk2array[@]}"
 	do
 		if [[ "$d" != "Source" && "$d" != "Scripts" ]]; then
@@ -883,17 +891,17 @@ else
 			if [[ -d "${DIR_MAIN}/edk2/${d}" ]] ; then
 				if [[ -d "${DIR_MAIN}/edk2/${d}/.svn" ]] ; then
 					cd "${DIR_MAIN}/edk2/${d}"
-					svnWithErrorCheck "svn update --accept tf --non-interactive --trust-server-cert $revision" "$(pwd)"
+					svnWithErrorCheck "update --accept $SVN_UPDATE_ACCEPT_ARG --non-interactive --trust-server-cert $revision" "$(pwd)"
 					if [[ "$d" == "BaseTools" ]]; then ForceEDK2Update=1979; fi
 				else
 					printWarning ".svn missing, the ${d} repo may be corrupted, re-downloading...\n"
 					cd "${DIR_MAIN}/edk2/${d}"
 					rm -rf ./* > /dev/null 2>&1
-					svnWithErrorCheck "svn co $revision --non-interactive --trust-server-cert $EDK2_REP/${d} ."
+					svnWithErrorCheck "co $revision --non-interactive --trust-server-cert $EDK2_REP/${d} ."
 				fi
 			else
 				cd "${DIR_MAIN}"/edk2
-				svnWithErrorCheck "svn co $revision --non-interactive --trust-server-cert $EDK2_REP/${d}"
+				svnWithErrorCheck "co $revision --non-interactive --trust-server-cert $EDK2_REP/${d}"
 			fi
 		fi
 	done
@@ -918,7 +926,7 @@ if [[ -z "$SUGGESTED_CLOVER_REV" ]]; then
 		printHeader 'Downloading Clover, using the latest revision'
 		if IsNumericOnly "${REMOTE_REV}"; then
 			mkdir -p "${DIR_MAIN}"/edk2/Clover
-			cmd="svn co -r $REMOTE_REV --non-interactive --trust-server-cert ${CLOVER_REP} ."
+			cmd="co -r $REMOTE_REV --non-interactive --trust-server-cert ${CLOVER_REP} ."
 		else
 			printError "Unable to get latest Clover revision, check your internet connection or try later.\n"
 			exit 1
@@ -927,25 +935,25 @@ if [[ -z "$SUGGESTED_CLOVER_REV" ]]; then
 		if [[ "${LOCAL_REV}" == "" ]]; then
 			printHeader 'Clover local repo not found or damaged, downloading the latest revision'
 			rm -rf "${DIR_MAIN}"/edk2/Clover/* > /dev/null 2>&1
-			cmd="svn co -r $REMOTE_REV --non-interactive --trust-server-cert ${CLOVER_REP} ."
+			cmd="co -r $REMOTE_REV --non-interactive --trust-server-cert ${CLOVER_REP} ."
 		else
 			printHeader 'Updating Clover, using the latest revision'
-			cmd="svn up --accept tf --non-interactive --trust-server-cert"
+			cmd="up --accept $SVN_UPDATE_ACCEPT_ARG --non-interactive --trust-server-cert"
 		fi
 	fi
 else
 	if [[ ! -d "${DIR_MAIN}/edk2/Clover" ]] ; then
 		printHeader "Downloading Clover, using the specific revision r${SUGGESTED_CLOVER_REV}"
 		mkdir -p "${DIR_MAIN}"/edk2/Clover
-		cmd="svn co -r $SUGGESTED_CLOVER_REV --non-interactive --trust-server-cert ${CLOVER_REP} ."
+		cmd="co -r $SUGGESTED_CLOVER_REV --non-interactive --trust-server-cert ${CLOVER_REP} ."
 	else
 		if [[ "${LOCAL_REV}" == "" ]]; then
 			printHeader "Clover local repo not found or damaged, downloading the specific revision r${SUGGESTED_CLOVER_REV}"
 			rm -rf "${DIR_MAIN}"/edk2/Clover/* > /dev/null 2>&1
-			cmd="svn co -r $SUGGESTED_CLOVER_REV --non-interactive --trust-server-cert ${CLOVER_REP} ."
+			cmd="co -r $SUGGESTED_CLOVER_REV --non-interactive --trust-server-cert ${CLOVER_REP} ."
 		else 
 			printHeader "Updating Clover, using the specific revision r${SUGGESTED_CLOVER_REV}"
-			cmd="svn up --accept tf --non-interactive --trust-server-cert -r $SUGGESTED_CLOVER_REV"
+			cmd="up --accept $SVN_UPDATE_ACCEPT_ARG --non-interactive --trust-server-cert -r $SUGGESTED_CLOVER_REV"
 		fi
 	fi
 fi
