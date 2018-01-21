@@ -1,7 +1,7 @@
 #!/bin/bash
 #set -x
 
-# made by Micky1979 on 07/05/2016 based on Slice, Zenith432, STLVNUB, JrCs, cvad, Rehabman, and ErmaC works
+# made by Micky1979 on 07/05/2016 based on Slice, apianti, Zenith432, STLVNUB, JrCs, cvad, Rehabman, and ErmaC works
 
 # Tested in OSX using both GNU gcc and clang (Xcode 6.4, 7.2.1, 7.3.1 and Xcode 8).
 # Preferred OS is El Capitan with Xcode >= 7.3.1 and Sierra with Xcode >= 8.
@@ -22,8 +22,9 @@
 #
 # Big thanks to the following testers:
 # droples, Riley Freeman, pico joe, fantomas1, Fljagd, calibre, Mork vom Ork, Maniac10, Matgen84,
-# Sherlocks, ellaosx, magnifico, AsusFreak, badruzeus, LabyOne, Ukr55, D-an-W, SavageAUS, bronxteck,
-# artur_pt
+# Sherlocks, ellaosx, magnifico, AsusFreak, Badruzeus, LabyOne, Ukr55, D-an-W, SavageAUS, bronxteck,
+# artur_pt, Didanix, polkaholga, Regi Yassin, cyberdevs, ricoc90, tluck, PMheart, fusion71au, ctich,
+# FredWst, Nightf4ll, BluemaP1E
 # and all others (I'll be happy to increase this list and to not forgot anyone)
 #
 
@@ -776,7 +777,7 @@ return $result
 # --------------------------------------
 AptioFixPkg() {
 if [[ "${Build_Tool}" != "XCODE" ]]; then
-    return # cannot be compiled with GNU gcc atm 
+    return # cannot be compiled with GNU gcc atm
 fi
 printHeader 'Downloading AptioFixPkg and dependencies'
 
@@ -1599,7 +1600,7 @@ esac
 
 # print local Script revision with relative info
 printCloverScriptRev
-printHeader "By Micky1979 based on Slice, Zenith432, STLVNUB, JrCs, cecekpawon, Needy,\ncvad, Rehabman, philip_petev, ErmaC\n\nSupported OSes: macOS X, Ubuntu (16.04/16.10), Debian Jessie and Stretch"
+printHeader "By Micky1979 based on Slice, apianti, vit9696, Download Fritz, Zenith432,\nSTLVNUB, JrCs,cecekpawon, Needy, cvad, Rehabman, philip_petev, ErmaC\n\nSupported OSes: macOS X, Ubuntu (16.04/16.10), Debian Jessie and Stretch"
 
 # print the remote and the local revision
 if [[ -d "${DIR_MAIN}"/edk2 ]]; then getRev; printRevisions; fi;
