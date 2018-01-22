@@ -1,7 +1,7 @@
 #!/bin/bash
 #set -x
 
-# made by Micky1979 on 07/05/2016 based on Slice, Zenith432, STLVNUB, JrCs, cvad, Rehabman, and ErmaC works
+# made by Micky1979 on 07/05/2016 based on Slice, apianti, Zenith432, STLVNUB, JrCs, cvad, Rehabman, and ErmaC works
 
 # Tested in OSX using both GNU gcc and clang (Xcode 6.4, 7.2.1, 7.3.1 and Xcode 8).
 # Preferred OS is El Capitan with Xcode >= 7.3.1 and Sierra with Xcode >= 8.
@@ -22,13 +22,14 @@
 #
 # Big thanks to the following testers:
 # droples, Riley Freeman, pico joe, fantomas1, Fljagd, calibre, Mork vom Ork, Maniac10, Matgen84,
-# Sherlocks, ellaosx, magnifico, AsusFreak, badruzeus, LabyOne, Ukr55, D-an-W, SavageAUS, bronxteck,
-# artur_pt
+# Sherlocks, ellaosx, magnifico, AsusFreak, Badruzeus, LabyOne, Ukr55, D-an-W, SavageAUS, bronxteck,
+# artur_pt, Didanix, polkaholga, Regi Yassin, cyberdevs, ricoc90, tluck, PMheart, fusion71au, ctich,
+# FredWst, Nightf4ll, BluemaP1E
 # and all others (I'll be happy to increase this list and to not forgot anyone)
 #
 
 # --------------------------------------
-SCRIPTVER="v4.6.3"
+SCRIPTVER="v4.6.6"
 export LC_ALL=C
 SYSNAME="$( uname )"
 BUILDER=$USER # don't touch!
@@ -68,6 +69,12 @@ edk2array=(
 	BaseTools
 	)
 
+AptioFixDep=(
+	https://github.com/vit9696/AptioFixPkg.git
+	https://github.com/CupertinoNet/CupertinoModulePkg
+	https://github.com/CupertinoNet/EfiMiscPkg
+	https://github.com/CupertinoNet/EfiPkg
+)
 # ---------------------------->
 # additional macro to compile Clover EFI
 macros=(
@@ -109,10 +116,11 @@ var_defaults=(
 	"MY_SCRIPT",,,
 	"FAST_UPDATE",,,"NO"
 	"INTERACTIVE",,,"YES"
+	"SVN_UPDATE_ACCEPT_ARG",,,"tf"
 	"ForceEDK2Update",,,"0"
 	"ARCH",,,"X64"
 	"FORCEREBUILD",,,"-fr"
-    "SHOWCCP_ADVERTISE",,,"YES"
+	"SHOWCCP_ADVERTISE",,,"YES"
 	)
 # --------------------------------------
 # FUNCTIONS
@@ -304,7 +312,7 @@ ClearScreen
 if [[ ! -d "$(dirname $SYMLINKPATH)" ]]; then
 	printError "$(dirname $SYMLINKPATH) does not exist, cannot add a symlink..\n"
 	pressAnyKey '\n'
-	build
+	cbuild
 fi
 [[ "$USER" != root ]] && echo "type your password to add the symlink:"
 [[ -d "${SYMLINKPATH}" ]] && sudo rm -rf "${SYMLINKPATH}" # just in case there's a folder with the same name
@@ -312,7 +320,7 @@ eval "sudo ln -nfs \"${SCRIPT_ABS_LOC}\" $SYMLINKPATH"
 if [[ $? -ne 0 ]] ; then
 	printError "\no_Ops, something wrong, cannot add the symlink..\n"
 	pressAnyKey '\n' noclear
-	sudo -k && build
+	sudo -k && cbuild
 else
 	echo "now is possible to open the Terminal and type \"buildclover\""
 	echo "to simply run Build_Clover.command.."
@@ -535,7 +543,7 @@ case $opt in
 	1 ) ARCH="X64";;
 	2 ) ARCH="IA32_X64";;
 	3 ) ARCH="IA32";;
-	4 ) ClearScreen && BUILDER=$USER && build;;
+	4 ) ClearScreen && BUILDER=$USER && cbuild;;
 	5 ) CleanExit;;
 	* ) selectArch "invalid choice!";;
 esac
@@ -592,7 +600,7 @@ c2paths=(
 	"drivers-Off/drivers32UEFI"
 	"drivers-Off/drivers64"
 	"drivers-Off/drivers64UEFI"
-)
+	)
 if [[ -d "${CLOVERV2_PATH}" ]]; then
 	for i in "${c2paths[@]}"
 	do
@@ -680,7 +688,7 @@ pathmunge "$TOOLCHAIN_DIR"/bin
 }
 # --------------------------------------
 svnWithErrorCheck() {
-# $1 = svn command to be execute
+# $1 = arguments for the svn command to be execute (svn command is added here for security reason)
 # $2 = containing folder of our /.svn we are attempting to work on
 # $3 = reserved argument ("once") indicating we are calling 'svn resolve'
 # $4 = reserved argument equal to initial $1 command string
@@ -692,9 +700,9 @@ if [[ -n "${4}" ]]; then cmd="${4}"; fi
 
 echo "" > "${SVN_STDERR_LOG}"
 if [[ ! -x $(which tee) ]]; then
-	eval "${cmd}" 2> "${SVN_STDERR_LOG}"
+	eval "svn ${cmd}" 2> "${SVN_STDERR_LOG}"
 else
-	eval "${cmd}" 2>&1  | tee -a "${SVN_STDERR_LOG}"
+	eval "svn ${cmd}" 2>&1  | tee -a "${SVN_STDERR_LOG}"
 fi
 
 local errors=(
@@ -711,7 +719,7 @@ if [[ -n "${2}" && "${3}" != once ]]; then
 	if grep -q "Tree conflict can only be resolved to 'working' state" "${SVN_STDERR_LOG}" || \
 		grep -q "Node remains in conflict" "${SVN_STDERR_LOG}"; then
 		printWarning "Calling svn resolve..\n"
-		svnWithErrorCheck "svn resolve ${2}" "${2}" once "${1}"
+		svnWithErrorCheck "resolve ${2}" "${2}" once "${1}"
 	fi
 fi
 
@@ -768,6 +776,65 @@ fi
 return $result
 }
 # --------------------------------------
+AptioFixPkg() {
+if [[ "${Build_Tool}" != "XCODE" ]]; then
+	return # cannot be compiled with GNU gcc atm
+fi
+printHeader 'Downloading AptioFixPkg and dependencies'
+
+for link in "${AptioFixDep[@]}"
+do
+	local x=$(basename $link)
+	local c="${x%.git}"
+	local pkg="${c##*/}"
+	printf "\n\e[1;34m${pkg}:\e[0m\n"
+	TIMES=0
+	IsLinkOnline $link
+	if [[ -d "${DIR_MAIN}/edk2/${pkg}" ]] ; then
+		cd "${DIR_MAIN}/edk2/${pkg}"
+		if [[ -d "${DIR_MAIN}/edk2/${pkg}/.svn" ]] ; then
+			local localRev=$(svn info "${DIR_MAIN}/edk2/${pkg}" | grep '^Revision:' | tr -cd [:digit:])
+			local remoteRev=$(svn info ${link} | grep '^Revision:' | tr -cd [:digit:])
+			if [[ "$localRev" != "$remoteRev" ]]; then
+				svnWithErrorCheck "update --accept $SVN_UPDATE_ACCEPT_ARG --non-interactive --trust-server-cert" "$(pwd)"
+			else
+				echo "r${localRev} is already the latest version."
+			fi
+		else
+			printWarning ".svn missing, the ${pkg} repo may be corrupted, re-downloading...\n"
+			rm -rf ./* > /dev/null 2>&1
+			svnWithErrorCheck "co --non-interactive --trust-server-cert ${link}/trunk ."
+		fi
+	else
+		mkdir "${DIR_MAIN}/edk2/${pkg}"
+		cd "${DIR_MAIN}/edk2/${pkg}"
+		svnWithErrorCheck "co --non-interactive --trust-server-cert ${link}/trunk ."
+	fi
+done
+ClearScreen
+}
+
+buildAptioFixPkg() {
+if [[ "${Build_Tool}" != "XCODE" ]]; then
+	return  # cannot be compiled with GNU gcc atm
+fi
+cd "${DIR_MAIN}"/edk2
+source edksetup.sh BaseTools
+# Create edk tools if necessary
+if [[ ! -x "${DIR_MAIN}/edk2/BaseTools/Source/C/bin/GenFv" ]]; then
+	make -C "${DIR_MAIN}"/edk2/BaseTools CC="gcc -Wno-deprecated-declarations"
+fi
+
+local ncpu=2
+if [[ "$SYSNAME" == Linux ]]; then
+	ncpu=$(( $(nproc) + 1 ))
+else
+	ncpu=$(( $(sysctl -n hw.logicalcpu) + 1 ))
+fi
+build -a X64 -b RELEASE -t $BUILDTOOL -n $ncpu -p "${DIR_MAIN}"/edk2/AptioFixPkg/AptioFixPkg.dsc
+cd "${DIR_MAIN}"/edk2/Clover
+}
+# --------------------------------------
 edk2() {
 local revision="-r $EDK2_REV"
 local updatelink="https://sourceforge.net/p/cloverefiboot/code/HEAD/tree/update.sh?format=raw"
@@ -810,10 +877,10 @@ else
 	cd "${DIR_MAIN}"/edk2
 	IsLinkOnline $EDK2_REP
 	# I want ".svn", also empty at the specified revision! .. so I can update!
-	svnWithErrorCheck "svn --depth empty co $revision --non-interactive --trust-server-cert $EDK2_REP ."
+	svnWithErrorCheck "--depth empty co $revision --non-interactive --trust-server-cert $EDK2_REP ."
 	printf "\n\e[1;34medksetup.sh:\e[0m\n"
 	IsLinkOnline $EDK2_REP/edksetup.sh
-	svnWithErrorCheck "svn update --accept tf --non-interactive --trust-server-cert $revision edksetup.sh" "$(pwd)"
+	svnWithErrorCheck "update --accept $SVN_UPDATE_ACCEPT_ARG --non-interactive --trust-server-cert $revision edksetup.sh" "$(pwd)"
 	for d in "${edk2array[@]}"
 	do
 		if [[ "$d" != "Source" && "$d" != "Scripts" ]]; then
@@ -824,26 +891,26 @@ else
 			if [[ -d "${DIR_MAIN}/edk2/${d}" ]] ; then
 				if [[ -d "${DIR_MAIN}/edk2/${d}/.svn" ]] ; then
 					cd "${DIR_MAIN}/edk2/${d}"
-					svnWithErrorCheck "svn update --accept tf --non-interactive --trust-server-cert $revision" "$(pwd)"
+					svnWithErrorCheck "update --accept $SVN_UPDATE_ACCEPT_ARG --non-interactive --trust-server-cert $revision" "$(pwd)"
 					if [[ "$d" == "BaseTools" ]]; then ForceEDK2Update=1979; fi
 				else
 					printWarning ".svn missing, the ${d} repo may be corrupted, re-downloading...\n"
 					cd "${DIR_MAIN}/edk2/${d}"
 					rm -rf ./* > /dev/null 2>&1
-					svnWithErrorCheck "svn co $revision --non-interactive --trust-server-cert $EDK2_REP/${d} ."
+					svnWithErrorCheck "co $revision --non-interactive --trust-server-cert $EDK2_REP/${d} ."
 				fi
 			else
 				cd "${DIR_MAIN}"/edk2
-				svnWithErrorCheck "svn co $revision --non-interactive --trust-server-cert $EDK2_REP/${d}"
+				svnWithErrorCheck "co $revision --non-interactive --trust-server-cert $EDK2_REP/${d}"
 			fi
 		fi
 	done
 	if [[ "$ForceEDK2Update" -eq "1979" ]]; then
 		printHeader "cleaning BaseTools and Clover / Clover Package"
 		echo
-		if [[ -d "${DIR_MAIN}/edk2/BaseTools" ]]; then cd "${DIR_MAIN}/edk2/BaseTools"; make clean; fi
-		if [[ -d "${DIR_MAIN}/edk2/Clover" ]]; then cd "${DIR_MAIN}/edk2/Clover"; ./ebuild.sh clean -t $BUILDTOOL; fi
+		if [[ -d "${DIR_MAIN}/edk2/Clover" ]]; then cd "${DIR_MAIN}/edk2/Clover"; ./ebuild.sh cleanall -t $BUILDTOOL; fi
 		if [[ -d "${DIR_MAIN}/edk2/Clover/CloverPackage" ]]; then cd "${DIR_MAIN}/edk2/Clover/CloverPackage"; make clean; fi
+		if [[ -d "${DIR_MAIN}/edk2/Build/AptioFixPkg" ]]; then rm -rf "${DIR_MAIN}/edk2/Build/AptioFixPkg"; fi
 		FORCEREBUILD="-fr"
 	fi
 	ForceEDK2Update=0
@@ -859,7 +926,7 @@ if [[ -z "$SUGGESTED_CLOVER_REV" ]]; then
 		printHeader 'Downloading Clover, using the latest revision'
 		if IsNumericOnly "${REMOTE_REV}"; then
 			mkdir -p "${DIR_MAIN}"/edk2/Clover
-			cmd="svn co -r $REMOTE_REV --non-interactive --trust-server-cert ${CLOVER_REP} ."
+			cmd="co -r $REMOTE_REV --non-interactive --trust-server-cert ${CLOVER_REP} ."
 		else
 			printError "Unable to get latest Clover revision, check your internet connection or try later.\n"
 			exit 1
@@ -868,25 +935,25 @@ if [[ -z "$SUGGESTED_CLOVER_REV" ]]; then
 		if [[ "${LOCAL_REV}" == "" ]]; then
 			printHeader 'Clover local repo not found or damaged, downloading the latest revision'
 			rm -rf "${DIR_MAIN}"/edk2/Clover/* > /dev/null 2>&1
-			cmd="svn co -r $REMOTE_REV --non-interactive --trust-server-cert ${CLOVER_REP} ."
+			cmd="co -r $REMOTE_REV --non-interactive --trust-server-cert ${CLOVER_REP} ."
 		else
 			printHeader 'Updating Clover, using the latest revision'
-			cmd="svn up --accept tf --non-interactive --trust-server-cert"
+			cmd="up --accept $SVN_UPDATE_ACCEPT_ARG --non-interactive --trust-server-cert"
 		fi
 	fi
 else
 	if [[ ! -d "${DIR_MAIN}/edk2/Clover" ]] ; then
 		printHeader "Downloading Clover, using the specific revision r${SUGGESTED_CLOVER_REV}"
 		mkdir -p "${DIR_MAIN}"/edk2/Clover
-		cmd="svn co -r $SUGGESTED_CLOVER_REV --non-interactive --trust-server-cert ${CLOVER_REP} ."
+		cmd="co -r $SUGGESTED_CLOVER_REV --non-interactive --trust-server-cert ${CLOVER_REP} ."
 	else
 		if [[ "${LOCAL_REV}" == "" ]]; then
 			printHeader "Clover local repo not found or damaged, downloading the specific revision r${SUGGESTED_CLOVER_REV}"
 			rm -rf "${DIR_MAIN}"/edk2/Clover/* > /dev/null 2>&1
-			cmd="svn co -r $SUGGESTED_CLOVER_REV --non-interactive --trust-server-cert ${CLOVER_REP} ."
+			cmd="co -r $SUGGESTED_CLOVER_REV --non-interactive --trust-server-cert ${CLOVER_REP} ."
 		else 
 			printHeader "Updating Clover, using the specific revision r${SUGGESTED_CLOVER_REV}"
-			cmd="svn up --accept tf --non-interactive --trust-server-cert -r $SUGGESTED_CLOVER_REV"
+			cmd="up --accept $SVN_UPDATE_ACCEPT_ARG --non-interactive --trust-server-cert -r $SUGGESTED_CLOVER_REV"
 		fi
 	fi
 fi
@@ -1136,7 +1203,7 @@ if [[ -f "${CLOVERV2_PATH}/Bootloaders/x64/boot7-MCP79" ]]; then
 fi
 }
 # --------------------------------------
-build() {
+cbuild() {
 if [[ -d "${DIR_MAIN}/edk2/Clover/.svn" && "$INTERACTIVE" != "NO" ]] ; then
 	echo 'Please enter your choice: '
 	local options=()
@@ -1182,11 +1249,11 @@ if [[ -d "${DIR_MAIN}/edk2/Clover/.svn" && "$INTERACTIVE" != "NO" ]] ; then
 		options+=("build existing revision for release (no update, standard build)")
 		options+=("build existing revision with custom macros enabled")
 		options+=("enter Developers mode (only for devs)")
-        if [[ "$SHOWCCP_ADVERTISE" == YES ]]; then
-        if [[ ! -f "${HOME}"/Library/Preferences/com.m79softwares.Clover-Configurator-Pro.plist ]]; then
-            options+=("Try Clover Configurator Pro.app")
-        fi
-        fi
+		if [[ "$SHOWCCP_ADVERTISE" == YES ]]; then
+			if [[ ! -f "${HOME}"/Library/Preferences/com.m79softwares.Clover-Configurator-Pro.plist ]]; then
+				options+=("Try Clover Configurator Pro.app")
+			fi
+		fi
 		options+=("edit the configuration file")
 		options+=("Exit")
 	fi
@@ -1222,7 +1289,7 @@ if [[ -d "${DIR_MAIN}/edk2/Clover/.svn" && "$INTERACTIVE" != "NO" ]] ; then
 		"add \"buildclover\" symlink to $(dirname $SYMLINKPATH)" \
 		| "restore \"buildclover\" symlink" \
 		| "update \"buildclover\" symlink" ) addSymlink;;
-		"update Build_Clover.command" ) selfUpdate; build;;
+		"update Build_Clover.command" ) selfUpdate; cbuild;;
 		"enter Developers mode (only for devs)" )
 			ClearScreen
 			if [[ -d "${DIR_MAIN}/edk2/Clover" ]] ; then
@@ -1232,7 +1299,7 @@ if [[ -d "${DIR_MAIN}/edk2/Clover/.svn" && "$INTERACTIVE" != "NO" ]] ; then
 				BUILDER=$USER
 				echo "yep... you are a Dev, but at least download Clover firstly :-)"
 			fi
-			build;;
+			cbuild;;
 		"update Clover only (no building)" )
 			UPDATE_FLAG="YES"
 			BUILD_FLAG="NO"
@@ -1327,11 +1394,11 @@ if [[ -d "${DIR_MAIN}/edk2/Clover/.svn" && "$INTERACTIVE" != "NO" ]] ; then
 			showMacros "";;
 		"run my script on the source" )
 			eval "${MY_SCRIPT}" || printHeader "You should export MY_SCRIPT with the path to your script.." && CleanExit;;
-		"Back to Main Menu" ) ClearScreen && BUILDER=$USER && build;;
+		"Back to Main Menu" ) ClearScreen && BUILDER=$USER && cbuild;;
 		"edit the configuration file" ) OsOpen "${userconf}"; CleanExit;;
-        "Try Clover Configurator Pro.app" ) OsOpen "https://github.com/Micky1979/Clover-Configurator-Pro"; CleanExit;;
+		"Try Clover Configurator Pro.app" ) OsOpen "https://github.com/Micky1979/Clover-Configurator-Pro"; CleanExit;;
 		"Exit" ) CleanExit;;
-		* ) ClearScreen && echo "invalid option!!" && build;;
+		* ) ClearScreen && echo "invalid option!!" && cbuild;;
 	esac
 else
 	UPDATE_FLAG=YES
@@ -1366,14 +1433,19 @@ fi
 printLine
 
 if [[ "$BUILDER" != 'slice' ]]; then restoreClover; fi
-if [[ "$UPDATE_FLAG" == YES && "$BUILDER" != 'slice' ]]; then getRev; edk2; clover; fi
+if [[ "$UPDATE_FLAG" == YES && "$BUILDER" != 'slice' ]]; then
+getRev
+edk2
+clover
+AptioFixPkg
+fi
 
 if [[ "$INTERACTIVE" != "NO" ]]; then
 	if [[ "$BUILD_FLAG" == "NO" ]]; then
 		ClearScreen
 		# print updated remote and local revision
 		if [[ -d "${DIR_MAIN}"/edk2 ]]; then getRev; printRevisions; fi;
-		build
+		cbuild
 	fi
 fi
 
@@ -1402,7 +1474,7 @@ START_BUILD=$(date)
 if [[ "$SYSNAME" == Darwin ]]; then LTO_FLAG=""; fi
 
 set +e
-
+buildAptioFixPkg
 if [[ "$CUSTOM_BUILD" == NO ]]; then
 	# using standard options
 	case "$ARCH" in
@@ -1465,7 +1537,7 @@ printf '\e[3;0;0t'
 if [[ "$INTERACTIVE" != "NO" ]]; then
 	pressAnyKey "Clover was built successfully!" noclear
 	ClearScreen
-	build
+	cbuild
 else
 	printf "\nClover was built successfully!\n\n"; exit 0
 fi
@@ -1536,7 +1608,7 @@ esac
 
 # print local Script revision with relative info
 printCloverScriptRev
-printHeader "By Micky1979 based on Slice, Zenith432, STLVNUB, JrCs, cecekpawon, Needy,\ncvad, Rehabman, philip_petev, ErmaC\n\nSupported OSes: macOS X, Ubuntu (16.04/16.10), Debian Jessie and Stretch"
+printHeader "By Micky1979 based on Slice, apianti, vit9696, Download Fritz, Zenith432,\nSTLVNUB, JrCs,cecekpawon, Needy, cvad, Rehabman, philip_petev, ErmaC\n\nSupported OSes: macOS X, Ubuntu (16.04/16.10), Debian Jessie and Stretch"
 
 # print the remote and the local revision
 if [[ -d "${DIR_MAIN}"/edk2 ]]; then getRev; printRevisions; fi;
@@ -1545,7 +1617,7 @@ if [[ -d "${DIR_MAIN}"/edk2 ]]; then getRev; printRevisions; fi;
 if [[ "$LOCAL_REV" -lt "4209" ]]; then macros+=("CHECK_FLAGS"); fi
 
 if [[ "$DISABLE_CLEAR" != "YES" ]]; then printf '\e[8;34;90t'; fi
-build
+cbuild
 }
 # --------------------------------------
 # MAIN CODE
