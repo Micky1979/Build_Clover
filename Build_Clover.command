@@ -116,8 +116,8 @@ var_defaults=(
 	"MY_SCRIPT",,,
 	"FAST_UPDATE",,,"NO"
 	"INTERACTIVE",,,"YES"
-  "SVN_UPDATE_ACCEPT_ARG",,,"tf"
-  "ForceEDK2Update",,,"0"
+	"SVN_UPDATE_ACCEPT_ARG",,,"tf"
+	"ForceEDK2Update",,,"0"
 	"ARCH",,,"X64"
 	"FORCEREBUILD",,,"-fr"
 	"SHOWCCP_ADVERTISE",,,"YES"
@@ -600,7 +600,7 @@ c2paths=(
 	"drivers-Off/drivers32UEFI"
 	"drivers-Off/drivers64"
 	"drivers-Off/drivers64UEFI"
-)
+	)
 if [[ -d "${CLOVERV2_PATH}" ]]; then
 	for i in "${c2paths[@]}"
 	do
@@ -778,7 +778,7 @@ return $result
 # --------------------------------------
 AptioFixPkg() {
 if [[ "${Build_Tool}" != "XCODE" ]]; then
-    return # cannot be compiled with GNU gcc atm
+	return # cannot be compiled with GNU gcc atm
 fi
 printHeader 'Downloading AptioFixPkg and dependencies'
 
@@ -793,13 +793,13 @@ do
 	if [[ -d "${DIR_MAIN}/edk2/${pkg}" ]] ; then
 		cd "${DIR_MAIN}/edk2/${pkg}"
 		if [[ -d "${DIR_MAIN}/edk2/${pkg}/.svn" ]] ; then
-      local localRev=$(svn info "${DIR_MAIN}/edk2/${pkg}" | grep '^Revision:' | tr -cd [:digit:])
-      local remoteRev=$(svn info ${link} | grep '^Revision:' | tr -cd [:digit:])
-      if [[ "$localRev" != "$remoteRev" ]]; then
-        svnWithErrorCheck "update --accept $SVN_UPDATE_ACCEPT_ARG --non-interactive --trust-server-cert" "$(pwd)"
-      else
-        echo "r${localRev} is already at the latest version"
-      fi
+			local localRev=$(svn info "${DIR_MAIN}/edk2/${pkg}" | grep '^Revision:' | tr -cd [:digit:])
+			local remoteRev=$(svn info ${link} | grep '^Revision:' | tr -cd [:digit:])
+			if [[ "$localRev" != "$remoteRev" ]]; then
+				svnWithErrorCheck "update --accept $SVN_UPDATE_ACCEPT_ARG --non-interactive --trust-server-cert" "$(pwd)"
+			else
+				echo "r${localRev} is already the latest version."
+			fi
 		else
 			printWarning ".svn missing, the ${pkg} repo may be corrupted, re-downloading...\n"
 			rm -rf ./* > /dev/null 2>&1
@@ -908,9 +908,9 @@ else
 	if [[ "$ForceEDK2Update" -eq "1979" ]]; then
 		printHeader "cleaning BaseTools and Clover / Clover Package"
 		echo
-		if [[ -d "${DIR_MAIN}/edk2/BaseTools" ]]; then cd "${DIR_MAIN}/edk2/BaseTools"; make clean; fi
-		if [[ -d "${DIR_MAIN}/edk2/Clover" ]]; then cd "${DIR_MAIN}/edk2/Clover"; ./ebuild.sh clean; fi
+		if [[ -d "${DIR_MAIN}/edk2/Clover" ]]; then cd "${DIR_MAIN}/edk2/Clover"; ./ebuild.sh cleanall -t $BUILDTOOL; fi
 		if [[ -d "${DIR_MAIN}/edk2/Clover/CloverPackage" ]]; then cd "${DIR_MAIN}/edk2/Clover/CloverPackage"; make clean; fi
+		if [[ -d "${DIR_MAIN}/edk2/Build/AptioFixPkg" ]]; then rm -rf "${DIR_MAIN}/edk2/Build/AptioFixPkg"; fi
 		FORCEREBUILD="-fr"
 	fi
 	ForceEDK2Update=0
