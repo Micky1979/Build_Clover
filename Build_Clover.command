@@ -29,7 +29,7 @@
 #
 
 # --------------------------------------
-SCRIPTVER="v4.6.6"
+SCRIPTVER="v4.6.7"
 export LC_ALL=C
 SYSNAME="$( uname )"
 BUILDER=$USER # don't touch!
@@ -362,6 +362,23 @@ else
 	# /usr/bin/curl!! (philip_petev)
 	DOWNLOADER_PATH=/usr/bin
 	DOWNLOADER_CMD="curl"
+fi
+}
+mtocCheck() {
+if [[ "$SYSNAME" == Darwin ]]; then
+	if [[ "$(which mtoc.NEW)" == "" || "$(which mtoc)" == "" ]]; then
+		mtocpath="$DIR_MAIN/edk2/Clover/BuildTools/usr/local/bin"
+		if [[ ! -x "$mtocpath/mtoc.NEW" ]]; then
+			if [[ -f "$mtocpath/mtoc.NEW.zip" ]]; then
+				unzip -qo "$mtocpath/mtoc.NEW.zip" -d "$mtocpath"
+				alias mtoc="$mtocpath/mtoc.NEW"
+				alias mtoc.NEW="$mtocpath/mtoc.NEW"
+			fi
+		else
+			alias mtoc="$mtocpath/mtoc.NEW"
+			alias mtoc.NEW="$mtocpath/mtoc.NEW"
+		fi
+	fi
 fi
 }
 # --------------------------------------
@@ -1474,7 +1491,7 @@ START_BUILD=$(date)
 if [[ "$SYSNAME" == Darwin ]]; then LTO_FLAG=""; fi
 
 set +e
-buildAptioFixPkg
+mtocCheck && buildAptioFixPkg
 if [[ "$CUSTOM_BUILD" == NO ]]; then
 	# using standard options
 	case "$ARCH" in
