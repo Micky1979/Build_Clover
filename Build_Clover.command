@@ -30,6 +30,7 @@
 
 # --------------------------------------
 SCRIPTVER="v4.6.7"
+RSCRIPT_INFO="WIP..."
 export LC_ALL=C
 SYSNAME="$( uname )"
 BUILDER=$USER # don't touch!
