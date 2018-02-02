@@ -29,7 +29,7 @@
 #
 
 # --------------------------------------
-SCRIPTVER="v4.6.7"
+SCRIPTVER="v4.6.8"
 RSCRIPT_INFO="WIP..."
 export LC_ALL=C
 SYSNAME="$( uname )"
@@ -367,19 +367,20 @@ fi
 }
 mtocCheck() {
 if [[ "$SYSNAME" == Darwin ]]; then
-	if [[ "$(which mtoc.NEW)" == "" || "$(which mtoc)" == "" ]]; then
-		mtocpath="$DIR_MAIN/edk2/Clover/BuildTools/usr/local/bin"
-		if [[ ! -x "$mtocpath/mtoc.NEW" ]]; then
-			if [[ -f "$mtocpath/mtoc.NEW.zip" ]]; then
-				unzip -qo "$mtocpath/mtoc.NEW.zip" -d "$mtocpath"
-				alias mtoc="$mtocpath/mtoc.NEW"
-				alias mtoc.NEW="$mtocpath/mtoc.NEW"
-			fi
-		else
-			alias mtoc="$mtocpath/mtoc.NEW"
-			alias mtoc.NEW="$mtocpath/mtoc.NEW"
-		fi
+	mtocpath="$DIR_MAIN/edk2/Clover/BuildTools/usr/local/bin"
+	localbin="/usr/local/bin"
+	if [[ ! -x "${mtocpath}/mtoc.NEW" && -f "${mtocpath}/mtoc.NEW.zip" ]]; then
+		unzip -qo "${mtocpath}/mtoc.NEW.zip" -d "${mtocpath}"
 	fi
+	if [[ ! -d "${localbin}" ]]; then sudo mkdir -p "${localbin}"; fi
+	for mt in "mtoc" "mtoc.NEW"
+	do
+		if [[ ! -h "${localbin}/$mt" ]]; then
+			printWarning "$mt symlink not found, installing..."
+			sudo ln -s "${mtocpath}/mtoc.NEW" "${localbin}/$mt"
+		fi
+	done
+	sudo -k
 fi
 }
 # --------------------------------------
