@@ -29,7 +29,7 @@
 #
 
 # --------------------------------------
-SCRIPTVER="v4.6.8"
+SCRIPTVER="v4.6.9"
 RSCRIPT_INFO="WIP..."
 export LC_ALL=C
 SYSNAME="$( uname )"
@@ -375,8 +375,8 @@ if [[ "$SYSNAME" == Darwin ]]; then
 	if [[ ! -d "${localbin}" ]]; then sudo mkdir -p "${localbin}"; fi
 	for mt in "mtoc" "mtoc.NEW"
 	do
-		if [[ ! -h "${localbin}/$mt" ]]; then
-			printWarning "$mt symlink not found, installing..."
+		if [[ ! -x "${localbin}/$mt" ]]; then
+			printWarning "$mt symlink not found, installing...\n"
 			sudo ln -s "${mtocpath}/mtoc.NEW" "${localbin}/$mt"
 		fi
 	done
