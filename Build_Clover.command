@@ -30,7 +30,7 @@
 
 # --------------------------------------
 SCRIPTVER="v4.6.9"
-RSCRIPT_INFO="WIP..."
+RSCRIPT_INFO="Small fix to the mtoc code."
 export LC_ALL=C
 SYSNAME="$( uname )"
 BUILDER=$USER # don't touch!
