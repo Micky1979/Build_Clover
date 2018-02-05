@@ -31,6 +31,7 @@
 # --------------------------------------
 SCRIPTVER="v4.6.9"
 RSCRIPT_INFO="Small fix to the mtoc code."
+RSCRIPTVER=""
 export LC_ALL=C
 SYSNAME="$( uname )"
 BUILDER=$USER # don't touch!
@@ -387,7 +388,7 @@ fi
 printCloverScriptRev() {
 initialChecks
 ClearScreen
-local LVALUE RVALUE SVERSION RSCRIPTVER RSDATA
+local LVALUE RVALUE SVERSION RSDATA
 local SNameVer="Build_Clover script ${SCRIPTVER}"
 
 if ping -c 1 github.com >> /dev/null 2>&1; then
@@ -396,6 +397,8 @@ if ping -c 1 github.com >> /dev/null 2>&1; then
 	RSCRIPTVER=$( cat /tmp/Build_Clover.tmp | grep '^SCRIPTVER="v' | tr -cd '.0-9' )
 	LVALUE=$( echo $SCRIPTVER | tr -cd [:digit:] )
 	RVALUE=$( echo $RSCRIPTVER | tr -cd [:digit:] )
+
+	RSCRIPT_INFO=$( cat /tmp/Build_Clover.tmp | grep '^RSCRIPT_INFO=' | cut -d '"' -f 2 )
 
 	printThickLine
 	if IsNumericOnly $RVALUE; then
@@ -412,6 +415,15 @@ else
 	printf "${SNameVer}\e[1;31m\n%s\n%s\e[0m" "Remote version unavailable, because GitHub is unreachable," "check your internet connection!"
 fi
 printLine
+}
+# --------------------------------------
+printScriptRevInfo() {
+	if [[ "$SELF_UPDATE_OPT" == YES ]]; then
+		local WHAT_NEW="What's New in Version $RSCRIPTVER?"
+		printf "\n\e[92m%*s\e[0m\n" $((80-${#WHAT_NEW})) "What's New in Version $RSCRIPTVER?"
+		printf "\e[1m$RSCRIPT_INFO\e[0m\n"
+		echo
+	fi
 }
 # --------------------------------------
 printRevisions() {
@@ -1627,6 +1639,10 @@ esac
 
 # print local Script revision with relative info
 printCloverScriptRev
+
+# print script release info news
+printScriptRevInfo
+
 printHeader "By Micky1979 based on Slice, apianti, vit9696, Download Fritz, Zenith432,\nSTLVNUB, JrCs,cecekpawon, Needy, cvad, Rehabman, philip_petev, ErmaC\n\nSupported OSes: macOS X, Ubuntu (16.04/16.10), Debian Jessie and Stretch"
 
 # print the remote and the local revision
