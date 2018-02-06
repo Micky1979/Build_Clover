@@ -417,12 +417,13 @@ printLine
 }
 # --------------------------------------
 printScriptRevInfo() {
-	if [[ "$SELF_UPDATE_OPT" == YES ]]; then
-		local WHAT_NEW="What's New in Version $RSCRIPTVER?"
-		printf "\n\e[92m%*s\e[0m\n" $((80-${#WHAT_NEW})) "What's New in Version $RSCRIPTVER?"
-		printf "\e[1m$RSCRIPT_INFO\e[0m\n"
-		echo
-	fi
+if [[ "$SELF_UPDATE_OPT" == YES ]]; then
+	local WHAT_NEW="What's New in Version $RSCRIPTVER?"
+	printThickLine
+	printf "\e[1;33m%*s\e[0m\n" $((80-${#WHAT_NEW})) "What's New in Version $RSCRIPTVER?"
+	echo
+	printf "\e[1m$RSCRIPT_INFO\e[0m\n"
+fi
 }
 # --------------------------------------
 printRevisions() {
