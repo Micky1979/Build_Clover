@@ -1280,7 +1280,7 @@ if [[ -d "${DIR_MAIN}/edk2/Clover/.svn" && "$INTERACTIVE" != "NO" ]] ; then
 		options+=("build existing revision for release (no update, standard build)")
 		options+=("build existing revision with custom macros enabled")
 		options+=("enter Developers mode (only for devs)")
-		if [[ "$SHOWCCP_ADVERTISE" == YES ]]; then
+		if [[ "$SHOWCCP_ADVERTISE" == YES && "$SYSNAME" == Darwin ]]; then
 			if [[ ! -f "${HOME}"/Library/Preferences/com.m79softwares.Clover-Configurator-Pro.plist ]]; then
 				options+=("Try Clover Configurator Pro.app")
 			fi
