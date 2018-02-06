@@ -67,7 +67,6 @@ edk2array=(
 	PcAtChipsetPkg
 	ShellPkg
 	UefiCpuPkg
-	FatPkg
 	BaseTools
 	)
 
