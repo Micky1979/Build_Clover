@@ -1436,7 +1436,7 @@ else
 	if [[ "$INTERACTIVE" == "NO" ]]; then BUILD_FLAG=YES; else BUILD_FLAG=NO; fi
 fi
 
-if [[ "$BUILDER" == 'slice' && "$INTERACTIVE" != "NO" ]]; then ClearScreen && build; fi
+if [[ "$BUILDER" == 'slice' && "$INTERACTIVE" != "NO" ]]; then ClearScreen && cbuild; fi
 
 # show info about the running OS and its gcc
 case "$SYSNAME" in
