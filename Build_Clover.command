@@ -29,7 +29,7 @@
 #
 
 # --------------------------------------
-SCRIPTVER="v4.7.0"
+SCRIPTVER="v4.7.1"
 RSCRIPT_INFO="sync with edk2 r26277 following Clover r4405"
 RSCRIPTVER=""
 export LC_ALL=C
@@ -1482,8 +1482,6 @@ fi
 
 set -e
 
-exportPaths
-
 case "$BUILDTOOL" in
 GCC49 )
 	printHeader "BUILDTOOL is $BUILDTOOL"
@@ -1505,7 +1503,7 @@ START_BUILD=$(date)
 if [[ "$SYSNAME" == Darwin ]]; then LTO_FLAG=""; fi
 
 set +e
-mtocCheck && buildAptioFixPkg
+buildAptioFixPkg
 if [[ "$CUSTOM_BUILD" == NO ]]; then
 	# using standard options
 	case "$ARCH" in
@@ -1623,6 +1621,8 @@ LOCALIZABLE_FILE="${PKG_PATH}/Resources/templates/Localizable.strings"
 ebuildB="${DIR_MAIN}/edk2/Clover/ebuildBorg.sh"
 ebuild="${DIR_MAIN}/edk2/Clover/ebuild.sh"
 
+exportPaths
+
 # tools_def.txt provide lto flags for GCC53 in linux
 if [[ "$SYSNAME" == Linux ]]; then macros+=('DISABLE_LTO'); fi
 
@@ -1630,7 +1630,7 @@ if [[ "$SYSNAME" == Linux ]]; then macros+=('DISABLE_LTO'); fi
 case "$SYSNAME" in
 	Darwin ) 
 		case "$Build_Tool" in
-		"XCODE" | "xcode" ) checkXcode; BUILDTOOL="$XCODE";;
+		"XCODE" | "xcode" ) mtocCheck; checkXcode; BUILDTOOL="$XCODE";;
 		"GNU" | "gnu" ) [[ "$GNU" == "" ]] && BUILDTOOL="GCC53" || BUILDTOOL="$GNU";;
 		* ) printError "Wrong build tool: $Build_Tool. It should be \"XCODE\" or \"GNU\" !!!"; exit 1;;
 		esac;;
