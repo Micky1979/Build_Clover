@@ -30,7 +30,7 @@
 
 # --------------------------------------
 SCRIPTVER="v4.7.1"
-RSCRIPT_INFO="sync with edk2 r26277 following Clover r4405"
+RSCRIPT_INFO="sync with edk2 r26300 following Clover r4412"
 RSCRIPTVER=""
 export LC_ALL=C
 SYSNAME="$( uname )"
@@ -1588,7 +1588,7 @@ if [[ "${cus_conf}" != "Y" ]]; then
 	fi
 fi
 
-EDK2_REV="${EDK2_REV:-26277}"
+EDK2_REV="${EDK2_REV:-26300}"
 
 if [[ "${useDefaults}" == "Y" ]]; then
 	LoadDefaults
