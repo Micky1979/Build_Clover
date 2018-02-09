@@ -29,15 +29,15 @@
 #
 
 # --------------------------------------
-SCRIPTVER="v4.7.1"
-RSCRIPT_INFO="sync with edk2 r26300 following Clover r4412"
+SCRIPTVER="v4.7.2"
+RSCRIPT_INFO="nasm to 2.13.03 following Clover r4413"
 RSCRIPTVER=""
 export LC_ALL=C
 SYSNAME="$( uname )"
 BUILDER=$USER # don't touch!
 # ---------------------------->
 # default behavior (don't touch these vars)
-NASM_PREFERRED="2.13.02"
+NASM_PREFERRED="2.13.03"
 MAKEPKG_CMD="make pkg"
 LTO_FLAG="" # default for Xcode >= 7.3, will automatically adjusted for older ones
 MOD_PKG_FLAG="YES" # used only when you add custom macros. Does nothing for normal build.
