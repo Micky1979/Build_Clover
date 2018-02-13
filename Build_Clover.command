@@ -29,13 +29,15 @@
 #
 
 # --------------------------------------
-SCRIPTVER="v4.6.7"
+SCRIPTVER="v4.7.2"
+RSCRIPT_INFO="nasm to 2.13.03 following Clover r4413"
+RSCRIPTVER=""
 export LC_ALL=C
 SYSNAME="$( uname )"
 BUILDER=$USER # don't touch!
 # ---------------------------->
 # default behavior (don't touch these vars)
-NASM_PREFERRED="2.13.02"
+NASM_PREFERRED="2.13.03"
 MAKEPKG_CMD="make pkg"
 LTO_FLAG="" # default for Xcode >= 7.3, will automatically adjusted for older ones
 MOD_PKG_FLAG="YES" # used only when you add custom macros. Does nothing for normal build.
@@ -65,7 +67,6 @@ edk2array=(
 	PcAtChipsetPkg
 	ShellPkg
 	UefiCpuPkg
-	FatPkg
 	BaseTools
 	)
 
@@ -366,26 +367,27 @@ fi
 }
 mtocCheck() {
 if [[ "$SYSNAME" == Darwin ]]; then
-	if [[ "$(which mtoc.NEW)" == "" || "$(which mtoc)" == "" ]]; then
-		mtocpath="$DIR_MAIN/edk2/Clover/BuildTools/usr/local/bin"
-		if [[ ! -x "$mtocpath/mtoc.NEW" ]]; then
-			if [[ -f "$mtocpath/mtoc.NEW.zip" ]]; then
-				unzip -qo "$mtocpath/mtoc.NEW.zip" -d "$mtocpath"
-				alias mtoc="$mtocpath/mtoc.NEW"
-				alias mtoc.NEW="$mtocpath/mtoc.NEW"
-			fi
-		else
-			alias mtoc="$mtocpath/mtoc.NEW"
-			alias mtoc.NEW="$mtocpath/mtoc.NEW"
-		fi
+	mtocpath="$DIR_MAIN/edk2/Clover/BuildTools/usr/local/bin"
+	localbin="/usr/local/bin"
+	if [[ ! -x "${mtocpath}/mtoc.NEW" && -f "${mtocpath}/mtoc.NEW.zip" ]]; then
+		unzip -qo "${mtocpath}/mtoc.NEW.zip" -d "${mtocpath}"
 	fi
+	if [[ ! -d "${localbin}" ]]; then sudo mkdir -p "${localbin}"; fi
+	for mt in "mtoc" "mtoc.NEW"
+	do
+		if [[ ! -x "${localbin}/$mt" ]]; then
+			printWarning "$mt symlink not found, installing...\n"
+			sudo ln -s "${mtocpath}/mtoc.NEW" "${localbin}/$mt"
+		fi
+	done
+	sudo -k
 fi
 }
 # --------------------------------------
 printCloverScriptRev() {
 initialChecks
 ClearScreen
-local LVALUE RVALUE SVERSION RSCRIPTVER RSDATA
+local LVALUE RVALUE SVERSION RSDATA
 local SNameVer="Build_Clover script ${SCRIPTVER}"
 
 if ping -c 1 github.com >> /dev/null 2>&1; then
@@ -394,6 +396,8 @@ if ping -c 1 github.com >> /dev/null 2>&1; then
 	RSCRIPTVER=$( cat /tmp/Build_Clover.tmp | grep '^SCRIPTVER="v' | tr -cd '.0-9' )
 	LVALUE=$( echo $SCRIPTVER | tr -cd [:digit:] )
 	RVALUE=$( echo $RSCRIPTVER | tr -cd [:digit:] )
+
+	RSCRIPT_INFO=$( cat /tmp/Build_Clover.tmp | grep '^RSCRIPT_INFO=' | cut -d '"' -f 2 )
 
 	printThickLine
 	if IsNumericOnly $RVALUE; then
@@ -410,6 +414,16 @@ else
 	printf "${SNameVer}\e[1;31m\n%s\n%s\e[0m" "Remote version unavailable, because GitHub is unreachable," "check your internet connection!"
 fi
 printLine
+}
+# --------------------------------------
+printScriptRevInfo() {
+if [[ "$SELF_UPDATE_OPT" == YES ]]; then
+	local WHAT_NEW="What's New in Version $RSCRIPTVER?"
+	printThickLine
+	printf "\e[1;33m%*s\e[0m\n" $((80-${#WHAT_NEW})) "What's New in Version $RSCRIPTVER?"
+	echo
+	printf "\e[1m$RSCRIPT_INFO\e[0m\n"
+fi
 }
 # --------------------------------------
 printRevisions() {
@@ -1266,7 +1280,7 @@ if [[ -d "${DIR_MAIN}/edk2/Clover/.svn" && "$INTERACTIVE" != "NO" ]] ; then
 		options+=("build existing revision for release (no update, standard build)")
 		options+=("build existing revision with custom macros enabled")
 		options+=("enter Developers mode (only for devs)")
-		if [[ "$SHOWCCP_ADVERTISE" == YES ]]; then
+		if [[ "$SHOWCCP_ADVERTISE" == YES && "$SYSNAME" == Darwin ]]; then
 			if [[ ! -f "${HOME}"/Library/Preferences/com.m79softwares.Clover-Configurator-Pro.plist ]]; then
 				options+=("Try Clover Configurator Pro.app")
 			fi
@@ -1422,7 +1436,7 @@ else
 	if [[ "$INTERACTIVE" == "NO" ]]; then BUILD_FLAG=YES; else BUILD_FLAG=NO; fi
 fi
 
-if [[ "$BUILDER" == 'slice' && "$INTERACTIVE" != "NO" ]]; then ClearScreen && build; fi
+if [[ "$BUILDER" == 'slice' && "$INTERACTIVE" != "NO" ]]; then ClearScreen && cbuild; fi
 
 # show info about the running OS and its gcc
 case "$SYSNAME" in
@@ -1468,8 +1482,6 @@ fi
 
 set -e
 
-exportPaths
-
 case "$BUILDTOOL" in
 GCC49 )
 	printHeader "BUILDTOOL is $BUILDTOOL"
@@ -1491,7 +1503,7 @@ START_BUILD=$(date)
 if [[ "$SYSNAME" == Darwin ]]; then LTO_FLAG=""; fi
 
 set +e
-mtocCheck && buildAptioFixPkg
+buildAptioFixPkg
 if [[ "$CUSTOM_BUILD" == NO ]]; then
 	# using standard options
 	case "$ARCH" in
@@ -1576,7 +1588,7 @@ if [[ "${cus_conf}" != "Y" ]]; then
 	fi
 fi
 
-EDK2_REV="${EDK2_REV:-26114}"
+EDK2_REV="${EDK2_REV:-26300}"
 
 if [[ "${useDefaults}" == "Y" ]]; then
 	LoadDefaults
@@ -1609,6 +1621,8 @@ LOCALIZABLE_FILE="${PKG_PATH}/Resources/templates/Localizable.strings"
 ebuildB="${DIR_MAIN}/edk2/Clover/ebuildBorg.sh"
 ebuild="${DIR_MAIN}/edk2/Clover/ebuild.sh"
 
+exportPaths
+
 # tools_def.txt provide lto flags for GCC53 in linux
 if [[ "$SYSNAME" == Linux ]]; then macros+=('DISABLE_LTO'); fi
 
@@ -1616,7 +1630,7 @@ if [[ "$SYSNAME" == Linux ]]; then macros+=('DISABLE_LTO'); fi
 case "$SYSNAME" in
 	Darwin ) 
 		case "$Build_Tool" in
-		"XCODE" | "xcode" ) checkXcode; BUILDTOOL="$XCODE";;
+		"XCODE" | "xcode" ) mtocCheck; checkXcode; BUILDTOOL="$XCODE";;
 		"GNU" | "gnu" ) [[ "$GNU" == "" ]] && BUILDTOOL="GCC53" || BUILDTOOL="$GNU";;
 		* ) printError "Wrong build tool: $Build_Tool. It should be \"XCODE\" or \"GNU\" !!!"; exit 1;;
 		esac;;
@@ -1625,6 +1639,10 @@ esac
 
 # print local Script revision with relative info
 printCloverScriptRev
+
+# print script release info news
+printScriptRevInfo
+
 printHeader "By Micky1979 based on Slice, apianti, vit9696, Download Fritz, Zenith432,\nSTLVNUB, JrCs,cecekpawon, Needy, cvad, Rehabman, philip_petev, ErmaC\n\nSupported OSes: macOS X, Ubuntu (16.04/16.10), Debian Jessie and Stretch"
 
 # print the remote and the local revision
