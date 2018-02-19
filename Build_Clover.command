@@ -29,7 +29,7 @@
 #
 
 # --------------------------------------
-SCRIPTVER="v4.7.2"
+SCRIPTVER="v4.7.3"
 RSCRIPT_INFO="nasm to 2.13.03 following Clover r4413"
 RSCRIPTVER=""
 export LC_ALL=C
@@ -366,10 +366,10 @@ else
 fi
 }
 mtocCheck() {
-if [[ "$SYSNAME" == Darwin ]]; then
-	mtocpath="$DIR_MAIN/edk2/Clover/BuildTools/usr/local/bin"
-	localbin="/usr/local/bin"
-	if [[ ! -x "${mtocpath}/mtoc.NEW" && -f "${mtocpath}/mtoc.NEW.zip" ]]; then
+mtocpath="$DIR_MAIN/edk2/Clover/BuildTools/usr/local/bin"
+localbin="/usr/local/bin"
+if [[ "$SYSNAME" == Darwin && -f "${mtocpath}/mtoc.NEW.zip" ]]; then
+	if [[ ! -x "${mtocpath}/mtoc.NEW" ]]; then
 		unzip -qo "${mtocpath}/mtoc.NEW.zip" -d "${mtocpath}"
 	fi
 	if [[ ! -d "${localbin}" ]]; then sudo mkdir -p "${localbin}"; fi
