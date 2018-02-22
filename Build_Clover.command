@@ -29,8 +29,8 @@
 #
 
 # --------------------------------------
-SCRIPTVER="v4.7.2"
-RSCRIPT_INFO="nasm to 2.13.03 following Clover r4413"
+SCRIPTVER="v4.7.3"
+RSCRIPT_INFO="ping not allowed with sourceforge"
 RSCRIPTVER=""
 export LC_ALL=C
 SYSNAME="$( uname )"
@@ -528,13 +528,16 @@ fi
 # --------------------------------------
 # Remote and local revisions
 getRev() {
-if ping -c 1 svn.code.sf.net >> /dev/null 2>&1; then
-	REMOTE_REV=$(svn info ${CLOVER_REP} | grep '^Revision:' | tr -cd [:digit:])
-	REMOTE_EDK2_REV=$(svn info ${EDK2_REP} | grep '^Revision:' | tr -cd [:digit:])
-else
-	REMOTE_REV=""
-	REMOTE_EDK2_REV=""
-fi
+  REMOTE_REV=$(svn info ${CLOVER_REP} 2>&1 | grep '^Revision:' | tr -cd [:digit:])
+  REMOTE_EDK2_REV=$(svn info ${EDK2_REP} 2>&1 | grep '^Revision:' | tr -cd [:digit:])
+
+  if ! IsNumericOnly "${REMOTE_REV}"; then
+    REMOTE_REV=""
+  fi
+
+  if !  IsNumericOnly "${REMOTE_EDK2_REV}"; then
+    REMOTE_EDK2_REV=""
+  fi
 
 if [[ -d "${DIR_MAIN}"/edk2/Clover/.svn ]]; then
 	svnUpgrade # upgrade the working copy to avoid errors
