@@ -37,6 +37,7 @@ SYSNAME="$( uname )"
 BUILDER=$USER # don't touch!
 # ---------------------------->
 # default behavior (don't touch these vars)
+BuildCloverRepo="https://github.com/Micky1979/Build_Clover.git"
 NASM_PREFERRED="2.13.03"
 MAKEPKG_CMD="make pkg"
 LTO_FLAG="" # default for Xcode >= 7.3, will automatically adjusted for older ones
@@ -390,7 +391,7 @@ ClearScreen
 local LVALUE RVALUE SVERSION RSDATA
 local SNameVer="Build_Clover script ${SCRIPTVER}"
 
-if ping -c 1 github.com >> /dev/null 2>&1; then
+if git ls-remote "${BuildCloverRepo}" HEAD >> /dev/null 2>&1; then
 	# Retrive and filter remote script version
 	downloader "$GITHUB" "/tmp" "Build_Clover.tmp"
 	RSCRIPTVER=$( cat /tmp/Build_Clover.tmp | grep '^SCRIPTVER="v' | tr -cd '.0-9' )
@@ -528,13 +529,10 @@ fi
 # --------------------------------------
 # Remote and local revisions
 getRev() {
-if ping -c 1 svn.code.sf.net >> /dev/null 2>&1; then
-	REMOTE_REV=$(svn info ${CLOVER_REP} | grep '^Revision:' | tr -cd [:digit:])
-	REMOTE_EDK2_REV=$(svn info ${EDK2_REP} | grep '^Revision:' | tr -cd [:digit:])
-else
-	REMOTE_REV=""
-	REMOTE_EDK2_REV=""
-fi
+REMOTE_REV=$(svnWithErrorCheck "info ${CLOVER_REP}" | grep '^Revision:' | tr -cd [:digit:])
+REMOTE_EDK2_REV=$(svnWithErrorCheck "info ${EDK2_REP}" | grep '^Revision:' | tr -cd [:digit:])
+if ! IsNumericOnly "${REMOTE_REV}"; then REMOTE_REV=""; fi
+if ! IsNumericOnly "${REMOTE_EDK2_REV}"; then REMOTE_EDK2_REV=""; fi
 
 if [[ -d "${DIR_MAIN}"/edk2/Clover/.svn ]]; then
 	svnUpgrade # upgrade the working copy to avoid errors
