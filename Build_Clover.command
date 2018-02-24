@@ -29,14 +29,15 @@
 #
 
 # --------------------------------------
-SCRIPTVER="v4.7.3"
-RSCRIPT_INFO="ping not allowed with sourceforge"
+SCRIPTVER="v4.7.4"
+RSCRIPT_INFO="support for the MTOC_PREFIX variable"
 RSCRIPTVER=""
 export LC_ALL=C
 SYSNAME="$( uname )"
 BUILDER=$USER # don't touch!
 # ---------------------------->
 # default behavior (don't touch these vars)
+BuildCloverRepo="https://github.com/Micky1979/Build_Clover.git"
 NASM_PREFERRED="2.13.03"
 MAKEPKG_CMD="make pkg"
 LTO_FLAG="" # default for Xcode >= 7.3, will automatically adjusted for older ones
@@ -366,21 +367,15 @@ else
 fi
 }
 mtocCheck() {
-if [[ "$SYSNAME" == Darwin ]]; then
-	mtocpath="$DIR_MAIN/edk2/Clover/BuildTools/usr/local/bin"
-	localbin="/usr/local/bin"
-	if [[ ! -x "${mtocpath}/mtoc.NEW" && -f "${mtocpath}/mtoc.NEW.zip" ]]; then
-		unzip -qo "${mtocpath}/mtoc.NEW.zip" -d "${mtocpath}"
+mtocpath="$DIR_MAIN/edk2/Clover/BuildTools/usr/local/bin"
+if [[ "$SYSNAME" == Darwin && -f "${mtocpath}/mtoc.NEW.zip" ]]; then
+	if [[ ! -x "${mtocpath}/mtoc.NEW" ]]; then
+		unzip -qo "${mtocpath}/mtoc.NEW.zip" -d "${TOOLCHAIN_DIR}/bin/"
 	fi
-	if [[ ! -d "${localbin}" ]]; then sudo mkdir -p "${localbin}"; fi
-	for mt in "mtoc" "mtoc.NEW"
-	do
-		if [[ ! -x "${localbin}/$mt" ]]; then
-			printWarning "$mt symlink not found, installing...\n"
-			sudo ln -s "${mtocpath}/mtoc.NEW" "${localbin}/$mt"
-		fi
-	done
-	sudo -k
+	if [[ ! -h "${TOOLCHAIN_DIR}/bin/mtoc" ]]; then
+		ln -sf "${TOOLCHAIN_DIR}/bin/mtoc.NEW" "${TOOLCHAIN_DIR}/bin/mtoc"
+	fi
+	export MTOC_PREFIX="${TOOLCHAIN_DIR}/bin/"
 fi
 }
 # --------------------------------------
@@ -390,7 +385,7 @@ ClearScreen
 local LVALUE RVALUE SVERSION RSDATA
 local SNameVer="Build_Clover script ${SCRIPTVER}"
 
-if ping -c 1 github.com >> /dev/null 2>&1; then
+if git ls-remote "${BuildCloverRepo}" HEAD >> /dev/null 2>&1; then
 	# Retrive and filter remote script version
 	downloader "$GITHUB" "/tmp" "Build_Clover.tmp"
 	RSCRIPTVER=$( cat /tmp/Build_Clover.tmp | grep '^SCRIPTVER="v' | tr -cd '.0-9' )
@@ -528,16 +523,10 @@ fi
 # --------------------------------------
 # Remote and local revisions
 getRev() {
-  REMOTE_REV=$(svn info ${CLOVER_REP} 2>&1 | grep '^Revision:' | tr -cd [:digit:])
-  REMOTE_EDK2_REV=$(svn info ${EDK2_REP} 2>&1 | grep '^Revision:' | tr -cd [:digit:])
-
-  if ! IsNumericOnly "${REMOTE_REV}"; then
-    REMOTE_REV=""
-  fi
-
-  if !  IsNumericOnly "${REMOTE_EDK2_REV}"; then
-    REMOTE_EDK2_REV=""
-  fi
+REMOTE_REV=$(svnWithErrorCheck "info ${CLOVER_REP}" | grep '^Revision:' | tr -cd [:digit:])
+REMOTE_EDK2_REV=$(svnWithErrorCheck "info ${EDK2_REP}" | grep '^Revision:' | tr -cd [:digit:])
+if ! IsNumericOnly "${REMOTE_REV}"; then REMOTE_REV=""; fi
+if ! IsNumericOnly "${REMOTE_EDK2_REV}"; then REMOTE_EDK2_REV=""; fi
 
 if [[ -d "${DIR_MAIN}"/edk2/Clover/.svn ]]; then
 	svnUpgrade # upgrade the working copy to avoid errors
