@@ -29,8 +29,8 @@
 #
 
 # --------------------------------------
-SCRIPTVER="v4.7.4"
-RSCRIPT_INFO="support for the MTOC_PREFIX variable"
+SCRIPTVER="v4.7.5"
+RSCRIPT_INFO="mtocCheck() fix, code rearrangements"
 RSCRIPTVER=""
 export LC_ALL=C
 SYSNAME="$( uname )"
@@ -144,15 +144,55 @@ printf "\n%s" "If no argument is provided, the script starts in interactive mode
 printf "\n%s" "and the settings from the config file."
 echo
 }
+# --------------------------------------
+setPaths() {
+# setting default paths
+case "$MODE" in
+	"S" )
+		export DIR_MAIN=${DIR_MAIN:-"${HOME}"/src};;
+	"R" )
+		export DIR_MAIN="${SCRIPT_ABS_PATH}"/src
+		if [[ "${DIR_MAIN}" = "${DIR_MAIN%[[:space:]]*}" ]]; then
+			echo "good, no blank spaces in DIR_MAIN, continuing.."
+		else
+			ClearScreen; printError "Error: MODE=\"R\" require a path with no spaces in the middle, exiting!\n"; exit 1
+		fi;;
+	* )
+		ClearScreen; printError "Error: unsupported MODE\n"; exit 1;;
+esac
+SVN_STDERR_LOG="${DIR_MAIN}/svnLog.txt"
+CLOVERV2_PATH="${DIR_MAIN}/edk2/Clover/CloverPackage/CloverV2"
+PKG_PATH="${DIR_MAIN}/edk2/Clover/CloverPackage/package"
+LOCALIZABLE_FILE="${PKG_PATH}/Resources/templates/Localizable.strings"
+ebuildB="${DIR_MAIN}/edk2/Clover/ebuildBorg.sh"
+ebuild="${DIR_MAIN}/edk2/Clover/ebuild.sh"
+exportPaths
+}
+# --------------------------------------
+setBuildTools() {
+# Setting the build tool (Xcode or GCC)
+case "$SYSNAME" in
+	Darwin ) 
+		case "$Build_Tool" in
+		"XCODE" | "xcode" ) checkXcode; BUILDTOOL="$XCODE";;
+		"GNU" | "gnu" ) [[ "$GNU" == "" ]] && BUILDTOOL="GCC53" || BUILDTOOL="$GNU";;
+		* ) printError "Wrong build tool: $Build_Tool. It should be \"XCODE\" or \"GNU\" !!!"; exit 1;;
+		esac;;
+	Linux ) [[ "$GNU" == "" ]] && BUILDTOOL="GCC53" || BUILDTOOL="$GNU";;
+esac
+}
+# --------------------------------------
 ClearScreen() {
 if [[ "$DISABLE_CLEAR" != "YES" ]]; then clear; fi
 }
+# --------------------------------------
 LoadDefaults() {
 for i in "${var_defaults[@]}"
 do
 	eval "export \"${i%,,,*}=${i#*,,,}\""
 done
 }
+# --------------------------------------
 CreateDefaultConf() {
 if [[ ! -f "${userconf}" ]]; then touch "${userconf}"; fi
 for i in "${var_defaults[@]}"
@@ -160,6 +200,7 @@ do
 	echo "${i%,,,*}=${i#*,,,}" >> "${userconf}"
 done
 }
+# --------------------------------------
 ReadConf() {
 for i in "${var_defaults[@]}"
 do
@@ -173,6 +214,7 @@ do
 	fi
 done
 }
+# --------------------------------------
 CheckProprietary() {
 local drivers_off="${DIR_MAIN}/edk2/Clover/CloverPackage/CloverV2/drivers-Off"
 local ghlink="https://github.com/Micky1979/Build_Clover/raw/work/Files"
@@ -366,10 +408,11 @@ else
 	DOWNLOADER_CMD="curl"
 fi
 }
+# --------------------------------------
 mtocCheck() {
-mtocpath="$DIR_MAIN/edk2/Clover/BuildTools/usr/local/bin"
+local mtocpath="$DIR_MAIN/edk2/Clover/BuildTools/usr/local/bin"
 if [[ "$SYSNAME" == Darwin && -f "${mtocpath}/mtoc.NEW.zip" ]]; then
-	if [[ ! -x "${mtocpath}/mtoc.NEW" ]]; then
+	if [[ ! -x "${TOOLCHAIN_DIR}/mtoc.NEW" ]]; then
 		unzip -qo "${mtocpath}/mtoc.NEW.zip" -d "${TOOLCHAIN_DIR}/bin/"
 	fi
 	if [[ ! -h "${TOOLCHAIN_DIR}/bin/mtoc" ]]; then
@@ -380,7 +423,6 @@ fi
 }
 # --------------------------------------
 printCloverScriptRev() {
-initialChecks
 ClearScreen
 local LVALUE RVALUE SVERSION RSDATA
 local SNameVer="Build_Clover script ${SCRIPTVER}"
@@ -1461,6 +1503,7 @@ getRev
 edk2
 clover
 AptioFixPkg
+mtocCheck
 fi
 
 if [[ "$INTERACTIVE" != "NO" ]]; then
@@ -1591,43 +1634,13 @@ else
 	ReadConf
 fi
 
-# setting default paths
-case "$MODE" in
-	"S" )
-		export DIR_MAIN=${DIR_MAIN:-"${HOME}"/src};;
-	"R" )
-		export DIR_MAIN="${SCRIPT_ABS_PATH}"/src
-		if [[ "${DIR_MAIN}" = "${DIR_MAIN%[[:space:]]*}" ]]; then
-			echo "good, no blank spaces in DIR_MAIN, continuing.."
-		else
-			ClearScreen; printError "Error: MODE=\"R\" require a path with no spaces in the middle, exiting!\n"; exit 1
-		fi;;
-	* )
-		ClearScreen; printError "Error: unsupported MODE\n"; exit 1;;
-esac
-
-SVN_STDERR_LOG="${DIR_MAIN}/svnLog.txt"
-CLOVERV2_PATH="${DIR_MAIN}/edk2/Clover/CloverPackage/CloverV2"
-PKG_PATH="${DIR_MAIN}/edk2/Clover/CloverPackage/package"
-LOCALIZABLE_FILE="${PKG_PATH}/Resources/templates/Localizable.strings"
-ebuildB="${DIR_MAIN}/edk2/Clover/ebuildBorg.sh"
-ebuild="${DIR_MAIN}/edk2/Clover/ebuild.sh"
-
-exportPaths
+initialChecks
+setPaths
+mtocCheck
+setBuildTools
 
 # tools_def.txt provide lto flags for GCC53 in linux
 if [[ "$SYSNAME" == Linux ]]; then macros+=('DISABLE_LTO'); fi
-
-# Setting the build tool (Xcode or GCC)
-case "$SYSNAME" in
-	Darwin ) 
-		case "$Build_Tool" in
-		"XCODE" | "xcode" ) mtocCheck; checkXcode; BUILDTOOL="$XCODE";;
-		"GNU" | "gnu" ) [[ "$GNU" == "" ]] && BUILDTOOL="GCC53" || BUILDTOOL="$GNU";;
-		* ) printError "Wrong build tool: $Build_Tool. It should be \"XCODE\" or \"GNU\" !!!"; exit 1;;
-		esac;;
-	Linux ) [[ "$GNU" == "" ]] && BUILDTOOL="GCC53" || BUILDTOOL="$GNU";;
-esac
 
 # print local Script revision with relative info
 printCloverScriptRev
