@@ -29,8 +29,8 @@
 #
 
 # --------------------------------------
-SCRIPTVER="v4.7.5"
-RSCRIPT_INFO="mtocCheck() fix, code rearrangements"
+SCRIPTVER="v4.7.6"
+RSCRIPT_INFO="Rewritten the mtoc detection code."
 RSCRIPTVER=""
 export LC_ALL=C
 SYSNAME="$( uname )"
@@ -406,19 +406,6 @@ else
 	# /usr/bin/curl!! (philip_petev)
 	DOWNLOADER_PATH=/usr/bin
 	DOWNLOADER_CMD="curl"
-fi
-}
-# --------------------------------------
-mtocCheck() {
-local mtocpath="$DIR_MAIN/edk2/Clover/BuildTools/usr/local/bin"
-if [[ "$SYSNAME" == Darwin && -f "${mtocpath}/mtoc.NEW.zip" ]]; then
-	if [[ ! -x "${TOOLCHAIN_DIR}/mtoc.NEW" ]]; then
-		unzip -qo "${mtocpath}/mtoc.NEW.zip" -d "${TOOLCHAIN_DIR}/bin/"
-	fi
-	if [[ ! -h "${TOOLCHAIN_DIR}/bin/mtoc" ]]; then
-		ln -sf "${TOOLCHAIN_DIR}/bin/mtoc.NEW" "${TOOLCHAIN_DIR}/bin/mtoc"
-	fi
-	export MTOC_PREFIX="${TOOLCHAIN_DIR}/bin/"
 fi
 }
 # --------------------------------------
@@ -1204,7 +1191,7 @@ else
 	echo "$(${NASM_PREFIX}nasm -v)"
 fi
 
-# ...gettext does nothing in Linux because we cannot compile the .pkg
+# ...gettext and mtoc does nothing in Linux because we cannot compile the .pkg
 if [[ "$SYSNAME" == Darwin ]]; then
 	printHeader "gettext check:"
 	if needGETTEXT && [[ ! -x "${TOOLCHAIN_DIR}"/bin/gettext ]]; then
@@ -1215,7 +1202,24 @@ if [[ "$SYSNAME" == Darwin ]]; then
 		if [[ -f "${DIR_DOWNLOADS}"/gettext-latest.tar.gz ]]; then rm -f "${DIR_DOWNLOADS}"/gettext-latest.tar.gz; fi
 		"${DIR_MAIN}"/edk2/Clover/buildgettext.sh
 	fi
+	printHeader "mtoc check:"
+	if [[ ! -x "${TOOLCHAIN_DIR}/bin/mtoc.NEW" ]]; then
+		printWarning "mtoc not found, installing...\n"
+		local mtocpath="$DIR_MAIN/edk2/Clover/BuildTools/usr/local/bin"
+		if [[ -f "${mtocpath}/mtoc.NEW.zip" ]]; then
+			unzip -qo "${mtocpath}/mtoc.NEW.zip" -d "${TOOLCHAIN_DIR}/bin/"
+		fi
+		echo "mtoc successfully installed in ${TOOLCHAIN_DIR}/bin."
+	else
+		echo "mtoc found in ${TOOLCHAIN_DIR}/bin."
+	fi
+	if [[ ! -h "${TOOLCHAIN_DIR}/bin/mtoc" ]]; then
+		ln -sf "${TOOLCHAIN_DIR}/bin/mtoc.NEW" "${TOOLCHAIN_DIR}/bin/mtoc"
+	fi
+	export MTOC_PREFIX="${TOOLCHAIN_DIR}/bin/"
+	printThickLine; echo
 fi
+
 rm -rf "${DIR_DOWNLOADS}"/source.download
 }
 # --------------------------------------
@@ -1499,11 +1503,10 @@ printLine
 
 if [[ "$BUILDER" != 'slice' ]]; then restoreClover; fi
 if [[ "$UPDATE_FLAG" == YES && "$BUILDER" != 'slice' ]]; then
-getRev
-edk2
-clover
-AptioFixPkg
-mtocCheck
+	getRev
+	edk2
+	clover
+	AptioFixPkg
 fi
 
 if [[ "$INTERACTIVE" != "NO" ]]; then
@@ -1636,7 +1639,6 @@ fi
 
 initialChecks
 setPaths
-mtocCheck
 setBuildTools
 
 # tools_def.txt provide lto flags for GCC53 in linux
