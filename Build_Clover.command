@@ -29,8 +29,8 @@
 #
 
 # --------------------------------------
-SCRIPTVER="v4.7.5"
-RSCRIPT_INFO="mtocCheck() fix, code rearrangements"
+SCRIPTVER="v4.7.6"
+RSCRIPT_INFO="Fixed bug with mtocCheck() on fresh start (no ~/src)"
 RSCRIPTVER=""
 export LC_ALL=C
 SYSNAME="$( uname )"
@@ -412,12 +412,9 @@ fi
 mtocCheck() {
 local mtocpath="$DIR_MAIN/edk2/Clover/BuildTools/usr/local/bin"
 if [[ "$SYSNAME" == Darwin && -f "${mtocpath}/mtoc.NEW.zip" ]]; then
-	if [[ ! -x "${TOOLCHAIN_DIR}/mtoc.NEW" ]]; then
-		unzip -qo "${mtocpath}/mtoc.NEW.zip" -d "${TOOLCHAIN_DIR}/bin/"
-	fi
-	if [[ ! -h "${TOOLCHAIN_DIR}/bin/mtoc" ]]; then
-		ln -sf "${TOOLCHAIN_DIR}/bin/mtoc.NEW" "${TOOLCHAIN_DIR}/bin/mtoc"
-	fi
+	if [[ ! -d "${TOOLCHAIN_DIR}/bin" ]]; then mkdir -p "${TOOLCHAIN_DIR}/bin"; fi
+	if [[ ! -x "${TOOLCHAIN_DIR}/mtoc.NEW" ]]; then unzip -qo "${mtocpath}/mtoc.NEW.zip" -d "${TOOLCHAIN_DIR}/bin/"; fi
+	if [[ ! -h "${TOOLCHAIN_DIR}/bin/mtoc" ]]; then ln -sf "${TOOLCHAIN_DIR}/bin/mtoc.NEW" "${TOOLCHAIN_DIR}/bin/mtoc"; fi
 	export MTOC_PREFIX="${TOOLCHAIN_DIR}/bin/"
 fi
 }
