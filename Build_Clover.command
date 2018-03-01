@@ -29,8 +29,8 @@
 #
 
 # --------------------------------------
-SCRIPTVER="v4.7.6"
-RSCRIPT_INFO="Rewritten the mtoc detection code."
+SCRIPTVER="v4.7.7"
+RSCRIPT_INFO="Bug fixes."
 RSCRIPTVER=""
 export LC_ALL=C
 SYSNAME="$( uname )"
@@ -160,6 +160,7 @@ case "$MODE" in
 	* )
 		ClearScreen; printError "Error: unsupported MODE\n"; exit 1;;
 esac
+if [[ ! -d "${DIR_MAIN}" ]]; then mkdir -p "${DIR_MAIN}"; fi
 SVN_STDERR_LOG="${DIR_MAIN}/svnLog.txt"
 CLOVERV2_PATH="${DIR_MAIN}/edk2/Clover/CloverPackage/CloverV2"
 PKG_PATH="${DIR_MAIN}/edk2/Clover/CloverPackage/package"
