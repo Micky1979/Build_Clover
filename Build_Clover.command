@@ -29,8 +29,8 @@
 #
 
 # --------------------------------------
-SCRIPTVER="v4.7.6"
-RSCRIPT_INFO="Rewritten the mtoc detection code."
+SCRIPTVER="v4.7.7"
+RSCRIPT_INFO="Bug fixes."
 RSCRIPTVER=""
 export LC_ALL=C
 SYSNAME="$( uname )"
