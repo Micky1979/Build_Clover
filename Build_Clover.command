@@ -29,7 +29,7 @@
 #
 
 # --------------------------------------
-SCRIPTVER="v4.7.7"
+SCRIPTVER="v4.7.8"
 RSCRIPT_INFO="Bug fixes."
 RSCRIPTVER=""
 export LC_ALL=C
@@ -195,7 +195,10 @@ done
 }
 # --------------------------------------
 CreateDefaultConf() {
-if [[ ! -f "${userconf}" ]]; then touch "${userconf}"; fi
+if [[ ! -f "${userconf}" ]]; then
+	if [[ ! -d "$(dirname ${userconf})" ]]; then mkdir -p "$(dirname ${userconf})"; fi
+	touch "${userconf}"
+fi
 for i in "${var_defaults[@]}"
 do
 	echo "${i%,,,*}=${i#*,,,}" >> "${userconf}"
