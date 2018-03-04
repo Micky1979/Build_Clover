@@ -1,6 +1,10 @@
 # Build_Clover
 A script to build [Clover V2](https://sourceforge.net/p/cloverefiboot/code/HEAD/tree) bootloader under macOS / OS X, Ubuntu 16.04+ and Debian Jessie and Stretch
 
+<!-- Badges section here. -->
+[![GitHub last commit](https://img.shields.io/github/last-commit/google/skia.svg)](https://github.com/Micky1979/Build_Clover)
+[![GitHub contributors](https://img.shields.io/github/contributors/cdnjs/cdnjs.svg)](https://github.com/Micky1979/Build_Clover)
+
 ## Author
 Micky1979
 
