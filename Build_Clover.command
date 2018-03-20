@@ -29,8 +29,8 @@
 #
 
 # --------------------------------------
-SCRIPTVER="v4.7.8"
-RSCRIPT_INFO="Bug fixes."
+SCRIPTVER="v4.7.9"
+RSCRIPT_INFO="The script now ignores all external svn repos (not needed for macOS/Linux anyway)"
 RSCRIPTVER=""
 export LC_ALL=C
 SYSNAME="$( uname )"
@@ -947,17 +947,17 @@ else
 			if [[ -d "${DIR_MAIN}/edk2/${d}" ]] ; then
 				if [[ -d "${DIR_MAIN}/edk2/${d}/.svn" ]] ; then
 					cd "${DIR_MAIN}/edk2/${d}"
-					svnWithErrorCheck "update --accept $SVN_UPDATE_ACCEPT_ARG --non-interactive --trust-server-cert $revision" "$(pwd)"
+					svnWithErrorCheck "update --ignore-externals --accept $SVN_UPDATE_ACCEPT_ARG --non-interactive --trust-server-cert $revision" "$(pwd)"
 					if [[ "$d" == "BaseTools" ]]; then ForceEDK2Update=1979; fi
 				else
 					printWarning ".svn missing, the ${d} repo may be corrupted, re-downloading...\n"
 					cd "${DIR_MAIN}/edk2/${d}"
 					rm -rf ./* > /dev/null 2>&1
-					svnWithErrorCheck "co $revision --non-interactive --trust-server-cert $EDK2_REP/${d} ."
+					svnWithErrorCheck "co $revision --ignore-externals --non-interactive --trust-server-cert $EDK2_REP/${d} ."
 				fi
 			else
 				cd "${DIR_MAIN}"/edk2
-				svnWithErrorCheck "co $revision --non-interactive --trust-server-cert $EDK2_REP/${d}"
+				svnWithErrorCheck "co $revision --ignore-externals --non-interactive --trust-server-cert $EDK2_REP/${d}"
 			fi
 		fi
 	done
