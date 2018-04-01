@@ -29,8 +29,8 @@
 #
 
 # --------------------------------------
-SCRIPTVER="v4.7.9"
-RSCRIPT_INFO="The script now ignores all external svn repos (not needed for macOS/Linux anyway)"
+SCRIPTVER="v4.8.0"
+RSCRIPT_INFO="Sync with edk2 r26764"
 RSCRIPTVER=""
 export LC_ALL=C
 SYSNAME="$( uname )"
@@ -1630,7 +1630,7 @@ if [[ "${cus_conf}" != "Y" ]]; then
 	fi
 fi
 
-EDK2_REV="${EDK2_REV:-26300}"
+EDK2_REV="${EDK2_REV:-26764}"
 
 if [[ "${useDefaults}" == "Y" ]]; then
 	LoadDefaults
