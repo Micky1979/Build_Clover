@@ -29,8 +29,8 @@
 #
 
 # --------------------------------------
-SCRIPTVER="v4.8.1"
-RSCRIPT_INFO="Sync with edk2 r26797"
+SCRIPTVER="v4.8.2"
+RSCRIPT_INFO="Support for GCC 8.x (Clover r4455+)"
 RSCRIPTVER=""
 export LC_ALL=C
 SYSNAME="$( uname )"
@@ -1530,7 +1530,7 @@ GCC49 )
 	if [[ "$SYSNAME" == Darwin ]]; then "${DIR_MAIN}"/edk2/Clover/buildgcc-4.9.sh; fi;;
 GCC53 )
 	printHeader "BUILDTOOL is $BUILDTOOL"
-	if [[ "$SYSNAME" == Darwin ]]; then "${DIR_MAIN}"/edk2/Clover/build_gcc7.sh; fi;;
+	if [[ "$SYSNAME" == Darwin ]]; then "${DIR_MAIN}"/edk2/Clover/build_gcc8.sh; fi;;
 XCODE* ) exportXcodePaths; printHeader "BUILDTOOL is $BUILDTOOL";;
 esac
 
