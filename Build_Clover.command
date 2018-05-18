@@ -29,8 +29,8 @@
 #
 
 # --------------------------------------
-SCRIPTVER="v4.8.3"
-RSCRIPT_INFO="Sync with edk2 r27187 (Clover r4465+)"
+SCRIPTVER="v4.8.4"
+RSCRIPT_INFO="Sync with edk2 r27213 (Clover r4469+)"
 RSCRIPTVER=""
 export LC_ALL=C
 SYSNAME="$( uname )"
@@ -1630,7 +1630,7 @@ if [[ "${cus_conf}" != "Y" ]]; then
 	fi
 fi
 
-EDK2_REV="${EDK2_REV:-27187}"
+EDK2_REV="${EDK2_REV:-27213}"
 
 if [[ "${useDefaults}" == "Y" ]]; then
 	LoadDefaults
