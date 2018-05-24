@@ -29,8 +29,8 @@
 #
 
 # --------------------------------------
-SCRIPTVER="v4.8.4"
-RSCRIPT_INFO="Sync with edk2 r27213 (Clover r4469+)"
+SCRIPTVER="v4.8.5"
+RSCRIPT_INFO="Sync with edk2 r27233 (Clover r4496+). Some fixes."
 RSCRIPTVER=""
 export LC_ALL=C
 SYSNAME="$( uname )"
@@ -1596,8 +1596,14 @@ if [[ "$SYSNAME" == Darwin ]]; then
 		cd "${DIR_MAIN}"/edk2/Clover/CloverPackage
 		if [[ "$FORCEREBUILD" == "-fr" ]]; then make clean; fi
 	fi
-	if [[ "$BUILD_PKG" == YES ]]; then printHeader 'MAKE PKG'; CheckProprietary; eval "$MAKEPKG_CMD"; fi
-	if [[ "$BUILD_ISO" == YES ]]; then printHeader 'MAKE ISO'; make iso; fi
+	if [[ "$BUILD_PKG" == YES ]]; then
+		printHeader 'MAKE PKG'; CheckProprietary; eval "$MAKEPKG_CMD"
+		if [[ $? -ne 0 ]]; then printError "\no_Ops, MAKE PKG exited with error(s), aborting..\n"; exit 1; fi
+	fi
+	if [[ "$BUILD_ISO" == YES ]]; then
+		printHeader 'MAKE ISO'; make iso
+		if [[ $? -ne 0 ]]; then printError "\no_Ops, MAKE ISO exited with error(s), aborting..\n"; exit 1; fi
+	fi
 else
 	OsOpen "${CLOVERV2_PATH}"
 fi
@@ -1630,7 +1636,7 @@ if [[ "${cus_conf}" != "Y" ]]; then
 	fi
 fi
 
-EDK2_REV="${EDK2_REV:-27213}"
+EDK2_REV="${EDK2_REV:-27233}"
 
 if [[ "${useDefaults}" == "Y" ]]; then
 	LoadDefaults
