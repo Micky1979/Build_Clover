@@ -685,8 +685,7 @@ if [[ "$XCODE" == "" ]]; then
 	case "$xcversion" in
 		[1-6]* | 7 | 7.[0-2]*) XCODE="XCODE5"; LTO_FLAG="--no-lto";;
 		7.[34]*) XCODE="XCODE5";;
-		8*) XCODE="XCODE8";;
-		9*) XCODE="XCODE8";;
+		[89]* | 10*) XCODE="XCODE8";;
 		*) printError "Unknown Xcode version format, exiting!\n"; exit 1;;
 	esac
 fi
@@ -1209,16 +1208,10 @@ if [[ "$SYSNAME" == Darwin ]]; then
 	printHeader "mtoc check:"
 	if [[ ! -x "${TOOLCHAIN_DIR}/bin/mtoc.NEW" ]]; then
 		printWarning "mtoc not found, installing...\n"
-		local mtocpath="$DIR_MAIN/edk2/Clover/BuildTools/usr/local/bin"
-		if [[ -f "${mtocpath}/mtoc.NEW.zip" ]]; then
-			unzip -qo "${mtocpath}/mtoc.NEW.zip" -d "${TOOLCHAIN_DIR}/bin/"
-		fi
+		doSomething --run-script "${DIR_MAIN}"/edk2/Clover/buildmtoc.sh
 		echo "mtoc successfully installed in ${TOOLCHAIN_DIR}/bin."
 	else
 		echo "mtoc found in ${TOOLCHAIN_DIR}/bin."
-	fi
-	if [[ ! -h "${TOOLCHAIN_DIR}/bin/mtoc" ]]; then
-		ln -sf "${TOOLCHAIN_DIR}/bin/mtoc.NEW" "${TOOLCHAIN_DIR}/bin/mtoc"
 	fi
 	export MTOC_PREFIX="${TOOLCHAIN_DIR}/bin/"
 	printThickLine; echo
@@ -1527,10 +1520,10 @@ set -e
 case "$BUILDTOOL" in
 GCC49 )
 	printHeader "BUILDTOOL is $BUILDTOOL"
-	if [[ "$SYSNAME" == Darwin ]]; then "${DIR_MAIN}"/edk2/Clover/buildgcc-4.9.sh; fi;;
+	if [[ "$SYSNAME" == Darwin ]]; then doSomething --run-script "${DIR_MAIN}"/edk2/Clover/buildgcc-4.9.sh; fi;;
 GCC53 )
 	printHeader "BUILDTOOL is $BUILDTOOL"
-	if [[ "$SYSNAME" == Darwin ]]; then "${DIR_MAIN}"/edk2/Clover/build_gcc8.sh; fi;;
+	if [[ "$SYSNAME" == Darwin ]]; then doSomething --run-script "${DIR_MAIN}"/edk2/Clover/build_gcc8.sh; fi;;
 XCODE* ) exportXcodePaths; printHeader "BUILDTOOL is $BUILDTOOL";;
 esac
 
