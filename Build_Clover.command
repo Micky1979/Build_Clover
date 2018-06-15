@@ -890,6 +890,33 @@ fi
 build -a X64 -b RELEASE -t $BUILDTOOL -n $ncpu -p "${DIR_MAIN}"/edk2/AptioFixPkg/AptioFixPkg.dsc
 cd "${DIR_MAIN}"/edk2/Clover
 }
+
+buildApfsSupportPkg() {
+if [[ ! -d "${DIR_MAIN}"/edk2/ApfsSupportPkg ]] ; then 
+	git clone https://github.com/acidanthera/ApfsSupportPkg.git "${DIR_MAIN}"/edk2/ApfsSupportPkg
+else
+	cd "${DIR_MAIN}"/edk2/ApfsSupportPkg && git pull && cd -
+fi
+
+if [[ "${Build_Tool}" != "XCODE" ]]; then
+	return  # cannot be compiled with GNU gcc atm
+fi
+cd "${DIR_MAIN}"/edk2
+source edksetup.sh BaseTools
+# Create edk tools if necessary
+if [[ ! -x "${DIR_MAIN}/edk2/BaseTools/Source/C/bin/GenFv" ]]; then
+	make -C "${DIR_MAIN}"/edk2/BaseTools CC="gcc -Wno-deprecated-declarations"
+fi
+
+local ncpu=2
+if [[ "$SYSNAME" == Linux ]]; then
+	ncpu=$(( $(nproc) + 1 ))
+else
+	ncpu=$(( $(sysctl -n hw.logicalcpu) + 1 ))
+fi
+build -a X64 -b RELEASE -t $BUILDTOOL -n $ncpu -p "${DIR_MAIN}"/edk2/ApfsSupportPkg/ApfsSupportPkg.dsc
+cd "${DIR_MAIN}"/edk2/Clover
+}
 # --------------------------------------
 edk2() {
 local revision="-r $EDK2_REV"
@@ -1546,6 +1573,7 @@ if [[ "$SYSNAME" == Darwin ]]; then LTO_FLAG=""; fi
 
 set +e
 buildAptioFixPkg
+buildApfsSupportPkg
 if [[ "$CUSTOM_BUILD" == NO ]]; then
 	# using standard options
 	case "$ARCH" in
