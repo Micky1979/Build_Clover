@@ -29,8 +29,8 @@
 #
 
 # --------------------------------------
-SCRIPTVER="v4.8.6"
-RSCRIPT_INFO="Sync with edk2 r27295 (Clover r4532+)."
+SCRIPTVER="v4.8.7"
+RSCRIPT_INFO="Support for buildmtoc.sh, Xcode 10 and ApfsSupportPkg"
 RSCRIPTVER=""
 export LC_ALL=C
 SYSNAME="$( uname )"
@@ -71,11 +71,12 @@ edk2array=(
 	BaseTools
 	)
 
-AptioFixDep=(
+ThirdPartyList=(
 	https://github.com/vit9696/AptioFixPkg.git
 	https://github.com/CupertinoNet/CupertinoModulePkg
 	https://github.com/CupertinoNet/EfiMiscPkg
 	https://github.com/CupertinoNet/EfiPkg
+	https://github.com/acidanthera/ApfsSupportPkg.git
 )
 # ---------------------------->
 # additional macro to compile Clover EFI
@@ -831,13 +832,13 @@ fi
 return $result
 }
 # --------------------------------------
-AptioFixPkg() {
+downloadThirdParty() {
 if [[ "${Build_Tool}" != "XCODE" ]]; then
 	return # cannot be compiled with GNU gcc atm
 fi
-printHeader 'Downloading AptioFixPkg and dependencies'
+printHeader 'Downloading the third party EFI drivers and their dependencies'
 
-for link in "${AptioFixDep[@]}"
+for link in "${ThirdPartyList[@]}"
 do
 	local x=$(basename $link)
 	local c="${x%.git}"
@@ -869,7 +870,7 @@ done
 ClearScreen
 }
 
-buildAptioFixPkg() {
+buildThirdPartyEFI() {
 if [[ "${Build_Tool}" != "XCODE" ]]; then
 	return  # cannot be compiled with GNU gcc atm
 fi
@@ -886,7 +887,9 @@ if [[ "$SYSNAME" == Linux ]]; then
 else
 	ncpu=$(( $(sysctl -n hw.logicalcpu) + 1 ))
 fi
-build -a X64 -b RELEASE -t $BUILDTOOL -n $ncpu -p "${DIR_MAIN}"/edk2/AptioFixPkg/AptioFixPkg.dsc
+for driver in "AptioFixPkg" "ApfsSupportPkg"; do
+	build -a X64 -b RELEASE -t $BUILDTOOL -n $ncpu -p "${DIR_MAIN}"/edk2/"${driver}"/"${driver}".dsc
+done
 cd "${DIR_MAIN}"/edk2/Clover
 }
 # --------------------------------------
@@ -965,7 +968,9 @@ else
 		echo
 		if [[ -d "${DIR_MAIN}/edk2/Clover" ]]; then cd "${DIR_MAIN}/edk2/Clover"; ./ebuild.sh cleanall -t $BUILDTOOL; fi
 		if [[ -d "${DIR_MAIN}/edk2/Clover/CloverPackage" ]]; then cd "${DIR_MAIN}/edk2/Clover/CloverPackage"; make clean; fi
-		if [[ -d "${DIR_MAIN}/edk2/Build/AptioFixPkg" ]]; then rm -rf "${DIR_MAIN}/edk2/Build/AptioFixPkg"; fi
+		for tpdrv in "AptioFixPkg" "ApfsSupportPkg"; do
+			if [[ -d "${DIR_MAIN}/edk2/Build/${tpdrv}" ]]; then rm -rf "${DIR_MAIN}/edk2/Build/${tpdrv}"; fi
+		done
 		FORCEREBUILD="-fr"
 	fi
 	ForceEDK2Update=0
@@ -1503,7 +1508,7 @@ if [[ "$UPDATE_FLAG" == YES && "$BUILDER" != 'slice' ]]; then
 	getRev
 	edk2
 	clover
-	AptioFixPkg
+	downloadThirdParty
 fi
 
 if [[ "$INTERACTIVE" != "NO" ]]; then
@@ -1538,7 +1543,7 @@ START_BUILD=$(date)
 if [[ "$SYSNAME" == Darwin ]]; then LTO_FLAG=""; fi
 
 set +e
-buildAptioFixPkg
+buildThirdPartyEFI
 if [[ "$CUSTOM_BUILD" == NO ]]; then
 	# using standard options
 	case "$ARCH" in
