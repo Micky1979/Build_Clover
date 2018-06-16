@@ -29,8 +29,8 @@
 #
 
 # --------------------------------------
-SCRIPTVER="v4.8.7"
-RSCRIPT_INFO="Support for buildmtoc.sh, Xcode 10 and ApfsSupportPkg"
+SCRIPTVER="v4.8.8"
+RSCRIPT_INFO="Fixed the Xcode 10 detection."
 RSCRIPTVER=""
 export LC_ALL=C
 SYSNAME="$( uname )"
@@ -684,7 +684,7 @@ if [[ ! -x /usr/bin/xcodebuild ]]; then printError "xcodebuild not found, exitin
 if [[ "$XCODE" == "" ]]; then
 	local xcversion=$(/usr/bin/xcodebuild -version | grep 'Xcode' | awk '{print $NF}')
 	case "$xcversion" in
-		[1-6]* | 7 | 7.[0-2]*) XCODE="XCODE5"; LTO_FLAG="--no-lto";;
+		[4-7] | [4-6].* | 7.[0-2]*) XCODE="XCODE5"; LTO_FLAG="--no-lto";;
 		7.[34]*) XCODE="XCODE5";;
 		[89]* | 10*) XCODE="XCODE8";;
 		*) printError "Unknown Xcode version format, exiting!\n"; exit 1;;
@@ -1208,7 +1208,7 @@ if [[ "$SYSNAME" == Darwin ]]; then
 		# but buildgettext.sh think that is already downloaded and will try to decompress this incomplete archive, always failing!
 		# That's why we remove the archive!
 		if [[ -f "${DIR_DOWNLOADS}"/gettext-latest.tar.gz ]]; then rm -f "${DIR_DOWNLOADS}"/gettext-latest.tar.gz; fi
-		"${DIR_MAIN}"/edk2/Clover/buildgettext.sh
+		doSomething --run-script "${DIR_MAIN}"/edk2/Clover/buildgettext.sh
 	fi
 	printHeader "mtoc check:"
 	if [[ ! -x "${TOOLCHAIN_DIR}/bin/mtoc.NEW" ]]; then
