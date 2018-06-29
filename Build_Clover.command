@@ -29,8 +29,8 @@
 #
 
 # --------------------------------------
-SCRIPTVER="v4.8.8"
-RSCRIPT_INFO="Fixed the Xcode 10 detection."
+SCRIPTVER="v4.8.9"
+RSCRIPT_INFO="Sync with edk2 r27429."
 RSCRIPTVER=""
 export LC_ALL=C
 SYSNAME="$( uname )"
@@ -1634,7 +1634,7 @@ if [[ "${cus_conf}" != "Y" ]]; then
 	fi
 fi
 
-EDK2_REV="${EDK2_REV:-27295}"
+EDK2_REV="${EDK2_REV:-27429}"
 
 if [[ "${useDefaults}" == "Y" ]]; then
 	LoadDefaults
