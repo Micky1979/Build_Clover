@@ -29,8 +29,8 @@
 #
 
 # --------------------------------------
-SCRIPTVER="v4.8.8"
-RSCRIPT_INFO="Fixed the Xcode 10 detection."
+SCRIPTVER="v4.8.9"
+RSCRIPT_INFO="Sync with edk2 r27429."
 RSCRIPTVER=""
 export LC_ALL=C
 SYSNAME="$( uname )"
@@ -113,8 +113,8 @@ var_defaults=(
 	"USEAPFS",,,"NO"
 	"USENTFS",,,"NO"
 	"GITHUB",,,"https://raw.githubusercontent.com/Micky1979/Build_Clover/master/Build_Clover.command"
-	"CLOVER_REP",,,"svn://svn.code.sf.net/p/cloverefiboot/code"
-	"EDK2_REP",,,"svn://svn.code.sf.net/p/edk2/code/trunk/edk2"
+	"CLOVER_REP",,,"https://svn.code.sf.net/p/cloverefiboot/code"
+	"EDK2_REP",,,"https://svn.code.sf.net/p/edk2/code/trunk/edk2"
 	"DISABLE_CLEAR",,,"NO"
 	"MY_SCRIPT",,,
 	"FAST_UPDATE",,,"NO"
@@ -1634,7 +1634,7 @@ if [[ "${cus_conf}" != "Y" ]]; then
 	fi
 fi
 
-EDK2_REV="${EDK2_REV:-27295}"
+EDK2_REV="${EDK2_REV:-27429}"
 
 if [[ "${useDefaults}" == "Y" ]]; then
 	LoadDefaults
