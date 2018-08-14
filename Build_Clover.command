@@ -76,7 +76,7 @@ ThirdPartyList=(
 	https://github.com/CupertinoNet/CupertinoModulePkg
 	https://github.com/CupertinoNet/EfiMiscPkg
 	https://github.com/CupertinoNet/EfiPkg
-	https://github.com/acidanthera/ApfsSupportPkg.git
+	https://github.com/acidanthera/AppleSupportPkg.git
 )
 # ---------------------------->
 # additional macro to compile Clover EFI
@@ -887,7 +887,7 @@ if [[ "$SYSNAME" == Linux ]]; then
 else
 	ncpu=$(( $(sysctl -n hw.logicalcpu) + 1 ))
 fi
-for driver in "AptioFixPkg" "ApfsSupportPkg"; do
+for driver in "AptioFixPkg" "AppleSupportPkg"; do
 	build -a X64 -b RELEASE -t $BUILDTOOL -n $ncpu -p "${DIR_MAIN}"/edk2/"${driver}"/"${driver}".dsc
 done
 cd "${DIR_MAIN}"/edk2/Clover
@@ -968,7 +968,7 @@ else
 		echo
 		if [[ -d "${DIR_MAIN}/edk2/Clover" ]]; then cd "${DIR_MAIN}/edk2/Clover"; ./ebuild.sh cleanall -t $BUILDTOOL; fi
 		if [[ -d "${DIR_MAIN}/edk2/Clover/CloverPackage" ]]; then cd "${DIR_MAIN}/edk2/Clover/CloverPackage"; make clean; fi
-		for tpdrv in "AptioFixPkg" "ApfsSupportPkg"; do
+		for tpdrv in "AptioFixPkg" "AppleSupportPkg"; do
 			if [[ -d "${DIR_MAIN}/edk2/Build/${tpdrv}" ]]; then rm -rf "${DIR_MAIN}/edk2/Build/${tpdrv}"; fi
 		done
 		FORCEREBUILD="-fr"
