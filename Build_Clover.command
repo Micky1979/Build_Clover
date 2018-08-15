@@ -29,8 +29,8 @@
 #
 
 # --------------------------------------
-SCRIPTVER="v4.9.0"
-RSCRIPT_INFO="GH edk2 repo support. ApfsSupportPkg to AppleSupportPkg"
+SCRIPTVER="v4.9.1"
+RSCRIPT_INFO="Fixes"
 RSCRIPTVER=""
 export LC_ALL=C
 SYSNAME="$( uname )"
@@ -465,10 +465,6 @@ local Unknown="\e[1;31munknown"
 [[ -z "$REMOTE_EDK2_REV" ]] && EDK2_Remote="$Unknown" || EDK2_Remote="$REMOTE_EDK2_REV"
 [[ -z "$LOCAL_EDK2_REV" ]] && EDK2_Local="$Unknown" || EDK2_Local="$LOCAL_EDK2_REV"
 
-if [[ "${EDK2_REP}" == "https://github.com/tianocore/edk2/trunk" ]]; then
-	EDK2_Remote="$(( EDK2_Remote - 10084 ))"; EDK2_Local="$(( EDK2_Local - 10084 ))"
-fi
-
 # Coloring the local revisions green (if they're equal to the remote revisions) or yellow (if they're not)
 [[ "${Clover_Local}" == "${Clover_Remote}" ]] && Clover_Remote="\e[1;32m${Clover_Remote}" || Clover_Remote="\e[1;33m${Clover_Remote}"
 [[ "${EDK2_Local}" == "${EDK2_Remote}" ]] && EDK2_Remote="\e[1;32m${EDK2_Remote}" || EDK2_Remote="\e[1;33m${EDK2_Remote}"
@@ -488,11 +484,10 @@ echo
 if [[ "${cus_edk2}" == "Y" ]]; then
 	printWarning "User-provided EDK2 revision: ${EDK2_REV}\n\n"
 fi
-[[ "${EDK2_REP}" == "https://github.com/tianocore/edk2/trunk" ]] && SUGG_REV="$(( EDK2_REV - 10084 ))" || SUGG_REV="S{EDK2_REV}"
 if [[ "${LOCAL_EDK2_REV}" == "${EDK2_REV}" ]]; then
-	printMessage "The current local EDK2 revision is the suggested one (${SUGG_REV})."
+	printMessage "The current local EDK2 revision is the suggested one (${EDK2_REV})."
 else
-	printWarning "\e[5mThe current local EDK2 revision is not the suggested one (${SUGG_REV})!"
+	printWarning "\e[5mThe current local EDK2 revision is not the suggested one (${EDK2_REV})!"
 	printWarning "\nIt's recommended to change it to the suggested one,"
 	printWarning "\nusing the \e[1;32mupdate Clover + force edk2 update\e[1;33m option!"
 fi
@@ -1304,14 +1299,7 @@ if [[ -d "${DIR_MAIN}/edk2/Clover/.svn" && "$INTERACTIVE" != "NO" ]] ; then
 		options+=("update Clover + force edk2 update (no building)")
 	fi
 	if [[ "$BUILDER" == 'slice' ]]; then
-		if [[ "${EDK2_REP}" == "https://github.com/tianocore/edk2/trunk" ]]; then
-			UEDK="$(( EDK2_REV - 10084))"
-			REDK="$(( REMOTE_EDK2_REV - 10084))"
-		else
-			UEDK="${EDK2_REV}"
-			REDK="${REMOTE_EDK2_REV}"
-		fi
-		printf "   \e[1;97;104m EDK2 revision used r$UEDK latest avaiable is r$REDK \e[0m\n"
+		printf "   \e[1;97;104m EDK2 revision used r$EDK2_REV latest avaiable is r$REMOTE_EDK2_REV \e[0m\n"
 		set +e
 		options+=("build with ./ebuild.sh -nb")
 		options+=("build with ./ebuild.sh --module=rEFIt_UEFI/refit.inf")
@@ -1655,9 +1643,6 @@ elif [[ -f "$userconf" ]]; then
 else
 	CreateDefaultConf
 	ReadConf
-fi
-if [[ "${EDK2_REP}" == "https://github.com/tianocore/edk2/trunk" ]]; then
-	EDK2_REV="$(( EDK2_REV + 10084 ))"
 fi
 
 initialChecks
