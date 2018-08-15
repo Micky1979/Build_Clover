@@ -29,8 +29,8 @@
 #
 
 # --------------------------------------
-SCRIPTVER="v4.9.0"
-RSCRIPT_INFO="GH edk2 repo support. ApfsSupportPkg to AppleSupportPkg"
+SCRIPTVER="v4.9.1"
+RSCRIPT_INFO="Fixes"
 RSCRIPTVER=""
 export LC_ALL=C
 SYSNAME="$( uname )"
