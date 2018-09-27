@@ -29,8 +29,8 @@
 #
 
 # --------------------------------------
-SCRIPTVER="v4.9.1"
-RSCRIPT_INFO="Fixes"
+SCRIPTVER="v4.9.2"
+RSCRIPT_INFO="Sync with EDK2 r27956"
 RSCRIPTVER=""
 export LC_ALL=C
 SYSNAME="$( uname )"
@@ -888,6 +888,7 @@ else
 	ncpu=$(( $(sysctl -n hw.logicalcpu) + 1 ))
 fi
 for driver in "AptioFixPkg" "AppleSupportPkg"; do
+	echo; printHeader "Building ${driver}"; echo
 	build -a X64 -b RELEASE -t $BUILDTOOL -n $ncpu -p "${DIR_MAIN}"/edk2/"${driver}"/"${driver}".dsc
 done
 cd "${DIR_MAIN}"/edk2/Clover
@@ -1546,6 +1547,7 @@ set +e
 buildThirdPartyEFI
 if [[ "$CUSTOM_BUILD" == NO ]]; then
 	# using standard options
+	printHeader "Building Clover"
 	case "$ARCH" in
 	IA32_X64 )
 		printHeader 'boot6'
@@ -1634,7 +1636,7 @@ if [[ "${cus_conf}" != "Y" ]]; then
 	fi
 fi
 
-EDK2_REV="${EDK2_REV:-27429}"
+EDK2_REV="${EDK2_REV:-27956}"
 
 if [[ "${useDefaults}" == "Y" ]]; then
 	LoadDefaults
