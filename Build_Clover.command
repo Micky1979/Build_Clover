@@ -29,8 +29,8 @@
 #
 
 # --------------------------------------
-SCRIPTVER="v4.9.2"
-RSCRIPT_INFO="Sync with EDK2 r27956"
+SCRIPTVER="v4.9.3"
+RSCRIPT_INFO="Updated the third-party drivers list (links)"
 RSCRIPTVER=""
 export LC_ALL=C
 SYSNAME="$( uname )"
@@ -73,9 +73,8 @@ edk2array=(
 
 ThirdPartyList=(
 	https://github.com/vit9696/AptioFixPkg.git
-	https://github.com/CupertinoNet/CupertinoModulePkg
-	https://github.com/CupertinoNet/EfiMiscPkg
-	https://github.com/CupertinoNet/EfiPkg
+	https://github.com/acidanthera/OcSupportPkg
+	https://github.com/acidanthera/EfiPkg
 	https://github.com/acidanthera/AppleSupportPkg.git
 )
 # ---------------------------->
