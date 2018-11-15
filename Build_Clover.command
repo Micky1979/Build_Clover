@@ -29,8 +29,8 @@
 #
 
 # --------------------------------------
-SCRIPTVER="v4.9.3"
-RSCRIPT_INFO="Updated the third-party drivers list (links)"
+SCRIPTVER="v4.9.4"
+RSCRIPT_INFO="Sync with EDK2 r28338"
 RSCRIPTVER=""
 export LC_ALL=C
 SYSNAME="$( uname )"
@@ -72,7 +72,7 @@ edk2array=(
 	)
 
 ThirdPartyList=(
-	https://github.com/vit9696/AptioFixPkg.git
+	https://github.com/acidanthera/AptioFixPkg.git
 	https://github.com/acidanthera/OcSupportPkg
 	https://github.com/acidanthera/EfiPkg
 	https://github.com/acidanthera/AppleSupportPkg.git
@@ -1635,7 +1635,7 @@ if [[ "${cus_conf}" != "Y" ]]; then
 	fi
 fi
 
-EDK2_REV="${EDK2_REV:-27956}"
+EDK2_REV="${EDK2_REV:-28338}"
 
 if [[ "${useDefaults}" == "Y" ]]; then
 	LoadDefaults
