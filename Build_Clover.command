@@ -29,8 +29,8 @@
 #
 
 # --------------------------------------
-SCRIPTVER="v4.9.4"
-RSCRIPT_INFO="Sync with EDK2 r28338"
+SCRIPTVER="v4.9.5"
+RSCRIPT_INFO="DuetPkg removed from EDK2"
 RSCRIPTVER=""
 export LC_ALL=C
 SYSNAME="$( uname )"
@@ -59,7 +59,6 @@ edk2array=(
 	MdePkg
 	MdeModulePkg
 	CryptoPkg
-	DuetPkg
 	EdkCompatibilityPkg
 	IntelFrameworkModulePkg
 	IntelFrameworkPkg
