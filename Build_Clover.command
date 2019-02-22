@@ -29,8 +29,8 @@
 #
 
 # --------------------------------------
-SCRIPTVER="v4.9.5"
-RSCRIPT_INFO="DuetPkg removed from EDK2"
+SCRIPTVER="v4.9.6"
+RSCRIPT_INFO="sync edk2 svn r28892"
 RSCRIPTVER=""
 export LC_ALL=C
 SYSNAME="$( uname )"
@@ -1634,7 +1634,7 @@ if [[ "${cus_conf}" != "Y" ]]; then
 	fi
 fi
 
-EDK2_REV="${EDK2_REV:-28338}"
+EDK2_REV="${EDK2_REV:-28892}"
 
 if [[ "${useDefaults}" == "Y" ]]; then
 	LoadDefaults
