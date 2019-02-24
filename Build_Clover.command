@@ -29,8 +29,8 @@
 #
 
 # --------------------------------------
-SCRIPTVER="v4.9.6"
-RSCRIPT_INFO="sync edk2 svn r28892"
+SCRIPTVER="v4.9.7"
+RSCRIPT_INFO="nasm version updated to 2.14.02"
 RSCRIPTVER=""
 export LC_ALL=C
 SYSNAME="$( uname )"
@@ -38,7 +38,7 @@ BUILDER=$USER # don't touch!
 # ---------------------------->
 # default behavior (don't touch these vars)
 BuildCloverRepo="https://github.com/Micky1979/Build_Clover.git"
-NASM_PREFERRED="2.13.03"
+NASM_PREFERRED="2.14.02"
 MAKEPKG_CMD="make pkg"
 LTO_FLAG="" # default for Xcode >= 7.3, will automatically adjusted for older ones
 MOD_PKG_FLAG="YES" # used only when you add custom macros. Does nothing for normal build.
