@@ -30,7 +30,7 @@
 
 # --------------------------------------
 SCRIPTVER="v4.9.7"
-RSCRIPT_INFO="nasm version updated to 2.14.02"
+RSCRIPT_INFO="sync edk2 svn r28976 (tagged as edk2-stable201903)"
 RSCRIPTVER=""
 export LC_ALL=C
 SYSNAME="$( uname )"
@@ -1634,7 +1634,7 @@ if [[ "${cus_conf}" != "Y" ]]; then
 	fi
 fi
 
-EDK2_REV="${EDK2_REV:-28892}"
+EDK2_REV="${EDK2_REV:-28976}"
 
 if [[ "${useDefaults}" == "Y" ]]; then
 	LoadDefaults
