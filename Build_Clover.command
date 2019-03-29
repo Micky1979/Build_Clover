@@ -31,7 +31,7 @@ PS4='Line ${LINENO}:'
 #
 
 # --------------------------------------
-SCRIPTVER="v4.9.9"
+SCRIPTVER="v5.0.0"
 RSCRIPT_INFO="sync edk2 svn r28976 (tagged as edk2-stable201903)"
 RSCRIPTVER=""
 export LC_ALL=C
@@ -1527,7 +1527,7 @@ case "$BUILDTOOL" in
 GCC49|GCC53)
 	printHeader "BUILDTOOL is $BUILDTOOL"
 	GCCVER={"BUILDTOOL:4:1}"
-	if [ $GCCVER == 4]; then GCCVER=4.9; fi;
+	if [ $GCCVER == 4 ]; then GCCVER=4.9; fi
 	if [[ "$SYSNAME" == Darwin ]]; then doSomething --run-script "${DIR_MAIN}"/edk2/Clover/buildgcc-$GCCVER.sh; fi;;
 XCODE* ) exportXcodePaths; printHeader "BUILDTOOL is $BUILDTOOL";;
 esac
