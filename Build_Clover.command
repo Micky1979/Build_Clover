@@ -1,6 +1,8 @@
 #!/bin/bash
-#set -x
-
+#set -x # for DEBUGGING
+#print line numbers for DEBUGGING
+PS4='Line ${LINENO}:'
+#
 # made by Micky1979 on 07/05/2016 based on Slice, apianti, Zenith432, STLVNUB, JrCs, cvad, Rehabman, and ErmaC works
 
 # Tested in OSX using both GNU gcc and clang (Xcode 6.4, 7.2.1, 7.3.1 and Xcode 8).
@@ -29,7 +31,7 @@
 #
 
 # --------------------------------------
-SCRIPTVER="v4.9.8"
+SCRIPTVER="v4.9.9"
 RSCRIPT_INFO="sync edk2 svn r28976 (tagged as edk2-stable201903)"
 RSCRIPTVER=""
 export LC_ALL=C
@@ -54,12 +56,10 @@ DOWNLOADER_PATH=""
 SELF_UPDATE_OPT="NO" # show hide selfUpdate option
 PING_RESPONSE="NO" # show hide option with connection dependency
 REMOTE_EDK2_REV="" # info for developer submenu this mean to show latest rev avaiable
-
 edk2array=(
 	MdePkg
 	MdeModulePkg
 	CryptoPkg
-	EdkCompatibilityPkg
 	IntelFrameworkModulePkg
 	IntelFrameworkPkg
 	OvmfPkg
@@ -69,7 +69,6 @@ edk2array=(
 	UefiCpuPkg
 	BaseTools
 	)
-
 ThirdPartyList=(
 	https://github.com/acidanthera/AptioFixPkg.git
 	https://github.com/acidanthera/OcSupportPkg
@@ -939,7 +938,8 @@ else
 	IsLinkOnline $EDK2_REP/edksetup.sh
 	svnWithErrorCheck "update --accept $SVN_UPDATE_ACCEPT_ARG --non-interactive --trust-server-cert $revision edksetup.sh" "$(pwd)"
 	for d in "${edk2array[@]}"
-	do
+	do 
+	   if [ "$d" != "EdkCompatibilityPkg" ]; then
 		if [[ "$d" != "Source" && "$d" != "Scripts" ]]; then
 			printf "\n\e[1;34m${d}:\e[0m\n"
 			TIMES=0
@@ -961,6 +961,7 @@ else
 				svnWithErrorCheck "co $revision --ignore-externals --non-interactive --trust-server-cert $EDK2_REP/${d}"
 			fi
 		fi
+	  fi	
 	done
 	if [[ "$ForceEDK2Update" -eq "1979" ]]; then
 		printHeader "cleaning BaseTools and Clover / Clover Package"
@@ -1274,6 +1275,7 @@ fi
 }
 # --------------------------------------
 cbuild() {
+printf "\e[1;32mBuilding with \e[1;31m $BUILDTOOL\n"
 if [[ -d "${DIR_MAIN}/edk2/Clover/.svn" && "$INTERACTIVE" != "NO" ]] ; then
 	echo 'Please enter your choice: '
 	local options=()
@@ -1522,12 +1524,11 @@ fi
 set -e
 
 case "$BUILDTOOL" in
-GCC49 )
+GCC49|GCC53)
 	printHeader "BUILDTOOL is $BUILDTOOL"
-	if [[ "$SYSNAME" == Darwin ]]; then doSomething --run-script "${DIR_MAIN}"/edk2/Clover/buildgcc-4.9.sh; fi;;
-GCC53 )
-	printHeader "BUILDTOOL is $BUILDTOOL"
-	if [[ "$SYSNAME" == Darwin ]]; then doSomething --run-script "${DIR_MAIN}"/edk2/Clover/build_gcc8.sh; fi;;
+	GCCVER={"BUILDTOOL:4:1}"
+	if [ $GCCVER == 4]; then GCCVER=4.9; fi;
+	if [[ "$SYSNAME" == Darwin ]]; then doSomething --run-script "${DIR_MAIN}"/edk2/Clover/buildgcc-$GCCVER.sh; fi;;
 XCODE* ) exportXcodePaths; printHeader "BUILDTOOL is $BUILDTOOL";;
 esac
 
