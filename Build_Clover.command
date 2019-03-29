@@ -31,7 +31,7 @@ PS4='Line ${LINENO}:'
 #
 
 # --------------------------------------
-SCRIPTVER="v5.0.0"
+SCRIPTVER="v5.0.1"
 RSCRIPT_INFO="sync edk2 svn r28976 (tagged as edk2-stable201903)"
 RSCRIPTVER=""
 export LC_ALL=C
@@ -939,7 +939,6 @@ else
 	svnWithErrorCheck "update --accept $SVN_UPDATE_ACCEPT_ARG --non-interactive --trust-server-cert $revision edksetup.sh" "$(pwd)"
 	for d in "${edk2array[@]}"
 	do 
-	   if [ "$d" != "EdkCompatibilityPkg" ]; then
 		if [[ "$d" != "Source" && "$d" != "Scripts" ]]; then
 			printf "\n\e[1;34m${d}:\e[0m\n"
 			TIMES=0
@@ -961,7 +960,6 @@ else
 				svnWithErrorCheck "co $revision --ignore-externals --non-interactive --trust-server-cert $EDK2_REP/${d}"
 			fi
 		fi
-	  fi	
 	done
 	if [[ "$ForceEDK2Update" -eq "1979" ]]; then
 		printHeader "cleaning BaseTools and Clover / Clover Package"
@@ -1498,6 +1496,8 @@ if [[ "${Build_Tool}" == "GNU" ]]; then
 		printf "\e[1;34m%s\e[0m" "$(${DIR_MAIN}/opt/local/cross/bin/x86_64-clover-linux-gnu-gcc -v 2>&1)"
 	else
 		printWarning "GNU toolchain not found or incomplete!!!"
+		# in that case we rm the tool folder and force a rebuild
+		rm -rf "${DIR_MAIN}/opt"
 	fi
 else
 	printf "\e[1;34m%s\e[0m" "$(gcc -v 2>&1)"
@@ -1521,17 +1521,17 @@ if [[ "$INTERACTIVE" != "NO" ]]; then
 	fi
 fi
 
-set -e
+set -e 
 
 case "$BUILDTOOL" in
 GCC49|GCC53)
 	printHeader "BUILDTOOL is $BUILDTOOL"
-	GCCVER={"BUILDTOOL:4:1}"
-	if [ $GCCVER == 4 ]; then GCCVER=4.9; fi
-	if [[ "$SYSNAME" == Darwin ]]; then doSomething --run-script "${DIR_MAIN}"/edk2/Clover/buildgcc-$GCCVER.sh; fi;;
+	GCCVER="${BUILDTOOL:3:2}"
+	if [[ $GCCVER == 49 ]]; then GCCVER=4.9; else GCCVER=8; fi;
+	if [[ "$SYSNAME" == Darwin ]]; then doSomething --run-script "${DIR_MAIN}"/edk2/Clover/build_gcc${GCCVER}.sh; fi;;
 XCODE* ) exportXcodePaths; printHeader "BUILDTOOL is $BUILDTOOL";;
 esac
-
+exit
 if [[ "$BUILDER" != 'slice' ]]; then buildEssentials; cleanCloverV2; fi
 
 cd "${DIR_MAIN}"/edk2/Clover
