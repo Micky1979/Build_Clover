@@ -31,8 +31,14 @@ PS4='Line ${LINENO}:'
 #
 
 # --------------------------------------
-SCRIPTVER="v5.0.4"
+SCRIPTVER="v5.0.6"
+export BINUTILS_VERSION=binutils-2.32
 export GCC_VERSION=8.3.0
+export GMP_VERSION=gmp-6.1.2
+export MPFR_VERSION=mpfr-4.0.2
+export MPC_VERSION=mpc-1.1.0
+export ISL_VERSION=isl-0.21
+
 RSCRIPT_INFO="sync edk2 svn r28976 (tagged as edk2-stable201903)"
 RSCRIPTVER=""
 export LC_ALL=C
