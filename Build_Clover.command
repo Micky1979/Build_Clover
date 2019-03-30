@@ -31,7 +31,7 @@ PS4='Line ${LINENO}:'
 #
 
 # --------------------------------------
-SCRIPTVER="v5.0.6"
+SCRIPTVER="v5.0.7"
 export BINUTILS_VERSION=binutils-2.32
 export GCC_VERSION=8.3.0
 export GMP_VERSION=gmp-6.1.2
