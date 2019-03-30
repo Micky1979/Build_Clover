@@ -31,7 +31,7 @@ PS4='Line ${LINENO}:'
 #
 
 # --------------------------------------
-SCRIPTVER="v5.0.3"
+SCRIPTVER="v5.0.4"
 export GCC_VERSION=8.3.0
 RSCRIPT_INFO="sync edk2 svn r28976 (tagged as edk2-stable201903)"
 RSCRIPTVER=""
@@ -1497,8 +1497,9 @@ if [[ "${Build_Tool}" == "GNU" ]]; then
 		printf "\e[1;34m%s\e[0m" "$(${DIR_MAIN}/opt/local/cross/bin/x86_64-clover-linux-gnu-gcc -v 2>&1)"
 	else
 		printWarning "GNU toolchain not found or incomplete!!!"
-		# in that case we rm the tool folder and force a rebuild
+		# in that case we rm the opt & tool folder and force a rebuild
 		rm -rf "${DIR_MAIN}/opt"
+		rm -rf "${DIR_MAIN}/tools"
 	fi
 else
 	printf "\e[1;34m%s\e[0m" "$(gcc -v 2>&1)"
