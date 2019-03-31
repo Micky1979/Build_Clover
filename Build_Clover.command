@@ -31,13 +31,18 @@ PS4='Line ${LINENO}:'
 #
 
 # --------------------------------------
-SCRIPTVER="v5.0.7"
-export BINUTILS_VERSION=binutils-2.32
+SCRIPTVER="v5.1.4"
+#GCC8(.3.0)
+export GCCVERS=8
+# clean on gcc build error
+export GCC_CLEAN=Yes
 export GCC_VERSION=8.3.0
-export GMP_VERSION=gmp-6.1.2
-export MPFR_VERSION=mpfr-4.0.2
-export MPC_VERSION=mpc-1.1.0
-export ISL_VERSION=isl-0.21
+export BINUTILS_VERSION=${BINUTILS_VERSION:-binutils-2.32}
+export GMP_VERSION=${GMP_VERSION:-gmp-6.1.2}
+# Version of libraries are from ./contrib/download_prerequisites in gcc source directory
+export MPFR_VERSION=${MPFR_VERSION:-mpfr-4.0.2}
+export MPC_VERSION=${MPC_VERSION:-mpc-1.1.0}
+export ISL_VERSION=${ISL_VERSION:-isl-0.21}
 
 RSCRIPT_INFO="sync edk2 svn r28976 (tagged as edk2-stable201903)"
 RSCRIPTVER=""
@@ -1280,6 +1285,11 @@ fi
 }
 # --------------------------------------
 cbuild() {
+if [ -f "${DIR_MAIN}"/opt/local/cross/bin/x86_64-clover-linux-gnu-gcc ]; then
+	GCCVERSION=$("${DIR_MAIN}"/opt/local/cross/bin/x86_64-clover-linux-gnu-gcc -dumpversion)
+else
+	GCCVERSION="0"
+fi
 printf "\e[1;32mBuilding with \e[1;31m $BUILDTOOL\n"
 if [[ -d "${DIR_MAIN}/edk2/Clover/.svn" && "$INTERACTIVE" != "NO" ]] ; then
 	echo 'Please enter your choice: '
@@ -1503,9 +1513,11 @@ if [[ "${Build_Tool}" == "GNU" ]]; then
 		printf "\e[1;34m%s\e[0m" "$(${DIR_MAIN}/opt/local/cross/bin/x86_64-clover-linux-gnu-gcc -v 2>&1)"
 	else
 		printWarning "GNU toolchain not found or incomplete!!!"
-		# in that case we rm the opt & tool folder and force a rebuild
-		rm -rf "${DIR_MAIN}/opt"
-		rm -rf "${DIR_MAIN}/tools"
+		if [ $GCC_CLEAN == "Yes" ]; then
+			# in that case we rm the opt & tool folder and force a rebuild
+			rm -rf "${DIR_MAIN}/opt"
+			rm -rf "${DIR_MAIN}/tools"
+		fi
 	fi
 else
 	printf "\e[1;34m%s\e[0m" "$(gcc -v 2>&1)"
@@ -1532,11 +1544,9 @@ fi
 set -e 
 
 case "$BUILDTOOL" in
-GCC49|GCC53)
+GCC53)
 	printHeader "BUILDTOOL is $BUILDTOOL"
-	GCCVER="${BUILDTOOL:3:2}"
-	if [[ $GCCVER == 49 ]]; then GCCVER=4.9; else GCCVER=8; fi;
-	if [[ "$SYSNAME" == Darwin ]]; then doSomething --run-script "${DIR_MAIN}"/edk2/Clover/build_gcc${GCCVER}.sh; fi;;
+    if [[ "$SYSNAME" == Darwin ]]; then doSomething --run-script "${DIR_MAIN}"/edk2/Clover/build_gcc8.sh "$GCCVERS"; fi;;
 XCODE* ) exportXcodePaths; printHeader "BUILDTOOL is $BUILDTOOL";;
 esac
 if [[ "$BUILDER" != 'slice' ]]; then buildEssentials; cleanCloverV2; fi
