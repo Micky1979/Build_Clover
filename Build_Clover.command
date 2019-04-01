@@ -1322,7 +1322,7 @@ if [[ -d "${DIR_MAIN}/edk2/Clover/.svn" && "$INTERACTIVE" != "NO" ]] ; then
 		options+=("build binaries w/o -fr (boot6 and 7)")
 		options+=("build binaries with -fr (boot6 and 7)")
 		options+=("build boot6/7 with -fr --std-ebda")
-		if [[ "$SYSNAME" == Darwin ]]; then
+        if [[ "$SYSNAME" == Darwin ]]; then
 			options+=("build pkg")
 			options+=("build iso")
 			options+=("build pkg+iso")
@@ -1440,12 +1440,12 @@ if [[ -d "${DIR_MAIN}/edk2/Clover/.svn" && "$INTERACTIVE" != "NO" ]] ; then
 			START_BUILD=$(date)
 			printHeader 'make pkg'
 			make pkg
-			echo && printf "build started at:\n${START_BUILD}\nfinished at\n$(date)\n\nDone!\n";;
+            echo && printf "build started at:\n${START_BUILD}\nfinished at\n$(date)\n\nDone!\n";;
 		"build iso" )
 			cd "${DIR_MAIN}"/edk2/Clover/CloverPackage
 			printHeader 'make iso'
-			make iso
-			echo && printf "build started at:\n${START_BUILD}\nfinished at\n$(date)\n\nDone!\n";;
+		    make iso
+    		echo && printf "build started at:\n${START_BUILD}\nfinished at\n$(date)\n\nDone!\n";;
 		"build pkg+iso" )
 			cd "${DIR_MAIN}"/edk2/Clover/CloverPackage
 			START_BUILD=$(date)
@@ -1621,6 +1621,8 @@ if [[ "$SYSNAME" == Darwin ]]; then
 		if [[ $? -ne 0 ]]; then printError "\no_Ops, MAKE ISO exited with error(s), aborting..\n"; exit 1; fi
 	fi
 else
+    cd "${DIR_MAIN}"/edk2/Clover/CloverPackage
+    ./makeiso
 	OsOpen "${CLOVERV2_PATH}"
 fi
 
