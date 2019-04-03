@@ -289,6 +289,7 @@ exit 0
 OsOpen() {
 if [[ "$SYSNAME" == Darwin ]]; then
 	open "${1}" > /dev/null 2>&1
+	CleanExit
 else
 	if which xdg-open > /dev/null; then
 		xdg-open "${1}" > /dev/null 2>&1
