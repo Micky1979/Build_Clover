@@ -31,7 +31,7 @@ PS4='Line ${LINENO}:'
 #
 
 # --------------------------------------
-SCRIPTVER="v5.1.5"
+SCRIPTVER="v5.1.6"
 #GCC8(.3.0)
 export GCCVERS=8
 # clean on gcc build error
