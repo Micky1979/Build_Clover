@@ -31,7 +31,7 @@ PS4='Line ${LINENO}:'
 #
 
 # --------------------------------------
-SCRIPTVER="v5.1.6"
+SCRIPTVER="v5.1.7"
 #GCC8(.3.0)
 export GCCVERS=8
 # clean on gcc build error
@@ -44,7 +44,7 @@ export MPFR_VERSION=${MPFR_VERSION:-mpfr-4.0.2}
 export MPC_VERSION=${MPC_VERSION:-mpc-1.1.0}
 export ISL_VERSION=${ISL_VERSION:-isl-0.21}
 
-RSCRIPT_INFO="sync edk2 svn r28976 (tagged as edk2-stable201903)"
+RSCRIPT_INFO="OptionRomPkg and OvmfPkg removed, following Clover r4929"
 RSCRIPTVER=""
 export LC_ALL=C
 SYSNAME="$( uname )"
@@ -74,8 +74,6 @@ edk2array=(
 	CryptoPkg
 	IntelFrameworkModulePkg
 	IntelFrameworkPkg
-	OvmfPkg
-	OptionRomPkg
 	PcAtChipsetPkg
 	ShellPkg
 	UefiCpuPkg
