@@ -65,8 +65,3 @@ Please enter your choice:
 ## Other
 **Special thanks to the [InsanelyMac board](http://www.insanelymac.com/forum/topic/313240-build-clovercommand-another-script-to-build-standard-clover-or-customized/) and its members, who are testing the script and report issues.**
 
-##From STLVNUB
-Seeing as how I got BANNED from InsanelyMac for trying to get something done about the amount of SPAM that the forum was getting
-I will NOT be able to participate in any discussion as regards this brilliant script.
-I've been at IM for 12 years and quite frankly I'm a little bit pissed off.
-But I won't use this as a sounding board other than saying the Admins at IM are doing a crap of a job.
