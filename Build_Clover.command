@@ -31,7 +31,7 @@ PS4='Line ${LINENO}:'
 #
 
 # --------------------------------------
-SCRIPTVER="v5.1.7"
+SCRIPTVER="v5.1.8"
 #GCC8(.3.0)
 export GCCVERS=8
 # clean on gcc build error
@@ -44,7 +44,7 @@ export MPFR_VERSION=${MPFR_VERSION:-mpfr-4.0.2}
 export MPC_VERSION=${MPC_VERSION:-mpc-1.1.0}
 export ISL_VERSION=${ISL_VERSION:-isl-0.21}
 
-RSCRIPT_INFO="OptionRomPkg and OvmfPkg removed, following Clover r4929"
+RSCRIPT_INFO="Xcode 11 support"
 RSCRIPTVER=""
 export LC_ALL=C
 SYSNAME="$( uname )"
@@ -694,7 +694,7 @@ if [[ "$XCODE" == "" ]]; then
 	case "$xcversion" in
 		[4-7] | [4-6].* | 7.[0-2]*) XCODE="XCODE5"; LTO_FLAG="--no-lto";;
 		7.[34]*) XCODE="XCODE5";;
-		[89]* | 10*) XCODE="XCODE8";;
+		[89]* | 1*) XCODE="XCODE8";;
 		*) printError "Unknown Xcode version format, exiting!\n"; exit 1;;
 	esac
 fi
